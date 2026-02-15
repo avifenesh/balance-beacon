@@ -59,7 +59,8 @@ jobs:
           npx prisma db push
           npm run build
         env:
-          DATABASE_URL: postgresql://runner@localhost:5432/expense_track_test
+          # Password must match Setup PostgreSQL ALTER USER $(whoami) command.
+          DATABASE_URL: postgresql://runner:postgres@localhost:5432/expense_track_test
           JWT_SECRET: e2e-test-secret-key-for-jwt-signing
           JWT_REFRESH_SECRET: e2e-test-refresh-secret-key
           AUTH_SESSION_SECRET: e2e-test-session-secret-at-least-32-chars
@@ -70,7 +71,8 @@ jobs:
       - name: Seed test users
         run: npm run db:seed:e2e
         env:
-          DATABASE_URL: postgresql://runner@localhost:5432/expense_track_test
+          # Password must match Setup PostgreSQL ALTER USER $(whoami) command.
+          DATABASE_URL: postgresql://runner:postgres@localhost:5432/expense_track_test
           # TEST_USER: e2e-test@test.local / TestPassword123!
           AUTH_USER1_EMAIL: e2e-test@test.local
           AUTH_USER1_DISPLAY_NAME: E2E Test User
@@ -103,7 +105,8 @@ jobs:
           fi
           echo "Server healthy with status: $FINAL_STATUS"
         env:
-          DATABASE_URL: postgresql://runner@localhost:5432/expense_track_test
+          # Password must match Setup PostgreSQL ALTER USER $(whoami) command.
+          DATABASE_URL: postgresql://runner:postgres@localhost:5432/expense_track_test
           JWT_SECRET: e2e-test-secret-key-for-jwt-signing
           JWT_REFRESH_SECRET: e2e-test-refresh-secret-key
           AUTH_SESSION_SECRET: e2e-test-session-secret-at-least-32-chars
