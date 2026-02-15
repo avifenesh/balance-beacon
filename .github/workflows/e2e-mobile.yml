@@ -8,7 +8,15 @@ on:
     branches: [main]
     paths:
       - 'mobile/e2e/**'
+      - 'mobile/src/**'
+      - 'mobile/package.json'
+      - 'mobile/package-lock.json'
+      - 'mobile/app.json'
+      - 'src/app/api/**'
+      - 'src/lib/**'
+      - 'prisma/**'
       - '.github/workflows/e2e-mobile.yml'
+    # Scheduled runs are a backstop; PR path filters are primary regression detection.
   workflow_dispatch:
 
 # Cancel in-progress runs when a new commit is pushed
@@ -173,7 +181,18 @@ jobs:
           xcrun simctl boot "iPhone 15" || true
           xcrun simctl list devices available
 
-      - name: Run Detox tests (iOS)
+      - name: Run Detox smoke tests (iOS, PR)
+        if: github.event_name == 'pull_request'
+        working-directory: mobile
+        run: npm run e2e:test:ios:release -- --cleanup --headless --testPathPattern=smoke.e2e.ts
+        env:
+          # For mobile app connecting to backend
+          E2E_API_URL: http://localhost:3000 # DevSkim: ignore DS137138,DS162092,DS126858
+          # For test API client
+          E2E_API_BASE_URL: http://localhost:3000 # DevSkim: ignore DS137138,DS162092,DS126858
+
+      - name: Run full Detox tests (iOS, scheduled/manual)
+        if: github.event_name != 'pull_request'
         working-directory: mobile
         run: npm run e2e:test:ios:release -- --cleanup --headless
         env:
@@ -384,7 +403,32 @@ jobs:
       #     disable-animations: true
       #     script: echo "Generated AVD snapshot for caching."
 
-      - name: Run Detox tests (Android)
+      - name: Run Detox smoke tests (Android, PR)
+        if: github.event_name == 'pull_request'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 31
+          target: google_apis
+          arch: x86_64
+          avd-name: test_avd
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          working-directory: mobile
+          script: |
+            adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+            adb shell input keyevent 82
+            sleep 10
+            adb devices -l
+            npm run e2e:test:android:release -- --cleanup --headless --record-logs all --testPathPattern=smoke.e2e.ts
+        env:
+          # 10.0.2.2 is Android emulator's alias for host localhost (for mobile app)
+          E2E_API_URL: http://10.0.2.2:3000 # DevSkim: ignore DS137138,DS162092,DS126858
+          # For test API client (runs on host, not in emulator)
+          E2E_API_BASE_URL: http://localhost:3000 # DevSkim: ignore DS137138,DS162092,DS126858
+
+      - name: Run full Detox tests (Android, scheduled/manual)
+        if: github.event_name != 'pull_request'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 31
