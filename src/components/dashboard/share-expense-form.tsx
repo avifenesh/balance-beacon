@@ -288,7 +288,7 @@ export function ShareExpenseForm({
                       variant="ghost"
                       className="h-8 w-8 p-0 text-rose-400 hover:bg-rose-500/20"
                       onClick={() => handleRemoveParticipant(participant.email)}
-                      aria-label={`Remove ${participant.displayName || participant.email}`}
+                      aria-label="Remove participant"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
