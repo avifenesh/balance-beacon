@@ -207,7 +207,7 @@ describe('auth actions', () => {
         accounts: [mockAccount({ id: 'acc-1', name: 'Test1', type: 'SELF' })],
       } as never)
 
-      const result = await loginAction({ email: TEST_USER_1.email, password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: TEST_USER_1.email, password: TEST_PASSWORD })
 
       expect(result).toEqual({ success: true, data: { accountId: 'acc-1' } })
       expect(establishSession).toHaveBeenCalledWith({
@@ -237,7 +237,7 @@ describe('auth actions', () => {
         ],
       } as never)
 
-      const result = await loginAction({ email: TEST_USER_2.email, password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: TEST_USER_2.email, password: TEST_PASSWORD })
 
       expect(result).toEqual({ success: true, data: { accountId: 'acc-2' } })
       expect(establishSession).toHaveBeenCalledWith({
@@ -266,7 +266,7 @@ describe('auth actions', () => {
         ],
       } as never)
 
-      const result = await loginAction({ email: TEST_USER_2.email, password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: TEST_USER_2.email, password: TEST_PASSWORD })
 
       expect(result).toEqual({ success: true, data: { accountId: 'acc-3' } })
       expect(establishSession).toHaveBeenCalledWith({
@@ -276,14 +276,14 @@ describe('auth actions', () => {
     })
 
     it('rejects invalid email format', async () => {
-      const result = await loginAction({ email: 'not-an-email', password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: 'not-an-email', password: TEST_PASSWORD })
 
       expect('error' in result).toBe(true)
       expect(establishSession).not.toHaveBeenCalled()
     })
 
     it('rejects missing password', async () => {
-      const result = await loginAction({ email: 'test@example.com', password: '' })
+      const result = await loginAction({ csrfToken: 'mock-token', email: 'test@example.com', password: '' })
 
       expect('error' in result).toBe(true)
       expect(establishSession).not.toHaveBeenCalled()
@@ -306,7 +306,7 @@ describe('auth actions', () => {
         accounts: [mockAccount({ id: 'acc-1', name: 'Test1', type: 'SELF' })],
       } as never)
 
-      const result = await loginAction({ email: TEST_USER_1.email.toUpperCase(), password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: TEST_USER_1.email.toUpperCase(), password: TEST_PASSWORD })
 
       expect(result).toEqual({ success: true, data: { accountId: 'acc-1' } })
     })
@@ -328,7 +328,7 @@ describe('auth actions', () => {
         accounts: [mockAccount({ id: 'acc-1', name: 'Test1', type: 'SELF' })],
       } as never)
 
-      const result = await loginAction({ email: `  ${TEST_USER_1.email}  `, password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: `  ${TEST_USER_1.email}  `, password: TEST_PASSWORD })
 
       expect(result).toEqual({ success: true, data: { accountId: 'acc-1' } })
     })
@@ -336,7 +336,7 @@ describe('auth actions', () => {
     it('rejects invalid credentials', async () => {
       vi.mocked(verifyCredentials).mockResolvedValue({ valid: false })
 
-      const result = await loginAction({ email: TEST_USER_1.email, password: 'WrongPassword' })
+      const result = await loginAction({ csrfToken: 'mock-token', email: TEST_USER_1.email, password: 'WrongPassword' })
 
       expect('error' in result).toBe(true)
       if ('error' in result) {
@@ -348,7 +348,7 @@ describe('auth actions', () => {
     it('rejects unknown email', async () => {
       vi.mocked(verifyCredentials).mockResolvedValue({ valid: false })
 
-      const result = await loginAction({ email: 'unknown@example.com', password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: 'unknown@example.com', password: TEST_PASSWORD })
 
       expect('error' in result).toBe(true)
       if ('error' in result) {
@@ -374,7 +374,7 @@ describe('auth actions', () => {
         accounts: [],
       } as never)
 
-      const result = await loginAction({ email: TEST_USER_1.email, password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: TEST_USER_1.email, password: TEST_PASSWORD })
 
       expect('error' in result).toBe(true)
       if ('error' in result) {
@@ -400,7 +400,7 @@ describe('auth actions', () => {
         accounts: [mockAccount({ id: 'acc-1', name: 'Test1', type: 'SELF' })],
       } as never)
 
-      await loginAction({ email: TEST_USER_1.email, password: TEST_PASSWORD })
+      await loginAction({ csrfToken: 'mock-token', email: TEST_USER_1.email, password: TEST_PASSWORD })
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email: TEST_USER_1.email },
@@ -428,7 +428,7 @@ describe('auth actions', () => {
         ],
       } as never)
 
-      const result = await loginAction({ email: TEST_USER_2.email, password: TEST_PASSWORD })
+      const result = await loginAction({ csrfToken: 'mock-token', email: TEST_USER_2.email, password: TEST_PASSWORD })
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email: TEST_USER_2.email },
@@ -454,7 +454,7 @@ describe('auth actions', () => {
         accounts: [mockAccount({ id: 'acc-1', name: 'Test1', type: 'SELF' })],
       } as never)
 
-      await loginAction({ email: TEST_USER_1.email, password: TEST_PASSWORD })
+      await loginAction({ csrfToken: 'mock-token', email: TEST_USER_1.email, password: TEST_PASSWORD })
 
       expect(rotateCsrfToken).toHaveBeenCalledTimes(1)
     })
@@ -502,7 +502,7 @@ describe('auth actions', () => {
       } as never)
       vi.mocked(prisma.user.update).mockResolvedValue({} as never)
 
-      const response = await requestPasswordResetAction({ email: 'test1@example.com' })
+      const response = await requestPasswordResetAction({ csrfToken: 'mock-token', email: 'test1@example.com' })
 
       expect('success' in response && response.success).toBe(true)
       if ('success' in response && response.success) {
@@ -524,7 +524,7 @@ describe('auth actions', () => {
     it('returns same message for non-existent email (enumeration protection)', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      const response = await requestPasswordResetAction({ email: 'unknown@example.com' })
+      const response = await requestPasswordResetAction({ csrfToken: 'mock-token', email: 'unknown@example.com' })
 
       expect('success' in response && response.success).toBe(true)
       if ('success' in response && response.success) {
@@ -541,7 +541,7 @@ describe('auth actions', () => {
         emailVerified: false,
       } as never)
 
-      const response = await requestPasswordResetAction({ email: 'unverified@example.com' })
+      const response = await requestPasswordResetAction({ csrfToken: 'mock-token', email: 'unverified@example.com' })
 
       expect('success' in response && response.success).toBe(true)
       expect(prisma.user.update).not.toHaveBeenCalled()
@@ -550,7 +550,7 @@ describe('auth actions', () => {
     })
 
     it('rejects invalid email format', async () => {
-      const response = await requestPasswordResetAction({ email: 'not-an-email' })
+      const response = await requestPasswordResetAction({ csrfToken: 'mock-token', email: 'not-an-email' })
 
       expect('error' in response).toBe(true)
     })
@@ -558,7 +558,7 @@ describe('auth actions', () => {
     it('handles email case-insensitively', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      const response = await requestPasswordResetAction({ email: 'TEST1@EXAMPLE.COM' })
+      const response = await requestPasswordResetAction({ csrfToken: 'mock-token', email: 'TEST1@EXAMPLE.COM' })
 
       expect('success' in response && response.success).toBe(true)
       expect(prisma.user.findUnique).toHaveBeenCalledWith(
@@ -569,7 +569,7 @@ describe('auth actions', () => {
     })
 
     it('rejects email with whitespace (not trimmed before validation)', async () => {
-      const response = await requestPasswordResetAction({ email: '  test1@example.com  ' })
+      const response = await requestPasswordResetAction({ csrfToken: 'mock-token', email: '  test1@example.com  ' })
 
       expect('error' in response).toBe(true)
       if ('error' in response) {
@@ -580,7 +580,7 @@ describe('auth actions', () => {
     it('returns generic success for unknown email (security best practice)', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      const response = await requestPasswordResetAction({ email: 'unknown@example.com' })
+      const response = await requestPasswordResetAction({ csrfToken: 'mock-token', email: 'unknown@example.com' })
 
       expect('success' in response && response.success).toBe(true)
       if ('success' in response && response.success) {
@@ -605,7 +605,7 @@ describe('auth actions', () => {
       } as never)
       vi.mocked(prisma.user.update).mockResolvedValue({} as never)
 
-      const result = await resetPasswordAction({
+      const result = await resetPasswordAction({ csrfToken: 'mock-token',
         token: 'valid-token',
         newPassword: 'NewPassword123',
       })
@@ -632,7 +632,7 @@ describe('auth actions', () => {
         passwordResetExpires: new Date(Date.now() - 3600000),
       } as never)
 
-      const result = await resetPasswordAction({
+      const result = await resetPasswordAction({ csrfToken: 'mock-token',
         token: 'expired-token',
         newPassword: 'NewPassword123',
       })
@@ -647,7 +647,7 @@ describe('auth actions', () => {
     it('rejects invalid token', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      const result = await resetPasswordAction({
+      const result = await resetPasswordAction({ csrfToken: 'mock-token',
         token: 'invalid-token',
         newPassword: 'NewPassword123',
       })
@@ -659,7 +659,7 @@ describe('auth actions', () => {
     })
 
     it('rejects weak password (too short)', async () => {
-      const result = await resetPasswordAction({
+      const result = await resetPasswordAction({ csrfToken: 'mock-token',
         token: 'valid-token',
         newPassword: 'weak',
       })
@@ -671,7 +671,7 @@ describe('auth actions', () => {
     })
 
     it('rejects password without uppercase', async () => {
-      const result = await resetPasswordAction({
+      const result = await resetPasswordAction({ csrfToken: 'mock-token',
         token: 'valid-token',
         newPassword: 'password123',
       })
@@ -683,7 +683,7 @@ describe('auth actions', () => {
     })
 
     it('rejects password without number', async () => {
-      const result = await resetPasswordAction({
+      const result = await resetPasswordAction({ csrfToken: 'mock-token',
         token: 'valid-token',
         newPassword: 'PasswordOnly',
       })
@@ -695,7 +695,7 @@ describe('auth actions', () => {
     })
 
     it('rejects password without lowercase', async () => {
-      const result = await resetPasswordAction({
+      const result = await resetPasswordAction({ csrfToken: 'mock-token',
         token: 'valid-token',
         newPassword: 'PASSWORD123',
       })
@@ -714,7 +714,7 @@ describe('auth actions', () => {
       } as never)
       vi.mocked(prisma.user.update).mockResolvedValue({} as never)
 
-      const result = await resetPasswordAction({
+      const result = await resetPasswordAction({ csrfToken: 'mock-token',
         token: 'valid-token',
         newPassword: 'NewPassword123',
       })

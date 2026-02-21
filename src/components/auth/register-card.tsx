@@ -9,7 +9,11 @@ import { Input } from '@/components/ui/input'
 
 type FormErrors = Partial<Record<string, string[]>>
 
-export function RegisterCard() {
+type RegisterCardProps = {
+  csrfToken: string
+}
+
+export function RegisterCard({ csrfToken }: RegisterCardProps) {
   const [errors, setErrors] = useState<FormErrors | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -23,6 +27,7 @@ export function RegisterCard() {
       email: String(formData.get('email') ?? ''),
       password: String(formData.get('password') ?? ''),
       displayName: String(formData.get('displayName') ?? ''),
+      csrfToken,
     }
 
     setErrors(null)
@@ -54,6 +59,7 @@ export function RegisterCard() {
       </CardHeader>
       <CardContent className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <input type="hidden" name="csrfToken" value={csrfToken} />
           <div className="space-y-2">
             <label htmlFor="displayName" className="text-xs font-medium uppercase tracking-wide text-slate-300">
               Display name

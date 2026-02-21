@@ -501,7 +501,7 @@ describe('XSS Vulnerability Audit - Stored XSS Protection', () => {
           updatedAt: new Date(),
         } as User)
 
-        const result = await registerAction({
+        const result = await registerAction({ csrfToken: 'mock-token',
           email: 'test-xss@example.com',
           password: 'ValidPassword123',
           displayName: payload,
@@ -528,7 +528,7 @@ describe('XSS Vulnerability Audit - Stored XSS Protection', () => {
 
     it('should reject displayName shorter than 2 characters', async () => {
       // Schema requires min 2 chars for displayName
-      const result = await registerAction({
+      const result = await registerAction({ csrfToken: 'mock-token',
         email: 'test@example.com',
         password: 'ValidPassword123',
         displayName: '<', // Only 1 char
@@ -544,7 +544,7 @@ describe('XSS Vulnerability Audit - Stored XSS Protection', () => {
       // Schema requires max 100 chars for displayName
       const longPayload = '<script>alert("XSS")</script>'.repeat(5) // > 100 chars
 
-      const result = await registerAction({
+      const result = await registerAction({ csrfToken: 'mock-token',
         email: 'test@example.com',
         password: 'ValidPassword123',
         displayName: longPayload,

@@ -4,6 +4,7 @@ import { LoginCard } from '@/components/auth/login-card'
 import { Footer } from '@/components/ui/footer'
 import { getAccounts } from '@/lib/finance'
 import { getSession, getDbUserAsAuthUser } from '@/lib/auth-server'
+import { getCsrfToken } from '@/lib/csrf'
 
 export const metadata: Metadata = {
   title: 'Sign in - Balance Beacon',
@@ -81,7 +82,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </dl>
           </section>
 
-          <LoginCard />
+          <LoginCard csrfToken={await getCsrfToken()} />
         </div>
       </main>
 
