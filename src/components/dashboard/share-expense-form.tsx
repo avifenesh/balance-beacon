@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Currency, SplitType } from '@prisma/client'
-import { Plus, Trash2, Users } from 'lucide-react'
+import { Plus, Trash2, Users, X } from 'lucide-react'
 import { shareExpenseAction, lookupUserForSharingAction } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -154,7 +154,7 @@ export function ShareExpenseForm({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="share-expense-title">
       {/* Backdrop - disable interactions while submitting */}
       <div
         className="absolute inset-0 bg-black/50"
@@ -162,12 +162,20 @@ export function ShareExpenseForm({
         aria-hidden="true"
       />
       <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/20 bg-slate-900 p-6 shadow-xl">
+        <button
+          onClick={onClose}
+          disabled={isPending}
+          className="absolute right-4 top-4 text-slate-400 hover:text-white disabled:opacity-50"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
         <div className="mb-4 flex items-center gap-3">
           <div className="rounded-full bg-sky-500/20 p-2">
             <Users className="h-5 w-5 text-sky-300" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">Share Expense</h2>
+            <h2 id="share-expense-title" className="text-lg font-semibold text-white">Share Expense</h2>
             <p className="text-sm text-slate-400">
               {formatCurrency(transactionAmount, currency)} - {transactionDescription || 'No description'}
             </p>
@@ -195,6 +203,7 @@ export function ShareExpenseForm({
               <Input
                 type="email"
                 placeholder="Enter email address"
+                aria-label="Participant email address"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 onKeyDown={(e) => {
@@ -240,6 +249,7 @@ export function ShareExpenseForm({
                           step="0.01"
                           className="w-20"
                           placeholder="0"
+                          aria-label={`Share percentage for ${participant.displayName || participant.email}`}
                           value={participant.sharePercentage || ''}
                           onChange={(e) =>
                             handleParticipantShareChange(participant.email, 'sharePercentage', e.target.value)
@@ -258,6 +268,7 @@ export function ShareExpenseForm({
                           step="0.01"
                           className="w-24"
                           placeholder="0.00"
+                          aria-label={`Share amount for ${participant.displayName || participant.email}`}
                           value={participant.shareAmount || ''}
                           onChange={(e) =>
                             handleParticipantShareChange(participant.email, 'shareAmount', e.target.value)
@@ -277,7 +288,7 @@ export function ShareExpenseForm({
                       variant="ghost"
                       className="h-8 w-8 p-0 text-rose-400 hover:bg-rose-500/20"
                       onClick={() => handleRemoveParticipant(participant.email)}
-                      aria-label="Remove participant"
+                      aria-label={`Remove ${participant.displayName || participant.email}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
