@@ -1,0 +1,82 @@
+
+> balance-beacon@0.1.0 dev /app
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+- Environments: .env
+- Experiments (use with caution):
+  · serverActions
+
+✓ Starting...
+✓ Ready in 1921ms
+○ Compiling /login ...
+prisma:error
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].account.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/[root-of-the-server]__939e8198._.js:183:147
+
+  180 } : {
+  181     deletedAt: null
+  182 };
+→ 183 return __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].account.findMany(
+
+[ERROR] QUERY_ERROR {
+  model: 'Account',
+  action: 'findMany',
+  duration: 220,
+  input: undefined,
+  error: {
+    name: 'PrismaClientKnownRequestError',
+    message: '\n' +
+      'Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].account.findMany()` invocation in\n' +
+      '/app/.next/dev/server/chunks/ssr/[root-of-the-server]__939e8198._.js:183:147\n' +
+      '\n' +
+      '  180 } : {\n' +
+      '  181     deletedAt: null\n' +
+      '  182 };\n' +
+      '→ 183 return __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].account.findMany(\n',
+    code: 'ECONNREFUSED',
+    stack: 'PrismaClientKnownRequestError: \n' +
+      'Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].account.findMany()` invocation in\n' +
+      '/app/.next/dev/server/chunks/ssr/[root-of-the-server]__939e8198._.js:183:147\n' +
+      '\n' +
+      '  180 } : {\n' +
+      '  181     deletedAt: null\n' +
+      '  182 };\n' +
+      '→ 183 return __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].account.findMany(\n' +
+      '\n' +
+      '    at zr.handleRequestError (/app/node_modules/.pnpm/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.14_magicast@0.5.2_react-dom@19.2.4__089d9ab1c77e364457f5cdc77ddbd238/node_modules/@prisma/client/runtime/client.js:65:8286)\n' +
+      '    at zr.handleAndLogRequestError (/app/node_modules/.pnpm/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.14_magicast@0.5.2_react-dom@19.2.4__089d9ab1c77e364457f5cdc77ddbd238/node_modules/@prisma/client/runtime/client.js:65:7581)\n' +
+      '    at zr.request (/app/node_modules/.pnpm/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.14_magicast@0.5.2_react-dom@19.2.4__089d9ab1c77e364457f5cdc77ddbd238/node_modules/@prisma/client/runtime/client.js:65:7288)\n' +
+      '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n' +
+      '    at async Array.$allOperations (/app/.next/dev/server/chunks/ssr/[root-of-the-server]__e5830cb1._.js:335:36)\n' +
+      '    at async a (/app/node_modules/.pnpm/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.14_magicast@0.5.2_react-dom@19.2.4__089d9ab1c77e364457f5cdc77ddbd238/node_modules/@prisma/client/runtime/client.js:75:5816)\n' +
+      '    at async LoginPage (/app/.next/dev/server/chunks/ssr/[root-of-the-server]__939e8198._.js:2016:22)'
+  }
+}
+⨯ Error [PrismaClientKnownRequestError]:
+Invalid `{imported module ./src/lib/prisma.ts}["prisma"].account.findMany()` invocation in
+/app/.next/dev/server/chunks/ssr/[root-of-the-server]__939e8198._.js:183:147
+
+  180 } : {
+  181     deletedAt: null
+  182 };
+→ 183 return {imported module ./src/lib/prisma.ts}["prisma"].account.findMany(
+
+    at <unknown> (src/lib/finance/accounts.ts:7:25)
+    at async Array.$allOperations (src/lib/prisma.ts:41:28)
+    at async LoginPage (src/app/login/page.tsx:29:20)
+   5 | export async function getAccounts(userId?: string) {
+   6 |   const where = userId ? { userId, deletedAt: null } : { deletedAt: null }
+>  7 |   return prisma.account.findMany({
+     |                         ^
+   8 |     where,
+   9 |     orderBy: { name: 'asc' },
+  10 |   }) {
+  code: 'ECONNREFUSED',
+  meta: [Object],
+  clientVersion: '7.4.1',
+  digest: '126264620'
+}
+ GET /login 500 in 9.1s (compile: 7.3s, proxy.ts: 390ms, render: 1388ms)
