@@ -13,7 +13,11 @@ type FormErrors = Partial<Record<string, string[]>>
 
 type Mode = 'login' | 'reset'
 
-export function LoginCard({ csrfToken }: { csrfToken: string }) {
+type LoginCardProps = {
+  csrfToken: string
+}
+
+export function LoginCard({ csrfToken }: LoginCardProps) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('login')
   const [errors, setErrors] = useState<FormErrors | null>(null)
