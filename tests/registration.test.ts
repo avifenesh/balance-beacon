@@ -97,7 +97,7 @@ describe('registerAction', () => {
       }),
     )
 
-    const result = (await registerAction({
+    const result = (await registerAction({ csrfToken: 'mock-token',
       email: 'new@example.com',
       password: 'Password123a',
       displayName: 'New User',
@@ -130,7 +130,7 @@ describe('registerAction', () => {
       }),
     )
 
-    await registerAction({
+    await registerAction({ csrfToken: 'mock-token',
       email: '  NEW@EXAMPLE.COM  ',
       password: 'Password123a',
       displayName: 'New User',
@@ -157,7 +157,7 @@ describe('registerAction', () => {
       }),
     )
 
-    const result = (await registerAction({
+    const result = (await registerAction({ csrfToken: 'mock-token',
       email: 'existing@example.com',
       password: 'Password123a',
       displayName: 'New User',
@@ -173,7 +173,7 @@ describe('registerAction', () => {
   })
 
   it('should reject weak password - too short', async () => {
-    const result = (await registerAction({
+    const result = (await registerAction({ csrfToken: 'mock-token',
       email: 'test@example.com',
       password: 'Pa1a',
       displayName: 'Test User',
@@ -187,7 +187,7 @@ describe('registerAction', () => {
   })
 
   it('should reject password without uppercase letter', async () => {
-    const result = (await registerAction({
+    const result = (await registerAction({ csrfToken: 'mock-token',
       email: 'test@example.com',
       password: 'password123', // pragma: allowlist secret
       displayName: 'Test User',
@@ -201,7 +201,7 @@ describe('registerAction', () => {
   })
 
   it('should reject password without lowercase letter', async () => {
-    const result = (await registerAction({
+    const result = (await registerAction({ csrfToken: 'mock-token',
       email: 'test@example.com',
       password: 'PASSWORD123',
       displayName: 'Test User',
@@ -215,7 +215,7 @@ describe('registerAction', () => {
   })
 
   it('should reject password without number', async () => {
-    const result = (await registerAction({
+    const result = (await registerAction({ csrfToken: 'mock-token',
       email: 'test@example.com',
       password: 'PasswordABC',
       displayName: 'Test User',
@@ -229,7 +229,7 @@ describe('registerAction', () => {
   })
 
   it('should reject short display name', async () => {
-    const result = (await registerAction({
+    const result = (await registerAction({ csrfToken: 'mock-token',
       email: 'test@example.com',
       password: 'Password123a',
       displayName: 'A',
@@ -242,7 +242,7 @@ describe('registerAction', () => {
   })
 
   it('should reject invalid email format', async () => {
-    const result = (await registerAction({
+    const result = (await registerAction({ csrfToken: 'mock-token',
       email: 'not-an-email',
       password: 'Password123a',
       displayName: 'Test User',
@@ -264,7 +264,7 @@ describe('registerAction', () => {
       }),
     )
 
-    await registerAction({
+    await registerAction({ csrfToken: 'mock-token',
       email: 'test@example.com',
       password: 'Password123a',
       displayName: 'Test User',
@@ -287,7 +287,7 @@ describe('registerAction', () => {
       }),
     )
 
-    await registerAction({
+    await registerAction({ csrfToken: 'mock-token',
       email: 'test@example.com',
       password: 'Password123a',
       displayName: 'Test User',
@@ -461,7 +461,7 @@ describe('resendVerificationEmailAction', () => {
   it('should return generic success for non-existent email (prevents enumeration)', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-    const result = (await resendVerificationEmailAction({
+    const result = (await resendVerificationEmailAction({ csrfToken: 'mock-token',
       email: 'nonexistent@example.com',
     })) as ActionResult
 
@@ -482,7 +482,7 @@ describe('resendVerificationEmailAction', () => {
       }),
     )
 
-    const result = (await resendVerificationEmailAction({
+    const result = (await resendVerificationEmailAction({ csrfToken: 'mock-token',
       email: 'verified@example.com',
     })) as ActionResult
 
@@ -508,7 +508,7 @@ describe('resendVerificationEmailAction', () => {
       }),
     )
 
-    const result = (await resendVerificationEmailAction({
+    const result = (await resendVerificationEmailAction({ csrfToken: 'mock-token',
       email: 'unverified@example.com',
     })) as ActionResult
 
@@ -525,7 +525,7 @@ describe('resendVerificationEmailAction', () => {
   })
 
   it('should reject invalid email format', async () => {
-    const result = (await resendVerificationEmailAction({
+    const result = (await resendVerificationEmailAction({ csrfToken: 'mock-token',
       email: 'not-an-email',
     })) as ActionResult
 

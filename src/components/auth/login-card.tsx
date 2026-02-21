@@ -13,7 +13,7 @@ type FormErrors = Partial<Record<string, string[]>>
 
 type Mode = 'login' | 'reset'
 
-export function LoginCard() {
+export function LoginCard({ csrfToken }: { csrfToken: string }) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('login')
   const [errors, setErrors] = useState<FormErrors | null>(null)
@@ -30,6 +30,7 @@ export function LoginCard() {
     const payload = {
       email: String(formData.get('email') ?? ''),
       password: String(formData.get('password') ?? ''),
+      csrfToken,
     }
 
     setErrors(null)
@@ -55,6 +56,7 @@ export function LoginCard() {
 
     const payload = {
       email: String(formData.get('email') ?? ''),
+      csrfToken,
     }
 
     setErrors(null)
@@ -119,6 +121,7 @@ export function LoginCard() {
 
         {mode === 'login' ? (
           <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off" noValidate>
+            <input type="hidden" name="csrfToken" value={csrfToken} />
             <div className="space-y-2">
               <label htmlFor="email" className="text-xs font-medium uppercase tracking-wide text-slate-300">
                 Email
@@ -199,6 +202,7 @@ export function LoginCard() {
           </form>
         ) : (
           <form onSubmit={handleResetSubmit} className="space-y-4" noValidate>
+            <input type="hidden" name="csrfToken" value={csrfToken} />
             <div className="space-y-2">
               <label htmlFor="email" className="text-xs font-medium uppercase tracking-wide text-slate-300">
                 Recovery email

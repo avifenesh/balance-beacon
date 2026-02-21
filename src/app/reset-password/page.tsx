@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ResetPasswordForm } from '@/components/auth/reset-password-form'
 import { cn } from '@/utils/cn'
+import { getCsrfToken } from '@/lib/csrf'
 
 export const metadata: Metadata = {
   title: 'Reset password · Balance Beacon',
@@ -44,7 +45,7 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
         </CardHeader>
         <CardContent className="space-y-6">
           {token ? (
-            <ResetPasswordForm token={token} />
+            <ResetPasswordForm token={token} csrfToken={await getCsrfToken()} />
           ) : (
             <div className="space-y-4">
               <p className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">

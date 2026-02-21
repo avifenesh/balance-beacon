@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { RegisterCard } from '@/components/auth/register-card'
 import { Footer } from '@/components/ui/footer'
 import { getSession } from '@/lib/auth-server'
+import { getCsrfToken } from '@/lib/csrf'
 
 export const metadata: Metadata = {
   title: 'Create account · Balance Beacon',
@@ -52,7 +53,7 @@ export default async function RegisterPage() {
             </dl>
           </section>
 
-          <RegisterCard />
+          <RegisterCard csrfToken={await getCsrfToken()} />
         </div>
       </main>
 

@@ -12,11 +12,12 @@ const primaryClasses = 'bg-white/20 text-white hover:bg-white/30 focus-visible:r
 
 type ResetPasswordFormProps = {
   token: string
+  csrfToken: string
 }
 
 type FormErrors = Partial<Record<string, string[]>>
 
-export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
+export function ResetPasswordForm({ token, csrfToken }: ResetPasswordFormProps) {
   const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errors, setErrors] = useState<FormErrors | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -31,7 +32,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     setErrors(null)
     setMessage(null)
 
-    const result = await resetPasswordAction({ token, newPassword })
+    const result = await resetPasswordAction({ token, newPassword, csrfToken })
 
     if ('error' in result) {
       setErrors(result.error)
@@ -57,6 +58,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <input type="hidden" name="csrfToken" value={csrfToken} />
       <div className="space-y-2">
         <label htmlFor="newPassword" className="text-xs font-medium uppercase tracking-wide text-slate-300">
           New password

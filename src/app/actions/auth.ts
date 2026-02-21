@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { clearSession, establishSession, verifyCredentials } from '@/lib/auth-server'
 import { success, successVoid, failure, generalError } from '@/lib/action-result'
-import { parseInput } from './shared'
+import { parseInput, requireCsrfToken } from './shared'
 import { rotateCsrfToken } from '@/lib/csrf'
 import {
   loginSchema,
@@ -31,6 +31,10 @@ export async function loginAction(input: z.infer<typeof loginSchema>) {
     email: input.email.trim().toLowerCase(),
   })
   if ('error' in parsed) return parsed
+
+  const csrfCheck = await requireCsrfToken(parsed.data.csrfToken)
+  if ('error' in csrfCheck) return csrfCheck
+
   const { email, password } = parsed.data
   const normalizedEmail = email.toLowerCase()
 
@@ -73,6 +77,9 @@ export async function logoutAction() {
 export async function requestPasswordResetAction(input: z.infer<typeof recoverySchema>) {
   const parsed = parseInput(recoverySchema, input)
   if ('error' in parsed) return parsed
+
+  const csrfCheck = await requireCsrfToken(parsed.data.csrfToken)
+  if ('error' in csrfCheck) return csrfCheck
 
   const normalizedEmail = parsed.data.email.trim().toLowerCase()
 
@@ -141,6 +148,9 @@ export async function resetPasswordAction(input: z.infer<typeof resetPasswordSch
   const parsed = parseInput(resetPasswordSchema, input)
   if ('error' in parsed) return parsed
 
+  const csrfCheck = await requireCsrfToken(parsed.data.csrfToken)
+  if ('error' in csrfCheck) return csrfCheck
+
   const { token, newPassword } = parsed.data
   // Hash the incoming token to compare with stored hash
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
@@ -203,6 +213,9 @@ export async function registerAction(input: z.infer<typeof registrationSchema>) 
     email: input.email.trim().toLowerCase(),
   })
   if ('error' in parsed) return parsed
+
+  const csrfCheck = await requireCsrfToken(parsed.data.csrfToken)
+  if ('error' in csrfCheck) return csrfCheck
 
   const { email, password, displayName } = parsed.data
 
@@ -287,6 +300,9 @@ export async function resendVerificationEmailAction(input: z.infer<typeof resend
     email: input.email.trim().toLowerCase(),
   })
   if ('error' in parsed) return parsed
+
+  const csrfCheck = await requireCsrfToken(parsed.data.csrfToken)
+  if ('error' in csrfCheck) return csrfCheck
 
   const { email } = parsed.data
 
