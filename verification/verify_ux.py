@@ -7,8 +7,6 @@ def test_ux_improvement(page: Page):
 
     # Login
     print("Logging in...")
-    page.fill("input[name='email']", "user1@example.com") # Trying default user from seed? Or create one?
-    # The fixtures say e2e-user1@test.local
     page.fill("input[name='email']", "e2e-user1@test.local")
     page.fill("input[name='password']", "TestPassword123!")
     page.click("button[type='submit']")
