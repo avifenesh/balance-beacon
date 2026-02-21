@@ -384,6 +384,7 @@ describe('Reset Password Schema Edge Cases', () => {
     const result = resetPasswordSchema.safeParse({
       token: 'valid-reset-token',
       newPassword: 'NewPassword1',
+      csrfToken: 'valid-csrf-token',
     })
     expect(result.success).toBe(true)
   })
@@ -392,6 +393,7 @@ describe('Reset Password Schema Edge Cases', () => {
     const result = resetPasswordSchema.safeParse({
       token: '',
       newPassword: 'NewPassword1',
+      csrfToken: 'valid-csrf-token',
     })
     expect(result.success).toBe(false)
   })
@@ -400,6 +402,7 @@ describe('Reset Password Schema Edge Cases', () => {
     const result = resetPasswordSchema.safeParse({
       token: 'valid-reset-token',
       newPassword: 'weak',
+      csrfToken: 'valid-csrf-token',
     })
     expect(result.success).toBe(false)
   })
