@@ -9,7 +9,11 @@ import { Input } from '@/components/ui/input'
 
 type FormErrors = Partial<Record<string, string[]>>
 
-export function RegisterCard({ csrfToken }: { csrfToken: string }) {
+type RegisterCardProps = {
+  csrfToken: string
+}
+
+export function RegisterCard({ csrfToken }: RegisterCardProps) {
   const [errors, setErrors] = useState<FormErrors | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
