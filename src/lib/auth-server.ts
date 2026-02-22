@@ -22,6 +22,11 @@ function getSessionSecret(): string {
   return secret
 }
 
+// A pre-computed bcrypt hash for a dummy password.
+// This is used to mitigate timing attacks when a user is not found.
+// Hash of "dummy-password-for-timing-attack-protection" with salt rounds=10
+const DUMMY_HASH = '$2b$10$AVf1akf8PiAAnRprE3S1fePtIxKX9o.Wf.kXIqvE/FIu/U6hALrvC'
+
 const SESSION_SECRET = getSessionSecret()
 
 type MutableCookies = Awaited<ReturnType<typeof cookies>> & {
@@ -98,17 +103,17 @@ export async function verifyCredentials({
     select: { id: true, passwordHash: true, emailVerified: true },
   })
 
-  if (!dbUser) {
-    return { valid: false }
+  // Prevent timing attacks by always performing comparison
+  // If user not found, compare against a dummy hash
+  const targetHash = dbUser?.passwordHash || DUMMY_HASH
+  let match = false
+  try {
+    match = await bcrypt.compare(password, targetHash)
+  } catch {
+    // In case of bcrypt error, match remains false
   }
 
-  // Check password first before revealing email verification status
-  try {
-    const match = await bcrypt.compare(password, dbUser.passwordHash)
-    if (!match) {
-      return { valid: false }
-    }
-  } catch {
+  if (!dbUser || !match) {
     return { valid: false }
   }
 

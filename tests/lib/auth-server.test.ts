@@ -457,6 +457,27 @@ describe('auth-server.ts', () => {
 
         expect(result.valid).toBe(false)
       })
+
+      it('should prevent timing attacks by executing comparison even for unknown users', async () => {
+        const compareSpy = vi.fn().mockResolvedValue(false)
+        vi.doMock('bcryptjs', () => ({
+          default: {
+            compare: compareSpy,
+          },
+        }))
+
+        await vi.resetModules()
+        const { verifyCredentials } = await import('@/lib/auth-server')
+
+        // No mockDbUser call - database returns null for unknown email
+        vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
+        vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+        const result = await verifyCredentials({ email: 'unknown@test.com', password: 'password123' })
+
+        expect(result.valid).toBe(false)
+        expect(compareSpy).toHaveBeenCalled()
+      })
     })
   })
 
