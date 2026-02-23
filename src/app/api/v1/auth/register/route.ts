@@ -5,6 +5,7 @@ import { rateLimitError, validationError, successResponse, serverError } from '@
 import { serverLogger } from '@/lib/server-logger'
 import { sendVerificationEmail } from '@/lib/email'
 import { registerUser } from '@/lib/services/registration-service'
+import { getClientIp } from '@/utils/ip'
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address').max(255),
@@ -40,11 +41,21 @@ export async function POST(request: NextRequest) {
     const { email, password, displayName } = parsed.data
     const normalizedEmail = email.trim().toLowerCase()
 
-    const rateLimit = checkRateLimitTyped(normalizedEmail, 'registration')
-    if (!rateLimit.allowed) {
-      return rateLimitError(rateLimit.resetAt)
+    // Rate limit by email
+    const emailRateLimit = checkRateLimitTyped(normalizedEmail, 'registration')
+    if (!emailRateLimit.allowed) {
+      return rateLimitError(emailRateLimit.resetAt)
     }
+
+    // Rate limit by IP address to prevent mass registration
+    const clientIp = getClientIp(request)
+    const ipRateLimit = checkRateLimitTyped(clientIp, 'registration')
+    if (!ipRateLimit.allowed) {
+      return rateLimitError(ipRateLimit.resetAt)
+    }
+
     incrementRateLimitTyped(normalizedEmail, 'registration')
+    incrementRateLimitTyped(clientIp, 'registration')
 
     // Auto-verify test emails in test environment or E2E testing
     const isE2ETest = process.env.E2E_TEST === 'true'
