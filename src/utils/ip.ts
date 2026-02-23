@@ -25,8 +25,11 @@ export function getClientIp(request: NextRequest): string {
   }
 
   // Fallback to Next.js ip property (available on some platforms like Vercel)
-  if (request.ip) {
-    return request.ip
+  // Type assertion needed as TS might not see .ip on some NextRequest definitions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((request as any).ip) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (request as any).ip
   }
 
   // Fallback for local development or unknown source
