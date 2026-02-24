@@ -4,6 +4,7 @@ import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
 import { rateLimitError, validationError, successResponse, serverError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 import { sendVerificationEmail } from '@/lib/email'
+import { getClientIp } from '@/utils/ip'
 import { registerUser } from '@/lib/services/registration-service'
 
 const registerSchema = z.object({
@@ -39,6 +40,13 @@ export async function POST(request: NextRequest) {
 
     const { email, password, displayName } = parsed.data
     const normalizedEmail = email.trim().toLowerCase()
+
+    const clientIp = getClientIp(request)
+    const ipRateLimit = checkRateLimitTyped(clientIp, 'registration_ip')
+    if (!ipRateLimit.allowed) {
+      return rateLimitError(ipRateLimit.resetAt)
+    }
+    incrementRateLimitTyped(clientIp, 'registration_ip')
 
     const rateLimit = checkRateLimitTyped(normalizedEmail, 'registration')
     if (!rateLimit.allowed) {

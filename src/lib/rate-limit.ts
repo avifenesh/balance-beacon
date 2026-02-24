@@ -39,7 +39,9 @@ import 'server-only'
 export type RateLimitType =
   | 'default'
   | 'login'
+  | 'login_ip'
   | 'registration'
+  | 'registration_ip'
   | 'password_reset'
   | 'resend_verification'
   | 'account_deletion'
@@ -53,8 +55,10 @@ interface RateLimitConfig {
 
 const RATE_LIMIT_CONFIGS: Record<RateLimitType, RateLimitConfig> = {
   default: { windowMs: 60 * 1000, maxRequests: 100 }, // 100/min - general API
-  login: { windowMs: 60 * 1000, maxRequests: 5 }, // 5/min - brute force protection
-  registration: { windowMs: 60 * 1000, maxRequests: 3 }, // 3/min - spam prevention
+  login: { windowMs: 60 * 1000, maxRequests: 5 }, // 5/min - brute force protection per email
+  login_ip: { windowMs: 60 * 1000, maxRequests: 20 }, // 20/min - brute force protection per IP
+  registration: { windowMs: 60 * 1000, maxRequests: 3 }, // 3/min - spam prevention per email
+  registration_ip: { windowMs: 60 * 60 * 1000, maxRequests: 10 }, // 10/hour - spam prevention per IP
   password_reset: { windowMs: 60 * 60 * 1000, maxRequests: 3 }, // 3/hour - abuse prevention
   resend_verification: { windowMs: 15 * 60 * 1000, maxRequests: 3 }, // 3/15min - spam prevention
   account_deletion: { windowMs: 60 * 60 * 1000, maxRequests: 3 }, // 3/hour - abuse prevention
