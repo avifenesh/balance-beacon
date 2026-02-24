@@ -77,9 +77,9 @@ export function RequestList({ requests, preferredCurrency: _preferredCurrency }:
             {feedback.message}
           </div>
         )}
-        <div className="space-y-3">
+        <ul className="space-y-3">
           {requests.map((request) => (
-            <div
+            <li
               key={request.id}
               className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-white/10"
             >
@@ -105,6 +105,7 @@ export function RequestList({ requests, preferredCurrency: _preferredCurrency }:
                   onClick={() => handleReject(request.id)}
                   disabled={isPending}
                   title="Reject request"
+                  aria-label={`Reject request from ${request.from.name}`}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -117,9 +118,9 @@ export function RequestList({ requests, preferredCurrency: _preferredCurrency }:
                   Approve
                 </Button>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </CardContent>
     </Card>
   )
