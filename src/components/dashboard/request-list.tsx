@@ -105,15 +105,16 @@ export function RequestList({ requests, preferredCurrency: _preferredCurrency }:
                   onClick={() => handleReject(request.id)}
                   disabled={isPending}
                   title="Reject request"
+                  aria-label="Reject request"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button
                   className="h-8 gap-1.5 rounded-full bg-sky-500 px-4 text-xs font-semibold text-white hover:bg-sky-400"
                   onClick={() => handleApprove(request.id)}
                   disabled={isPending}
                 >
-                  <Check className="h-3.5 w-3.5" />
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
                   Approve
                 </Button>
               </div>

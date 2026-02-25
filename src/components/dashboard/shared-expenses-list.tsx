@@ -154,8 +154,9 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                               onClick={() => handleSendReminder(participant.id)}
                               disabled={isPending}
                               title="Send reminder"
+                              aria-label="Send reminder"
                             >
-                              <Bell className="h-3.5 w-3.5" />
+                              <Bell className="h-3.5 w-3.5" aria-hidden="true" />
                             </Button>
                             <Button
                               type="button"
@@ -164,8 +165,9 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                               onClick={() => handleMarkPaid(participant.id)}
                               disabled={isPending}
                               title="Mark as paid"
+                              aria-label="Mark as paid"
                             >
-                              <Check className="h-3.5 w-3.5" />
+                              <Check className="h-3.5 w-3.5" aria-hidden="true" />
                             </Button>
                           </div>
                         )}
