@@ -7,7 +7,8 @@ import { NextRequest } from 'next/server'
 export function getClientIp(request: NextRequest): string {
   // In Next.js, request.ip is available if trusted proxy is configured
   // This is the most reliable source when deployed on Vercel or similar platforms
-  if (request.ip) return request.ip
+  const ip = (request as unknown as { ip?: string }).ip
+  if (ip) return ip
 
   // Fallback to x-forwarded-for header
   // This header can contain multiple IPs (client, proxy1, proxy2...)
