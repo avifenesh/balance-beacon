@@ -4,6 +4,7 @@ import { generateAccessToken, generateRefreshToken } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
 import { rateLimitError, validationError, authError, serverError } from '@/lib/api-helpers'
+import { getClientIp } from '@/utils/ip'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +18,14 @@ export async function POST(request: NextRequest) {
     if (Object.keys(fieldErrors).length > 0) {
       return validationError(fieldErrors)
     }
+
+    // Rate limit by IP address (20/min) to prevent mass credential stuffing
+    const clientIp = getClientIp(request)
+    const ipRateLimit = checkRateLimitTyped(clientIp, 'login_ip')
+    if (!ipRateLimit.allowed) {
+      return rateLimitError(ipRateLimit.resetAt)
+    }
+    incrementRateLimitTyped(clientIp, 'login_ip')
 
     const normalizedEmail = email.trim().toLowerCase()
 

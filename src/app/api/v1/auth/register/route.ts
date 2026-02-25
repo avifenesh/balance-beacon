@@ -5,6 +5,7 @@ import { rateLimitError, validationError, successResponse, serverError } from '@
 import { serverLogger } from '@/lib/server-logger'
 import { sendVerificationEmail } from '@/lib/email'
 import { registerUser } from '@/lib/services/registration-service'
+import { getClientIp } from '@/utils/ip'
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address').max(255),
@@ -39,6 +40,14 @@ export async function POST(request: NextRequest) {
 
     const { email, password, displayName } = parsed.data
     const normalizedEmail = email.trim().toLowerCase()
+
+    // Rate limit by IP address (10/hour) to prevent mass account creation spam
+    const clientIp = getClientIp(request)
+    const ipRateLimit = checkRateLimitTyped(clientIp, 'registration_ip')
+    if (!ipRateLimit.allowed) {
+      return rateLimitError(ipRateLimit.resetAt)
+    }
+    incrementRateLimitTyped(clientIp, 'registration_ip')
 
     const rateLimit = checkRateLimitTyped(normalizedEmail, 'registration')
     if (!rateLimit.allowed) {
