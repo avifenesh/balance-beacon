@@ -100,6 +100,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Remove .npmrc
+        run: rm -f .npmrc
+
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
