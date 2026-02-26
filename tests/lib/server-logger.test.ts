@@ -169,5 +169,25 @@ describe('serverLogger', () => {
 
       expect(consoleErrorSpy).toHaveBeenCalled()
     })
+
+    it('handles arrays correctly without converting to objects', () => {
+      serverLogger.error('Test', {
+        action: 'arrayTest',
+        input: {
+          items: ['a', 'b', 'c'],
+          nested: [{ id: 1 }, { id: 2, secret: 'hide' }],
+        },
+      })
+
+      expect(consoleErrorSpy).toHaveBeenCalled()
+      const call = consoleErrorSpy.mock.calls[0]
+      const logData = call[1] as { input: { items: string[]; nested: { id: number; secret?: string }[] } }
+
+      expect(Array.isArray(logData.input.items)).toBe(true)
+      expect(logData.input.items).toEqual(['a', 'b', 'c'])
+      expect(Array.isArray(logData.input.nested)).toBe(true)
+      expect(logData.input.nested[0]).toEqual({ id: 1 })
+      expect(logData.input.nested[1]).toEqual({ id: 2, secret: '[REDACTED]' })
+    })
   })
 })
