@@ -73,6 +73,7 @@ describe('POST /api/chat', () => {
     passwordHash: 'hash',
     accountNames: ['Test Account'],
     defaultAccountName: 'Test Account',
+      accounts: [],
     preferredCurrency: 'USD' as const,
     hasCompletedOnboarding: true,
     activeAccountId: null,

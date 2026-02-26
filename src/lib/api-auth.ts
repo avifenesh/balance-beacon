@@ -74,5 +74,6 @@ export async function getUserAuthInfo(userId: string): Promise<AuthUser> {
     preferredCurrency: dbUser.preferredCurrency,
     hasCompletedOnboarding: dbUser.hasCompletedOnboarding,
     activeAccountId: dbUser.activeAccountId,
+    accounts: dbUser.accounts,
   }
 }

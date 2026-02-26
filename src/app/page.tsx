@@ -80,7 +80,7 @@ export default async function Page({ searchParams }: PageProps) {
 
   const monthKey = typeof monthParam === 'string' && monthParam.length >= 7 ? monthParam : currentMonth
 
-  const accounts = await getAccounts(authUser.id)
+  const accounts = authUser.accounts
   const allowedAccountNames = new Set(authUser.accountNames)
   const allowedAccounts = accounts.filter((account) => allowedAccountNames.has(account.name))
   const accountLookup = new Map(allowedAccounts.map((account) => [account.id, account]))

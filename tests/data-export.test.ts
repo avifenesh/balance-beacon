@@ -100,6 +100,7 @@ const TEST_USER = {
   passwordHash: 'hashed-password',
   accountNames: ['Personal'],
   defaultAccountName: 'Personal',
+      accounts: [],
   preferredCurrency: Currency.USD,
   hasCompletedOnboarding: true,
     activeAccountId: null,

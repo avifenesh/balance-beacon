@@ -110,6 +110,7 @@ const mockAuthUser = {
     activeAccountId: null,
   accountNames: ['Account1'],
   defaultAccountName: 'Account1',
+      accounts: [],
 }
 
 describe('shareExpenseAction', () => {

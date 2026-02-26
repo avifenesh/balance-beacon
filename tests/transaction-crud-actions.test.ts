@@ -144,6 +144,7 @@ describe('createTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -190,6 +191,7 @@ describe('createTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -250,6 +252,7 @@ describe('createTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -300,6 +303,7 @@ describe('createTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -340,6 +344,7 @@ describe('createTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -394,6 +399,7 @@ describe('updateTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null)
@@ -431,6 +437,7 @@ describe('updateTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
@@ -496,6 +503,7 @@ describe('updateTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1', 'Account2'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
@@ -550,6 +558,7 @@ describe('updateTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
@@ -597,6 +606,7 @@ describe('updateTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
@@ -647,6 +657,7 @@ describe('updateTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
@@ -703,6 +714,7 @@ describe('updateTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     // Transaction exists at the time of findUnique
@@ -775,6 +787,7 @@ describe('deleteTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null)
@@ -800,6 +813,7 @@ describe('deleteTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
@@ -844,6 +858,7 @@ describe('deleteTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
@@ -879,6 +894,7 @@ describe('deleteTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
@@ -917,6 +933,7 @@ describe('deleteTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     // Transaction exists at the time of findFirst
@@ -960,6 +977,7 @@ describe('deleteTransactionAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.transaction.findFirst).mockRejectedValue(new Error('DB connection lost'))
@@ -989,6 +1007,7 @@ describe('subscription state edge cases', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
       id: 'acc-1',
@@ -1208,6 +1227,7 @@ describe('auto-create RecurringTemplate', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
       id: 'acc-1',

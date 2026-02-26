@@ -196,6 +196,7 @@ describe('setBalanceAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -254,6 +255,7 @@ describe('setBalanceAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -312,6 +314,7 @@ describe('setBalanceAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -356,6 +359,7 @@ describe('setBalanceAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -407,6 +411,7 @@ describe('setBalanceAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -470,6 +475,7 @@ describe('setBalanceAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({

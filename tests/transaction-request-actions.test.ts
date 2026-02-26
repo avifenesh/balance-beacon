@@ -121,6 +121,7 @@ describe('createTransactionRequestAction', () => {
     activeAccountId: null,
       accountNames: ['TestAccount', 'OtherAccount'],
       defaultAccountName: 'TestAccount',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -168,6 +169,7 @@ describe('approveTransactionRequestAction', () => {
       preferredCurrency: Currency.EUR,
       accountNames: ['OtherAccount'],
       defaultAccountName: 'OtherAccount',
+      accounts: [],
       hasCompletedOnboarding: true,
     activeAccountId: null,
     })
@@ -190,6 +192,7 @@ describe('approveTransactionRequestAction', () => {
       preferredCurrency: Currency.EUR,
       accountNames: ['OtherAccount'],
       defaultAccountName: 'OtherAccount',
+      accounts: [],
       hasCompletedOnboarding: true,
     activeAccountId: null,
     })
@@ -243,6 +246,7 @@ describe('rejectTransactionRequestAction', () => {
       preferredCurrency: Currency.EUR,
       accountNames: ['OtherAccount'],
       defaultAccountName: 'OtherAccount',
+      accounts: [],
       hasCompletedOnboarding: true,
     activeAccountId: null,
     })

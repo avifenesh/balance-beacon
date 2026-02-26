@@ -104,6 +104,7 @@ describe('createHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -151,6 +152,7 @@ describe('createHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -197,6 +199,7 @@ describe('createHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -244,6 +247,7 @@ describe('createHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -326,6 +330,7 @@ describe('createHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -367,6 +372,7 @@ describe('createHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -408,6 +414,7 @@ describe('createHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -455,6 +462,7 @@ describe('createHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -510,6 +518,7 @@ describe('updateHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.holding.findFirst).mockResolvedValue({
@@ -551,6 +560,7 @@ describe('updateHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.holding.findFirst).mockResolvedValue(null)
@@ -582,6 +592,7 @@ describe('updateHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.holding.findFirst).mockResolvedValue({
@@ -623,6 +634,7 @@ describe('updateHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.holding.findFirst).mockResolvedValue({
@@ -672,6 +684,7 @@ describe('deleteHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.holding.findFirst).mockResolvedValue({
@@ -713,6 +726,7 @@ describe('deleteHoldingAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.holding.findFirst).mockResolvedValue({
@@ -756,6 +770,7 @@ describe('refreshHoldingPricesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -799,6 +814,7 @@ describe('refreshHoldingPricesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -832,6 +848,7 @@ describe('refreshHoldingPricesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -873,6 +890,7 @@ describe('refreshHoldingPricesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -903,6 +921,7 @@ describe('refreshHoldingPricesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({

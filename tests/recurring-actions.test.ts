@@ -99,6 +99,7 @@ describe('upsertRecurringTemplateAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -141,6 +142,7 @@ describe('upsertRecurringTemplateAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -247,6 +249,7 @@ describe('upsertRecurringTemplateAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -294,6 +297,7 @@ describe('toggleRecurringTemplateAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.recurringTemplate.findFirst).mockResolvedValue({
@@ -337,6 +341,7 @@ describe('toggleRecurringTemplateAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.recurringTemplate.findFirst).mockResolvedValue(null)
@@ -372,6 +377,7 @@ describe('applyRecurringTemplatesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -423,6 +429,7 @@ describe('applyRecurringTemplatesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -478,6 +485,7 @@ describe('applyRecurringTemplatesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -527,6 +535,7 @@ describe('applyRecurringTemplatesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -563,6 +572,7 @@ describe('applyRecurringTemplatesAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({

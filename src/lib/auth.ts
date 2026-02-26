@@ -1,4 +1,4 @@
-import { Currency } from '@prisma/client'
+import { Account, Currency } from '@prisma/client'
 
 /**
  * AuthUser represents an authenticated user with their account information.
@@ -14,6 +14,7 @@ export type AuthUser = {
   preferredCurrency: Currency
   hasCompletedOnboarding: boolean
   activeAccountId: string | null
+  accounts: Account[]
 }
 
 // Session cookie names

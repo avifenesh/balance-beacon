@@ -285,6 +285,7 @@ export async function getDbUserAsAuthUser(email: string): Promise<AuthUser | und
     preferredCurrency: dbUser.preferredCurrency,
     hasCompletedOnboarding: dbUser.hasCompletedOnboarding,
     activeAccountId: dbUser.activeAccountId,
+    accounts: dbUser.accounts,
   }
 }
 

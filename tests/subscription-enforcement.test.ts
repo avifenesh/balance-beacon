@@ -65,6 +65,7 @@ function createMockAuthUser(id: string = 'user-1') {
     passwordHash: 'hashed-password',
     accountNames: ['Personal'],
     defaultAccountName: 'Personal',
+      accounts: [],
     preferredCurrency: 'USD' as const,
     hasCompletedOnboarding: true,
     activeAccountId: null,

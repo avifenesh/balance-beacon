@@ -22,6 +22,7 @@ vi.mock('@/lib/auth-server', () => ({
     passwordHash: 'hash',
     accountNames: ['TEST_Holdings_Account'],
     defaultAccountName: 'TEST_Holdings_Account',
+      accounts: [],
     preferredCurrency: 'USD',
   }),
 }))

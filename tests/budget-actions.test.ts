@@ -165,6 +165,7 @@ describe('upsertBudgetAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -203,6 +204,7 @@ describe('upsertBudgetAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -273,6 +275,7 @@ describe('upsertBudgetAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -368,6 +371,7 @@ describe('deleteBudgetAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -421,6 +425,7 @@ describe('deleteBudgetAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -521,6 +526,7 @@ describe('upsertMonthlyIncomeGoalAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -558,6 +564,7 @@ describe('upsertMonthlyIncomeGoalAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -597,6 +604,7 @@ describe('upsertMonthlyIncomeGoalAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -673,6 +681,7 @@ describe('deleteMonthlyIncomeGoalAction', () => {
     activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({

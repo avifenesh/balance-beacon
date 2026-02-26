@@ -123,6 +123,7 @@ describe('User Isolation: Transaction Requests', () => {
     activeAccountId: null,
         accountNames: ['Attacker Account'],
         defaultAccountName: 'Attacker Account',
+      accounts: [],
       })
 
       // The transaction request targets User B's (victim's) account
@@ -172,6 +173,7 @@ describe('User Isolation: Transaction Requests', () => {
     activeAccountId: null,
         accountNames: ['Owner Account'],
         defaultAccountName: 'Owner Account',
+      accounts: [],
       })
 
       const mockRequest = {
@@ -220,6 +222,7 @@ describe('User Isolation: Transaction Requests', () => {
     activeAccountId: null,
         accountNames: ['Attacker Account'],
         defaultAccountName: 'Attacker Account',
+      accounts: [],
       })
 
       // The transaction request targets User B's (victim's) account
@@ -263,6 +266,7 @@ describe('User Isolation: Transaction Requests', () => {
     activeAccountId: null,
         accountNames: ['Owner Account'],
         defaultAccountName: 'Owner Account',
+      accounts: [],
       })
 
       const mockRequest = {
@@ -312,6 +316,7 @@ describe('User Isolation: Holdings Category Validation', () => {
     activeAccountId: null,
       accountNames: ['User A Account'],
       defaultAccountName: 'User A Account',
+      accounts: [],
     })
 
     // User A's account
@@ -358,6 +363,7 @@ describe('User Isolation: Holdings Category Validation', () => {
     activeAccountId: null,
       accountNames: ['Owner Account'],
       defaultAccountName: 'Owner Account',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -405,6 +411,7 @@ describe('User Isolation: Holdings Category Validation', () => {
     activeAccountId: null,
       accountNames: ['Owner Account'],
       defaultAccountName: 'Owner Account',
+      accounts: [],
     })
 
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -544,6 +551,7 @@ describe('User Isolation: Account Switching Security', () => {
     activeAccountId: null,
         accountNames: ['User A Account'],
         defaultAccountName: 'User A Account',
+      accounts: [],
       })
 
       // User A tries to switch to User B's account
@@ -588,6 +596,7 @@ describe('User Isolation: Account Switching Security', () => {
     activeAccountId: null,
         accountNames: ['Attacker Account'],
         defaultAccountName: 'Attacker Account',
+      accounts: [],
       })
 
       // Attacker tries various attack vectors for session hijacking
@@ -639,6 +648,7 @@ describe('User Isolation: Account Switching Security', () => {
     activeAccountId: null,
         accountNames: ['Account 1', 'Account 2'],
         defaultAccountName: 'Account 1',
+      accounts: [],
       })
 
       // User owns this account
@@ -677,6 +687,7 @@ describe('User Isolation: Account Switching Security', () => {
     activeAccountId: null,
         accountNames: ['User Account'],
         defaultAccountName: 'User Account',
+      accounts: [],
       })
 
       // Account doesn't exist
