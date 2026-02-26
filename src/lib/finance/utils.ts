@@ -7,12 +7,12 @@
 import { Prisma, TransactionType, Currency } from '@prisma/client'
 import { convertAmountWithCache, type RateCache } from '@/lib/currency'
 
-const TWO_DECIMAL = 100
+const ROUNDING_FACTOR = 100
 
 export function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (!value) return 0
   const parsed = typeof value === 'number' ? value : value.toNumber()
-  return Math.round(parsed * TWO_DECIMAL) / TWO_DECIMAL
+  return Math.round(parsed * ROUNDING_FACTOR) / ROUNDING_FACTOR
 }
 
 export function sumByType(
