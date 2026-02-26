@@ -95,6 +95,8 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                 type="button"
                 className="flex w-full items-center justify-between p-4 text-left hover:bg-white/5 transition"
                 onClick={() => setExpandedId(isExpanded ? null : expense.id)}
+                aria-expanded={isExpanded}
+                aria-controls={`details-${expense.id}`}
               >
                 <div className="space-y-1">
                   <p className="font-medium text-white">
@@ -114,15 +116,18 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                     </p>
                   </div>
                   {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-slate-400" />
+                    <ChevronUp className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                    <ChevronDown className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   )}
                 </div>
               </button>
 
               {isExpanded && (
-                <div className="border-t border-white/10 p-4 space-y-3">
+                <div
+                  id={`details-${expense.id}`}
+                  className="border-t border-white/10 p-4 space-y-3"
+                >
                   {expense.participants.map((participant) => (
                     <div key={participant.id} className="flex items-center justify-between rounded-lg bg-white/5 p-3">
                       <div>
@@ -154,8 +159,9 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                               onClick={() => handleSendReminder(participant.id)}
                               disabled={isPending}
                               title="Send reminder"
+                              aria-label={`Send payment reminder to ${participant.participant.displayName || participant.participant.email}`}
                             >
-                              <Bell className="h-3.5 w-3.5" />
+                              <Bell className="h-3.5 w-3.5" aria-hidden="true" />
                             </Button>
                             <Button
                               type="button"
@@ -164,8 +170,9 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                               onClick={() => handleMarkPaid(participant.id)}
                               disabled={isPending}
                               title="Mark as paid"
+                              aria-label={`Mark share from ${participant.participant.displayName || participant.participant.email} as paid`}
                             >
-                              <Check className="h-3.5 w-3.5" />
+                              <Check className="h-3.5 w-3.5" aria-hidden="true" />
                             </Button>
                           </div>
                         )}
