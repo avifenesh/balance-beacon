@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { getRateLimitHeaders, type RateLimitType } from '@/lib/rate-limit'
 import { getSubscriptionState } from './subscription'
 
@@ -136,4 +136,22 @@ export async function checkSubscription(userId: string): Promise<NextResponse | 
     return subscriptionRequiredError()
   }
   return null
+}
+
+/**
+ * Get client IP address from request headers
+ * Used for IP-based rate limiting
+ */
+export function getClientIp(request: NextRequest): string {
+  // Use x-forwarded-for header (standard for proxies/load balancers)
+  const forwardedFor = request.headers.get('x-forwarded-for')
+
+  if (forwardedFor) {
+    // Get the first IP in the list (client IP)
+    const ip = forwardedFor.split(',')[0]?.trim()
+    if (ip) return ip
+  }
+
+  // Fallback to 'unknown' if no IP found (should rare in production)
+  return 'unknown'
 }

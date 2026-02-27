@@ -3,7 +3,7 @@ import { verifyCredentials } from '@/lib/auth-server'
 import { generateAccessToken, generateRefreshToken } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
-import { rateLimitError, validationError, authError, serverError } from '@/lib/api-helpers'
+import { rateLimitError, validationError, authError, serverError, getClientIp } from '@/lib/api-helpers'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.trim().toLowerCase()
+
+    // Rate limit by IP address (prevent mass login attempts from single IP)
+    const clientIp = getClientIp(request)
+    const ipRateLimit = checkRateLimitTyped(clientIp, 'auth_ip')
+    if (!ipRateLimit.allowed) {
+      return rateLimitError(ipRateLimit.resetAt)
+    }
+    incrementRateLimitTyped(clientIp, 'auth_ip')
 
     // Rate limit login attempts by normalized email (5/min for brute force protection)
     const rateLimit = checkRateLimitTyped(normalizedEmail, 'login')
