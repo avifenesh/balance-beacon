@@ -6,6 +6,7 @@ import { registerAction } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 
 type FormErrors = Partial<Record<string, string[]>>
 
@@ -98,10 +99,9 @@ export function RegisterCard() {
             <label htmlFor="password" className="text-xs font-medium uppercase tracking-wide text-slate-300">
               Password
             </label>
-            <Input
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               aria-describedby={errors?.password ? 'password-error' : undefined}
               autoComplete="new-password"
               required

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { resetPasswordAction } from '@/app/actions'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { cn } from '@/utils/cn'
 
 const buttonBaseClasses =
@@ -61,10 +61,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <label htmlFor="newPassword" className="text-xs font-medium uppercase tracking-wide text-slate-300">
           New password
         </label>
-        <Input
+        <PasswordInput
           id="newPassword"
           name="newPassword"
-          type="password"
           aria-describedby={errors?.newPassword ? 'newPassword-error' : undefined}
           autoComplete="new-password"
           required
