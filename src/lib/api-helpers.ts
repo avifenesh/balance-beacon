@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getRateLimitHeaders, type RateLimitType } from '@/lib/rate-limit'
 import { getSubscriptionState } from './subscription'
 
@@ -136,4 +136,16 @@ export async function checkSubscription(userId: string): Promise<NextResponse | 
     return subscriptionRequiredError()
   }
   return null
+}
+
+/**
+ * Extracts the client IP address from the request headers
+ * Handles proxied environments (like Vercel) via x-forwarded-for
+ */
+export function getClientIp(request: NextRequest): string {
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim()
+  }
+  return 'unknown'
 }

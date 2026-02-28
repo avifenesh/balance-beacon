@@ -1,0 +1,4 @@
+## 2025-02-28 - [Add Dual Rate Limiting for Auth Endpoints]
+**Vulnerability:** Missing IP-based rate limiting on sensitive authentication endpoints (`/api/v1/auth/login` and `/api/v1/auth/register`). The endpoints only enforced rate limits per user identifier (email), allowing an attacker to bypass protections by attempting logins or mass registrations across multiple email addresses using the same IP.
+**Learning:** Auth endpoints must be protected against both targeted attacks (brute force on a single account) and widespread attacks (credential stuffing, mass registration). Relying solely on the request payload identifier is insufficient defense.
+**Prevention:** Implement a dual rate limiting strategy for critical endpoints: first validate the limits based on the Client's IP address (`x-forwarded-for`), and then validate against the user identifier.

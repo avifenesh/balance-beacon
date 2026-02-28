@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
-import { rateLimitError, validationError, successResponse, serverError } from '@/lib/api-helpers'
+import { rateLimitError, validationError, successResponse, serverError, getClientIp } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 import { sendVerificationEmail } from '@/lib/email'
 import { registerUser } from '@/lib/services/registration-service'
@@ -40,6 +40,15 @@ export async function POST(request: NextRequest) {
     const { email, password, displayName } = parsed.data
     const normalizedEmail = email.trim().toLowerCase()
 
+    // 1. IP-based rate limiting to prevent automated mass account creation
+    const clientIp = getClientIp(request)
+    const ipRateLimit = checkRateLimitTyped(clientIp, 'auth_ip')
+    if (!ipRateLimit.allowed) {
+      return rateLimitError(ipRateLimit.resetAt)
+    }
+    incrementRateLimitTyped(clientIp, 'auth_ip')
+
+    // 2. Email-based rate limiting
     const rateLimit = checkRateLimitTyped(normalizedEmail, 'registration')
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
