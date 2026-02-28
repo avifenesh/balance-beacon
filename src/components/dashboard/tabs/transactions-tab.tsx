@@ -751,8 +751,9 @@ export function TransactionsTab({
                           className="text-xs text-sky-300 hover:bg-sky-500/20"
                           onClick={() => setSharingTransaction(transaction)}
                           title="Share expense"
+                          aria-label="Share expense"
                         >
-                          <Users className="h-3.5 w-3.5" />
+                          <Users className="h-3.5 w-3.5" aria-hidden="true" />
                         </Button>
                       )}
                       <Button

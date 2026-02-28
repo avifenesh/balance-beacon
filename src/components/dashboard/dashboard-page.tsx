@@ -436,9 +436,9 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
               aria-expanded={showSettingsMenu}
               aria-controls="settings-menu"
             >
-              <Settings className="h-3.5 w-3.5" />
+              <Settings className="h-3.5 w-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">Account</span>
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className="h-3 w-3" aria-hidden="true" />
             </Button>
             {showSettingsMenu && (
               <>
@@ -516,13 +516,13 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                   onClick={() => handleMonthChange(-1)}
                   aria-label="Previous month"
                 >
-                  <ArrowLeft className="h-3 w-3" />
+                  <ArrowLeft className="h-3 w-3" aria-hidden="true" />
                 </Button>
                 <div
                   className="flex items-center gap-1 px-1.5 text-xs font-medium text-white"
                   data-testid="month-label"
                 >
-                  <CalendarRange className="h-3 w-3" />
+                  <CalendarRange className="h-3 w-3" aria-hidden="true" />
                   {formatMonthLabel(monthKey)}
                 </div>
                 <Button
@@ -532,7 +532,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                   onClick={() => handleMonthChange(1)}
                   aria-label="Next month"
                 >
-                  <ArrowRight className="h-3 w-3" />
+                  <ArrowRight className="h-3 w-3" aria-hidden="true" />
                 </Button>
               </div>
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-wide text-slate-200 backdrop-blur">
