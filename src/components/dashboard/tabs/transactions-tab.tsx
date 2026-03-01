@@ -8,6 +8,7 @@ import { createTransactionAction, updateTransactionAction, deleteTransactionActi
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { filterTransactions } from '@/lib/dashboard-ux'
@@ -596,8 +597,7 @@ export function TransactionsTab({
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     name="isRecurring"
                     checked={transactionFormState.isRecurring}
                     onChange={(event) =>
@@ -606,7 +606,6 @@ export function TransactionsTab({
                         isRecurring: event.target.checked,
                       }))
                     }
-                    className="size-4 rounded border-slate-600 bg-slate-700 text-sky-500 focus:ring-sky-500"
                   />
                   Recurring
                 </label>

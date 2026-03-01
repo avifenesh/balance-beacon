@@ -8,6 +8,7 @@ import { deleteBudgetAction, upsertBudgetAction, upsertMonthlyIncomeGoalAction }
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select } from '@/components/ui/select'
 import { filterBudgets, getBudgetProgress, getBudgetTotals } from '@/lib/dashboard-ux'
 import { createAccountOptions } from '@/lib/select-options'
@@ -473,11 +474,9 @@ export function BudgetsTab({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="setAsDefault"
                   name="setAsDefault"
-                  className="h-4 w-4 rounded border-white/20 bg-white/5 text-emerald-500"
                   defaultChecked={monthlyIncomeGoal?.isDefault}
                 />
                 <label htmlFor="setAsDefault" className="text-xs text-slate-300">
