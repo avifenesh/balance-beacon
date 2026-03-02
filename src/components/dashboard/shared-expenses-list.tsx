@@ -95,6 +95,8 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                 type="button"
                 className="flex w-full items-center justify-between p-4 text-left hover:bg-white/5 transition"
                 onClick={() => setExpandedId(isExpanded ? null : expense.id)}
+                aria-expanded={isExpanded}
+                aria-controls={`content-${expense.id}`}
               >
                 <div className="space-y-1">
                   <p className="font-medium text-white">
@@ -122,7 +124,7 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
               </button>
 
               {isExpanded && (
-                <div className="border-t border-white/10 p-4 space-y-3">
+                <div id={`content-${expense.id}`} className="border-t border-white/10 p-4 space-y-3">
                   {expense.participants.map((participant) => (
                     <div key={participant.id} className="flex items-center justify-between rounded-lg bg-white/5 p-3">
                       <div>
