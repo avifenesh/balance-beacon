@@ -1,0 +1,4 @@
+## 2024-05-24 - Missing IP-Based Rate Limiting on Auth Endpoints
+**Vulnerability:** The authentication endpoints (e.g., login, register) only implemented rate limiting based on normalized email addresses. They lacked IP-based rate limiting, leaving the application vulnerable to mass enumeration and distributed brute force attacks using rotating email addresses from a single IP.
+**Learning:** In authentication endpoints, protecting individual accounts (via email-based rate limiting) is insufficient. Attackers can spam the system with requests across many different accounts from the same source. A dual-layer approach is needed to provide broad protection against abuse from single sources.
+**Prevention:** Always implement IP-based rate limiting (in addition to user/resource-based rate limiting) on all sensitive endpoints, particularly authentication flows, to protect against mass abuse.

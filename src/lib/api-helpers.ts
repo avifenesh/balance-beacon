@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getRateLimitHeaders, type RateLimitType } from '@/lib/rate-limit'
 import { getSubscriptionState } from './subscription'
 
@@ -136,4 +136,21 @@ export async function checkSubscription(userId: string): Promise<NextResponse | 
     return subscriptionRequiredError()
   }
   return null
+}
+
+/**
+ * Helper to get the client IP address from request headers
+ */
+export function getClientIp(request: NextRequest): string {
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0]?.trim() || 'unknown'
+  }
+
+  const realIp = request.headers.get('x-real-ip')
+  if (realIp) {
+    return realIp.trim()
+  }
+
+  return 'unknown'
 }

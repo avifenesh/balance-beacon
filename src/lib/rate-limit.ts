@@ -38,6 +38,7 @@ import 'server-only'
  */
 export type RateLimitType =
   | 'default'
+  | 'auth_ip'
   | 'login'
   | 'registration'
   | 'password_reset'
@@ -53,6 +54,7 @@ interface RateLimitConfig {
 
 const RATE_LIMIT_CONFIGS: Record<RateLimitType, RateLimitConfig> = {
   default: { windowMs: 60 * 1000, maxRequests: 100 }, // 100/min - general API
+  auth_ip: { windowMs: 60 * 1000, maxRequests: 20 }, // 20/min - IP-based auth rate limit
   login: { windowMs: 60 * 1000, maxRequests: 5 }, // 5/min - brute force protection
   registration: { windowMs: 60 * 1000, maxRequests: 3 }, // 3/min - spam prevention
   password_reset: { windowMs: 60 * 60 * 1000, maxRequests: 3 }, // 3/hour - abuse prevention
