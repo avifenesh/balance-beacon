@@ -797,8 +797,9 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
         className="fixed bottom-6 left-6 h-10 w-10 rounded-full shadow-lg"
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         title="Scroll to top"
+        aria-label="Scroll to top"
       >
-        <ArrowUp className="h-5 w-5" />
+        <ArrowUp className="h-5 w-5" aria-hidden="true" />
       </Button>
 
       {/* Export Data Dialog */}
