@@ -1,0 +1,11 @@
+--- src/lib/services/registration-service.ts
++++ src/lib/services/registration-service.ts
+@@ -82,7 +82,7 @@
+       userId: newUser.id,
+       email: newUser.email,
+       emailVerified: newUser.emailVerified,
+-      verificationToken: newUser.emailVerificationToken,
++      verificationToken: verificationToken,
+       verificationExpires: newUser.emailVerificationExpires,
+     }
+   } catch (error) {

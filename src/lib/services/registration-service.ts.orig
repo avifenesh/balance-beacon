@@ -86,7 +86,7 @@ export async function registerUser({
       userId: newUser.id,
       email: newUser.email,
       emailVerified: newUser.emailVerified,
-      verificationToken: verificationToken,
+      verificationToken: newUser.emailVerificationToken,
       verificationExpires: newUser.emailVerificationExpires,
     }
   } catch (error) {
