@@ -5,7 +5,7 @@ import { generateAccessToken } from '@/lib/jwt'
 import { resetEnvCache } from '@/lib/env-schema'
 import { prisma } from '@/lib/prisma'
 import { getMonthStartFromKey, getMonthKey } from '@/utils/date'
-import { getApiTestUser, getOtherTestUser, TEST_USER_ID } from './helpers'
+import { getApiTestUser, getOtherTestUser, OTHER_USER_ID, TEST_USER_ID } from './helpers'
 import { Currency, TransactionType } from '@prisma/client'
 
 // Mock rate limiting to avoid test interference
@@ -100,7 +100,16 @@ describe('Dashboard API Routes', () => {
     // Clean up test data (including bulk transactions from limit test)
     await prisma.transaction.deleteMany({
       where: {
-        OR: [{ description: 'Test transaction' }, { description: { startsWith: 'Bulk test transaction' } }],
+        OR: [
+          { description: 'Test transaction' },
+          { description: { startsWith: 'Bulk test transaction' } },
+          { description: { startsWith: 'Dashboard shared seed' } },
+        ],
+      },
+    })
+    await prisma.transactionRequest.deleteMany({
+      where: {
+        description: { startsWith: 'Dashboard request seed' },
       },
     })
     await prisma.budget.deleteMany({
@@ -317,6 +326,146 @@ describe('Dashboard API Routes', () => {
       expect(response.status).toBe(200)
       expect(typeof data.data.pendingSharedExpenses).toBe('number')
       expect(data.data.pendingSharedExpenses).toBeGreaterThanOrEqual(0)
+    })
+
+    it('includes seeded sharing activity and transaction requests in the response', async () => {
+      const paidAt = new Date('2026-03-05T10:00:00.000Z')
+
+      const sharedByMeTransaction = await prisma.transaction.create({
+        data: {
+          accountId,
+          categoryId,
+          type: TransactionType.EXPENSE,
+          amount: 96,
+          currency: Currency.USD,
+          date: new Date('2026-03-01T12:00:00.000Z'),
+          month: getMonthStartFromKey(testMonthKey),
+          description: 'Dashboard shared seed dinner',
+        },
+      })
+
+      const sharedWithMePendingTransaction = await prisma.transaction.create({
+        data: {
+          accountId: otherAccountId,
+          categoryId,
+          type: TransactionType.EXPENSE,
+          amount: 64,
+          currency: Currency.USD,
+          date: new Date('2026-03-02T12:00:00.000Z'),
+          month: getMonthStartFromKey(testMonthKey),
+          description: 'Dashboard shared seed concert',
+        },
+      })
+
+      const sharedWithMePaidTransaction = await prisma.transaction.create({
+        data: {
+          accountId: otherAccountId,
+          categoryId,
+          type: TransactionType.EXPENSE,
+          amount: 58,
+          currency: Currency.USD,
+          date: new Date('2026-03-03T12:00:00.000Z'),
+          month: getMonthStartFromKey(testMonthKey),
+          description: 'Dashboard shared seed taxi',
+        },
+      })
+
+      await prisma.sharedExpense.create({
+        data: {
+          transactionId: sharedByMeTransaction.id,
+          ownerId: TEST_USER_ID,
+          splitType: 'EQUAL',
+          totalAmount: 96,
+          currency: Currency.USD,
+          description: 'Dashboard shared seed dinner',
+          participants: {
+            create: [
+              {
+                userId: OTHER_USER_ID,
+                shareAmount: 48,
+                status: 'PAID',
+                paidAt,
+              },
+            ],
+          },
+        },
+      })
+
+      await prisma.sharedExpense.create({
+        data: {
+          transactionId: sharedWithMePendingTransaction.id,
+          ownerId: OTHER_USER_ID,
+          splitType: 'EQUAL',
+          totalAmount: 64,
+          currency: Currency.USD,
+          description: 'Dashboard shared seed concert',
+          participants: {
+            create: [
+              {
+                userId: TEST_USER_ID,
+                shareAmount: 32,
+                status: 'PENDING',
+              },
+            ],
+          },
+        },
+      })
+
+      await prisma.sharedExpense.create({
+        data: {
+          transactionId: sharedWithMePaidTransaction.id,
+          ownerId: OTHER_USER_ID,
+          splitType: 'EQUAL',
+          totalAmount: 58,
+          currency: Currency.USD,
+          description: 'Dashboard shared seed taxi',
+          participants: {
+            create: [
+              {
+                userId: TEST_USER_ID,
+                shareAmount: 29,
+                status: 'PAID',
+                paidAt: new Date('2026-03-04T10:00:00.000Z'),
+              },
+            ],
+          },
+        },
+      })
+
+      await prisma.transactionRequest.create({
+        data: {
+          fromId: otherAccountId,
+          toId: accountId,
+          categoryId,
+          amount: 18,
+          currency: Currency.USD,
+          date: new Date('2026-03-05T12:00:00.000Z'),
+          description: 'Dashboard request seed airport pickup',
+          status: 'PENDING',
+        },
+      })
+
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
+
+      const response = await GetDashboard(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.data.pendingSharedExpenses).toBe(1)
+      expect(data.data.transactionRequests).toHaveLength(1)
+      expect(data.data.transactionRequests[0]).toMatchObject({
+        description: 'Dashboard request seed airport pickup',
+        from: { name: 'OtherDashboardAccount' },
+        category: { name: 'DashboardTestCategory' },
+      })
+      expect(data.data.paymentHistory).toHaveLength(2)
+      expect(data.data.paymentHistory.map((item: { direction: string }) => item.direction)).toEqual([
+        'received',
+        'paid',
+      ])
     })
 
     it('defaults to current month when month not specified', async () => {
