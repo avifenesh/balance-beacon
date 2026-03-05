@@ -11,9 +11,15 @@ import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionDto
 import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionRequestActionResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.UpdateTransactionRequest
 
+data class PendingTransactionSyncReport(
+    val syncedCount: Int,
+    val failedCount: Int
+)
+
 class TransactionsRepository(
     private val transactionsApi: TransactionsApi,
-    private val pendingTransactionDao: PendingTransactionDao? = null
+    private val pendingTransactionDao: PendingTransactionDao? = null,
+    private val pendingTransactionSyncScheduler: PendingTransactionSyncScheduler? = null
 ) {
     companion object {
         private const val MAX_SYNC_ATTEMPTS = 3
@@ -64,7 +70,7 @@ class TransactionsRepository(
                 AppError(message = "Pending transaction queue is not configured")
             )
 
-        return runAppResult {
+        val enqueueResult = runAppResult {
             dao.insert(
                 PendingTransactionEntity(
                     amount = request.amount,
@@ -76,14 +82,33 @@ class TransactionsRepository(
                 )
             )
         }
+
+        if (enqueueResult is AppResult.Success) {
+            pendingTransactionSyncScheduler?.scheduleSync()
+        }
+
+        return enqueueResult
     }
 
     suspend fun syncPendingTransactions(maxItems: Int = 50): AppResult<Int> {
-        val dao = pendingTransactionDao ?: return AppResult.Success(0)
+        return when (val result = syncPendingTransactionsReport(maxItems = maxItems)) {
+            is AppResult.Success -> AppResult.Success(result.value.syncedCount)
+            is AppResult.Failure -> result
+        }
+    }
+
+    suspend fun syncPendingTransactionsReport(maxItems: Int = 50): AppResult<PendingTransactionSyncReport> {
+        val dao = pendingTransactionDao ?: return AppResult.Success(
+            PendingTransactionSyncReport(
+                syncedCount = 0,
+                failedCount = 0
+            )
+        )
 
         return runAppResult {
             val pendingItems = dao.listPending(limit = maxItems, maxAttempts = MAX_SYNC_ATTEMPTS)
             var syncedCount = 0
+            var failedCount = 0
 
             pendingItems.forEach { item ->
                 val request = CreateTransactionRequest(
@@ -102,10 +127,18 @@ class TransactionsRepository(
                     }
                     .onFailure { error ->
                         dao.markFailed(id = item.id, error = error.message)
+                        failedCount += 1
                     }
             }
 
-            syncedCount
+            if (failedCount > 0) {
+                pendingTransactionSyncScheduler?.scheduleSync()
+            }
+
+            PendingTransactionSyncReport(
+                syncedCount = syncedCount,
+                failedCount = failedCount
+            )
         }
     }
 }

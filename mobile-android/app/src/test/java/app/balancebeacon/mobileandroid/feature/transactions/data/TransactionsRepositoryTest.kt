@@ -74,6 +74,25 @@ class TransactionsRepositoryTest {
     }
 
     @Test
+    fun enqueueTransaction_schedulesBackgroundSyncWhenQueued() = runBlocking {
+        val pendingDao = FakePendingTransactionDao()
+        val scheduler = FakePendingTransactionSyncScheduler()
+        val repository = TransactionsRepository(
+            transactionsApi = FakeTransactionsApi(
+                response = TransactionsResponse(),
+                shouldThrow = false
+            ),
+            pendingTransactionDao = pendingDao,
+            pendingTransactionSyncScheduler = scheduler
+        )
+
+        val result = repository.enqueueTransaction(buildCreateRequest())
+
+        assertTrue(result is AppResult.Success)
+        assertEquals(1, scheduler.scheduleCalls)
+    }
+
+    @Test
     fun syncPendingTransactions_syncsSuccessesAndMarksFailures() = runBlocking {
         val pendingDao = FakePendingTransactionDao(
             seedItems = listOf(
@@ -106,9 +125,11 @@ class TransactionsRepositoryTest {
             shouldThrow = false,
             failingAccountIds = setOf("acc_fail")
         )
+        val scheduler = FakePendingTransactionSyncScheduler()
         val repository = TransactionsRepository(
             transactionsApi = api,
-            pendingTransactionDao = pendingDao
+            pendingTransactionDao = pendingDao,
+            pendingTransactionSyncScheduler = scheduler
         )
 
         val result = repository.syncPendingTransactions(maxItems = 10)
@@ -122,6 +143,7 @@ class TransactionsRepositoryTest {
         assertEquals(1, pendingDao.failedMarks.size)
         assertEquals(2L, pendingDao.failedMarks.first().first)
         assertTrue((pendingDao.failedMarks.first().second ?: "").contains("forced failure"))
+        assertEquals(1, scheduler.scheduleCalls)
     }
 
     @Test
@@ -260,6 +282,14 @@ class TransactionsRepositoryTest {
                     lastError = error
                 )
             }
+        }
+    }
+
+    private class FakePendingTransactionSyncScheduler : PendingTransactionSyncScheduler {
+        var scheduleCalls: Int = 0
+
+        override fun scheduleSync() {
+            scheduleCalls += 1
         }
     }
 

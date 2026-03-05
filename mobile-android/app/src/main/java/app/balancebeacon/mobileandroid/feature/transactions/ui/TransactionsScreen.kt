@@ -62,6 +62,9 @@ fun TransactionsScreen(
                         Text("Syncing...")
                     }
                 }
+                state.statusMessage?.let {
+                    Text(it, color = MaterialTheme.colorScheme.primary)
+                }
                 state.error?.let {
                     Text(it, color = MaterialTheme.colorScheme.error)
                 }

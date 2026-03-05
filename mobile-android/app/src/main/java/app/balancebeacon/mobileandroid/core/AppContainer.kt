@@ -1,6 +1,7 @@
 package app.balancebeacon.mobileandroid.core
 
 import android.content.Context
+import app.balancebeacon.mobileandroid.core.database.AppDatabase
 import app.balancebeacon.mobileandroid.core.network.ApiClient
 import app.balancebeacon.mobileandroid.core.session.SessionManager
 import app.balancebeacon.mobileandroid.core.storage.SessionStore
@@ -15,6 +16,7 @@ import app.balancebeacon.mobileandroid.feature.onboarding.data.OnboardingReposit
 import app.balancebeacon.mobileandroid.feature.recurring.data.RecurringRepository
 import app.balancebeacon.mobileandroid.feature.sharing.data.SharingRepository
 import app.balancebeacon.mobileandroid.feature.subscription.data.SubscriptionRepository
+import app.balancebeacon.mobileandroid.feature.transactions.data.WorkManagerPendingTransactionSyncScheduler
 import app.balancebeacon.mobileandroid.feature.transactions.data.TransactionsRepository
 
 class AppContainer(context: Context) {
@@ -30,6 +32,14 @@ class AppContainer(context: Context) {
 
     val apiClient: ApiClient by lazy {
         ApiClient(sessionManager)
+    }
+
+    val appDatabase: AppDatabase by lazy {
+        AppDatabase.getInstance(appContext)
+    }
+
+    private val pendingTransactionSyncScheduler by lazy {
+        WorkManagerPendingTransactionSyncScheduler(appContext)
     }
 
     val authRepository: AuthRepository by lazy {
@@ -48,7 +58,11 @@ class AppContainer(context: Context) {
     }
 
     val transactionsRepository: TransactionsRepository by lazy {
-        TransactionsRepository(transactionsApi = apiClient.transactionsApi)
+        TransactionsRepository(
+            transactionsApi = apiClient.transactionsApi,
+            pendingTransactionDao = appDatabase.pendingTransactionDao(),
+            pendingTransactionSyncScheduler = pendingTransactionSyncScheduler
+        )
     }
 
     val budgetsRepository: BudgetsRepository by lazy {

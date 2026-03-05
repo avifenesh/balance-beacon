@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 data class TransactionsUiState(
     val isLoading: Boolean = false,
@@ -24,6 +25,7 @@ data class TransactionsUiState(
     val requestActionInProgressId: String? = null,
     val requestActionMessage: String? = null,
     val requestActionError: String? = null,
+    val statusMessage: String? = null,
     val error: String? = null
 )
 
@@ -55,11 +57,25 @@ class TransactionsViewModel(
                 it.copy(
                     isLoading = true,
                     error = null,
+                    statusMessage = null,
                     activeAccountId = normalizedAccountId,
                     activeMonth = normalizedMonth,
                     requestActionError = null
                 )
             }
+
+            val syncMessage = when (val syncResult = transactionsRepository.syncPendingTransactions()) {
+                is AppResult.Success -> {
+                    if (syncResult.value > 0) {
+                        "Synced ${syncResult.value} queued transaction(s)"
+                    } else {
+                        null
+                    }
+                }
+
+                is AppResult.Failure -> null
+            }
+
             when (
                 val result = transactionsRepository.getTransactions(
                     accountId = normalizedAccountId,
@@ -67,11 +83,20 @@ class TransactionsViewModel(
                 )
             ) {
                 is AppResult.Success -> _uiState.update {
-                    it.copy(isLoading = false, items = result.value, error = null)
+                    it.copy(
+                        isLoading = false,
+                        items = result.value,
+                        statusMessage = syncMessage,
+                        error = null
+                    )
                 }
 
                 is AppResult.Failure -> _uiState.update {
-                    it.copy(isLoading = false, error = result.error.message)
+                    it.copy(
+                        isLoading = false,
+                        statusMessage = syncMessage,
+                        error = result.error.message
+                    )
                 }
             }
 
@@ -120,16 +145,23 @@ class TransactionsViewModel(
 
     fun createTransaction(request: CreateTransactionRequest) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, statusMessage = null, error = null) }
             when (val result = transactionsRepository.createTransaction(request = request)) {
                 is AppResult.Success -> _uiState.update { state ->
                     val updatedItems = replaceOrPrepend(state.items, result.value)
-                    state.copy(isLoading = false, items = updatedItems, error = null)
+                    state.copy(
+                        isLoading = false,
+                        items = updatedItems,
+                        statusMessage = "Transaction created",
+                        error = null
+                    )
                 }
 
-                is AppResult.Failure -> _uiState.update {
-                    it.copy(isLoading = false, error = result.error.message)
-                }
+                is AppResult.Failure -> handleCreateFailure(
+                    request = request,
+                    errorMessage = result.error.message,
+                    networkFailure = isNetworkFailure(result)
+                )
             }
         }
     }
@@ -139,11 +171,16 @@ class TransactionsViewModel(
         request: UpdateTransactionRequest
     ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, statusMessage = null, error = null) }
             when (val result = transactionsRepository.updateTransaction(id = id, request = request)) {
                 is AppResult.Success -> _uiState.update { state ->
                     val updatedItems = replaceOrPrepend(state.items, result.value)
-                    state.copy(isLoading = false, items = updatedItems, error = null)
+                    state.copy(
+                        isLoading = false,
+                        items = updatedItems,
+                        statusMessage = "Transaction updated",
+                        error = null
+                    )
                 }
 
                 is AppResult.Failure -> _uiState.update {
@@ -155,12 +192,13 @@ class TransactionsViewModel(
 
     fun deleteTransaction(id: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, statusMessage = null, error = null) }
             when (val result = transactionsRepository.deleteTransaction(id = id)) {
                 is AppResult.Success -> _uiState.update { state ->
                     state.copy(
                         isLoading = false,
                         items = state.items.filterNot { it.id == id },
+                        statusMessage = "Transaction deleted",
                         error = null
                     )
                 }
@@ -170,6 +208,55 @@ class TransactionsViewModel(
                 }
             }
         }
+    }
+
+    private suspend fun handleCreateFailure(
+        request: CreateTransactionRequest,
+        errorMessage: String,
+        networkFailure: Boolean
+    ) {
+        if (!networkFailure) {
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    statusMessage = null,
+                    error = errorMessage
+                )
+            }
+            return
+        }
+
+        when (val queueResult = transactionsRepository.enqueueTransaction(request)) {
+            is AppResult.Success -> _uiState.update { state ->
+                val queuedItem = TransactionDto(
+                    id = "pending-${queueResult.value}",
+                    amount = request.amount,
+                    type = request.type,
+                    description = request.description?.ifBlank { "Queued offline" } ?: "Queued offline",
+                    categoryId = request.categoryId,
+                    accountId = request.accountId,
+                    date = request.date
+                )
+                state.copy(
+                    isLoading = false,
+                    items = replaceOrPrepend(state.items, queuedItem),
+                    statusMessage = "Offline mode: transaction queued for sync",
+                    error = null
+                )
+            }
+
+            is AppResult.Failure -> _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    statusMessage = null,
+                    error = queueResult.error.message
+                )
+            }
+        }
+    }
+
+    private fun isNetworkFailure(result: AppResult.Failure): Boolean {
+        return result.error.cause is IOException || result.error.message == "Network request failed"
     }
 
     private fun replaceOrPrepend(
