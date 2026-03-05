@@ -3,6 +3,7 @@ package app.balancebeacon.mobileandroid.feature.transactions.data
 import app.balancebeacon.mobileandroid.feature.transactions.model.CreateTransactionRequest
 import app.balancebeacon.mobileandroid.feature.transactions.model.DeleteTransactionResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionDto
+import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionRequestActionResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionsResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.UpdateTransactionRequest
 import retrofit2.http.Body
@@ -44,4 +45,14 @@ interface TransactionsApi {
     suspend fun deleteTransaction(
         @Path("id") id: String
     ): DeleteTransactionResponse
+
+    @POST("transactions/requests/{id}/approve")
+    suspend fun approveTransactionRequest(
+        @Path("id") id: String
+    ): TransactionRequestActionResponse
+
+    @POST("transactions/requests/{id}/reject")
+    suspend fun rejectTransactionRequest(
+        @Path("id") id: String
+    ): TransactionRequestActionResponse
 }

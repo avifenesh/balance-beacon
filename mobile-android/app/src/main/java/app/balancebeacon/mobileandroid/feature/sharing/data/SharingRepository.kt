@@ -7,6 +7,8 @@ import app.balancebeacon.mobileandroid.feature.sharing.model.CreateSharedExpense
 import app.balancebeacon.mobileandroid.feature.sharing.model.CreateSharedExpenseRequest
 import app.balancebeacon.mobileandroid.feature.sharing.model.DeclineShareResponse
 import app.balancebeacon.mobileandroid.feature.sharing.model.MarkPaidResponse
+import app.balancebeacon.mobileandroid.feature.sharing.model.SettleAllRequest
+import app.balancebeacon.mobileandroid.feature.sharing.model.SettleAllResponse
 import app.balancebeacon.mobileandroid.feature.sharing.model.ShareUserDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedExpenseDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharingResponse
@@ -54,5 +56,16 @@ class SharingRepository(
 
     suspend fun lookupUser(email: String): AppResult<ShareUserDto> {
         return runAppResult { sharingApi.lookupUser(email = email.trim()).user }
+    }
+
+    suspend fun settleAllWithUser(targetUserId: String, currency: String): AppResult<SettleAllResponse> {
+        return runAppResult {
+            sharingApi.settleAllWithUser(
+                request = SettleAllRequest(
+                    targetUserId = targetUserId.trim(),
+                    currency = currency.trim().uppercase()
+                )
+            )
+        }
     }
 }

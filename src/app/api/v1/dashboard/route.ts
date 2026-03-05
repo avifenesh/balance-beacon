@@ -24,7 +24,8 @@ import { prisma } from '@/lib/prisma'
  * @query accountId - Required. The account to fetch dashboard data for.
  * @query month - Optional. Month in YYYY-MM format (defaults to current month).
  *
- * @returns {Object} Dashboard summary with month, summary, budgetProgress, recentTransactions, pendingSharedExpenses
+ * @returns {Object} Dashboard summary with month, summary, budgetProgress, recentTransactions,
+ * pendingSharedExpenses, transactionRequests, and paymentHistory
  * @throws {400} Validation error - Missing accountId or invalid month format
  * @throws {401} Unauthorized - Invalid or missing auth token
  * @throws {403} Forbidden - User doesn't own the account
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
         where: { id: accountId, userId: user.userId, deletedAt: null },
         select: { id: true, preferredCurrency: true },
       }),
-    'Account'
+    'Account',
   )
   if (!accountCheck.allowed) {
     return forbiddenError('Access denied')
@@ -139,8 +140,45 @@ export async function GET(request: NextRequest) {
       }))
 
     const pendingSharedExpenses = (dashboardData.expensesSharedWithMe || []).filter(
-      (p) => p.status === 'PENDING'
+      (p) => p.status === 'PENDING',
     ).length
+
+    const transactionRequests = (dashboardData.transactionRequests || []).map((request) => {
+      const amount = Number(request.amount)
+      const requestDate = request.date instanceof Date ? request.date : new Date(request.date)
+      const safeDate = isNaN(requestDate.getTime()) ? '' : formatDateForApi(requestDate)
+
+      return {
+        id: request.id,
+        amount: Number.isFinite(amount) ? amount.toFixed(2) : '0.00',
+        currency: request.currency,
+        date: safeDate,
+        description: request.description ?? null,
+        from: {
+          id: request.from?.id ?? null,
+          name: request.from?.name ?? 'Unknown',
+          email: null,
+        },
+        category: {
+          id: request.category?.id ?? null,
+          name: request.category?.name ?? 'Uncategorized',
+        },
+      }
+    })
+
+    const paymentHistory = (dashboardData.paymentHistory || []).map((item) => {
+      const amount = Number(item.amount)
+      const paidAtDate = item.paidAt instanceof Date ? item.paidAt : new Date(item.paidAt)
+      return {
+        participantId: item.participantId,
+        userDisplayName: item.userDisplayName,
+        userEmail: item.userEmail,
+        amount: Number.isFinite(amount) ? amount.toFixed(2) : '0.00',
+        currency: item.currency,
+        paidAt: isNaN(paidAtDate.getTime()) ? '' : paidAtDate.toISOString(),
+        direction: item.direction,
+      }
+    })
 
     return successResponse({
       month: monthKey,
@@ -148,6 +186,8 @@ export async function GET(request: NextRequest) {
       budgetProgress,
       recentTransactions,
       pendingSharedExpenses,
+      transactionRequests,
+      paymentHistory,
     })
   } catch (error) {
     serverLogger.error('Failed to fetch dashboard data', { action: 'GET /api/v1/dashboard' }, error)

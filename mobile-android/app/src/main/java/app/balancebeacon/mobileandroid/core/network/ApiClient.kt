@@ -3,10 +3,14 @@ package app.balancebeacon.mobileandroid.core.network
 import app.balancebeacon.mobileandroid.BuildConfig
 import app.balancebeacon.mobileandroid.core.session.SessionManager
 import app.balancebeacon.mobileandroid.feature.accounts.data.AccountsApi
+import app.balancebeacon.mobileandroid.feature.assistant.data.AssistantApi
 import app.balancebeacon.mobileandroid.feature.auth.data.AuthApi
 import app.balancebeacon.mobileandroid.feature.budgets.data.BudgetsApi
 import app.balancebeacon.mobileandroid.feature.categories.data.CategoriesApi
+import app.balancebeacon.mobileandroid.feature.dashboard.data.DashboardApi
+import app.balancebeacon.mobileandroid.feature.holdings.data.HoldingsApi
 import app.balancebeacon.mobileandroid.feature.onboarding.data.OnboardingApi
+import app.balancebeacon.mobileandroid.feature.recurring.data.RecurringApi
 import app.balancebeacon.mobileandroid.feature.sharing.data.SharingApi
 import app.balancebeacon.mobileandroid.feature.subscription.data.SubscriptionApi
 import app.balancebeacon.mobileandroid.feature.transactions.data.TransactionsApi
@@ -53,4 +57,8 @@ class ApiClient(sessionManager: SessionManager) {
     val accountsApi: AccountsApi = retrofit.create(AccountsApi::class.java)
     val categoriesApi: CategoriesApi = retrofit.create(CategoriesApi::class.java)
     val sharingApi: SharingApi = retrofit.create(SharingApi::class.java)
+    val dashboardApi: DashboardApi = retrofit.create(DashboardApi::class.java)
+    val assistantApi: AssistantApi = retrofit.create(AssistantApi::class.java)
+    val recurringApi: RecurringApi = retrofit.create(RecurringApi::class.java)
+    val holdingsApi: HoldingsApi = retrofit.create(HoldingsApi::class.java)
 }

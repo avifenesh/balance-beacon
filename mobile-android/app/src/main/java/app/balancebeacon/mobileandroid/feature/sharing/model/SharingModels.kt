@@ -69,10 +69,22 @@ data class SettlementBalanceDto(
 )
 
 @Serializable
+data class PaymentHistoryItemDto(
+    val participantId: String,
+    val userDisplayName: String,
+    val userEmail: String,
+    val amount: String,
+    val currency: String,
+    val paidAt: String,
+    val direction: String
+)
+
+@Serializable
 data class SharingResponse(
     val sharedExpenses: List<SharedExpenseDto> = emptyList(),
     val expensesSharedWithMe: List<SharedWithMeParticipationDto> = emptyList(),
-    val settlementBalances: List<SettlementBalanceDto> = emptyList()
+    val settlementBalances: List<SettlementBalanceDto> = emptyList(),
+    val paymentHistory: List<PaymentHistoryItemDto> = emptyList()
 )
 
 @Serializable
@@ -106,4 +118,15 @@ data class DeclineShareResponse(
 @Serializable
 data class UserLookupResponse(
     val user: ShareUserDto
+)
+
+@Serializable
+data class SettleAllRequest(
+    val targetUserId: String,
+    val currency: String
+)
+
+@Serializable
+data class SettleAllResponse(
+    val settledCount: Int = 0
 )

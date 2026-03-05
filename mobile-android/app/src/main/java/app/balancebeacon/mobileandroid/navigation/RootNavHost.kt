@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -33,6 +32,8 @@ import app.balancebeacon.mobileandroid.core.AppContainer
 import app.balancebeacon.mobileandroid.core.session.SessionState
 import app.balancebeacon.mobileandroid.feature.accounts.ui.AccountsScreen
 import app.balancebeacon.mobileandroid.feature.accounts.ui.AccountsViewModel
+import app.balancebeacon.mobileandroid.feature.assistant.ui.AssistantScreen
+import app.balancebeacon.mobileandroid.feature.assistant.ui.AssistantViewModel
 import app.balancebeacon.mobileandroid.feature.auth.ui.LoginScreen
 import app.balancebeacon.mobileandroid.feature.auth.ui.LoginViewModel
 import app.balancebeacon.mobileandroid.feature.auth.ui.LoginViewModelFactory
@@ -49,11 +50,17 @@ import app.balancebeacon.mobileandroid.feature.budgets.ui.BudgetsScreen
 import app.balancebeacon.mobileandroid.feature.budgets.ui.BudgetsViewModel
 import app.balancebeacon.mobileandroid.feature.categories.ui.CategoriesScreen
 import app.balancebeacon.mobileandroid.feature.categories.ui.CategoriesViewModel
+import app.balancebeacon.mobileandroid.feature.dashboard.ui.DashboardOverviewScreen
+import app.balancebeacon.mobileandroid.feature.dashboard.ui.DashboardViewModel
+import app.balancebeacon.mobileandroid.feature.holdings.ui.HoldingsScreen
+import app.balancebeacon.mobileandroid.feature.holdings.ui.HoldingsViewModel
 import app.balancebeacon.mobileandroid.feature.onboarding.ui.OnboardingScreen
 import app.balancebeacon.mobileandroid.feature.onboarding.ui.OnboardingViewModel
 import app.balancebeacon.mobileandroid.feature.paywall.ui.PaywallScreen
 import app.balancebeacon.mobileandroid.feature.profile.ui.ProfileScreen
 import app.balancebeacon.mobileandroid.feature.profile.ui.ProfileViewModel
+import app.balancebeacon.mobileandroid.feature.recurring.ui.RecurringScreen
+import app.balancebeacon.mobileandroid.feature.recurring.ui.RecurringViewModel
 import app.balancebeacon.mobileandroid.feature.sharing.ui.SharingScreen
 import app.balancebeacon.mobileandroid.feature.sharing.ui.SharingViewModel
 import app.balancebeacon.mobileandroid.feature.settings.ui.SettingsScreen
@@ -149,6 +156,10 @@ fun RootNavHost(
 
             composable(AppDestination.Dashboard.route) {
                 DashboardScreen(
+                    onOpenOverview = { navController.navigate(AppDestination.Overview.route) },
+                    onOpenAssistant = { navController.navigate(AppDestination.Assistant.route) },
+                    onOpenRecurring = { navController.navigate(AppDestination.Recurring.route) },
+                    onOpenHoldings = { navController.navigate(AppDestination.Holdings.route) },
                     onOpenOnboarding = { navController.navigate(AppDestination.Onboarding.route) },
                     onOpenSubscription = { navController.navigate(AppDestination.Subscription.route) },
                     onOpenPaywall = { navController.navigate(AppDestination.Paywall.route) },
@@ -165,6 +176,62 @@ fun RootNavHost(
                         }
                     }
                 )
+            }
+
+            composable(AppDestination.Overview.route) {
+                val vm: DashboardViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { DashboardViewModel(appContainer.dashboardRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Overview",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    DashboardOverviewScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Assistant.route) {
+                val vm: AssistantViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { AssistantViewModel(appContainer.assistantRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Assistant",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    AssistantScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Recurring.route) {
+                val vm: RecurringViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { RecurringViewModel(appContainer.recurringRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Recurring",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    RecurringScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Holdings.route) {
+                val vm: HoldingsViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { HoldingsViewModel(appContainer.holdingsRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Holdings",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    HoldingsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
             }
 
             composable(AppDestination.Onboarding.route) {
@@ -210,12 +277,14 @@ fun RootNavHost(
             composable(AppDestination.Transactions.route) {
                 val vm: TransactionsViewModel = viewModel(
                     factory = remember {
-                        simpleFactory { TransactionsViewModel(appContainer.transactionsRepository) }
+                        simpleFactory {
+                            TransactionsViewModel(
+                                transactionsRepository = appContainer.transactionsRepository,
+                                dashboardRepository = appContainer.dashboardRepository
+                            )
+                        }
                     }
                 )
-                LaunchedEffect(Unit) {
-                    vm.load()
-                }
                 FeatureShell(
                     title = "Transactions",
                     onBack = { navController.popBackStack() }
@@ -337,6 +406,10 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun DashboardScreen(
+    onOpenOverview: () -> Unit,
+    onOpenAssistant: () -> Unit,
+    onOpenRecurring: () -> Unit,
+    onOpenHoldings: () -> Unit,
     onOpenOnboarding: () -> Unit,
     onOpenSubscription: () -> Unit,
     onOpenPaywall: () -> Unit,
@@ -351,6 +424,10 @@ private fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val navigationActions = listOf(
+        "Overview" to onOpenOverview,
+        "Assistant" to onOpenAssistant,
+        "Recurring" to onOpenRecurring,
+        "Holdings" to onOpenHoldings,
         "Transactions" to onOpenTransactions,
         "Budgets" to onOpenBudgets,
         "Accounts" to onOpenAccounts,

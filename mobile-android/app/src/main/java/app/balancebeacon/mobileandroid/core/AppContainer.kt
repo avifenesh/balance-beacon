@@ -5,10 +5,14 @@ import app.balancebeacon.mobileandroid.core.network.ApiClient
 import app.balancebeacon.mobileandroid.core.session.SessionManager
 import app.balancebeacon.mobileandroid.core.storage.SessionStore
 import app.balancebeacon.mobileandroid.feature.accounts.data.AccountsRepository
+import app.balancebeacon.mobileandroid.feature.assistant.data.AssistantRepository
 import app.balancebeacon.mobileandroid.feature.auth.data.AuthRepository
 import app.balancebeacon.mobileandroid.feature.budgets.data.BudgetsRepository
 import app.balancebeacon.mobileandroid.feature.categories.data.CategoriesRepository
+import app.balancebeacon.mobileandroid.feature.dashboard.data.DashboardRepository
+import app.balancebeacon.mobileandroid.feature.holdings.data.HoldingsRepository
 import app.balancebeacon.mobileandroid.feature.onboarding.data.OnboardingRepository
+import app.balancebeacon.mobileandroid.feature.recurring.data.RecurringRepository
 import app.balancebeacon.mobileandroid.feature.sharing.data.SharingRepository
 import app.balancebeacon.mobileandroid.feature.subscription.data.SubscriptionRepository
 import app.balancebeacon.mobileandroid.feature.transactions.data.TransactionsRepository
@@ -61,5 +65,21 @@ class AppContainer(context: Context) {
 
     val sharingRepository: SharingRepository by lazy {
         SharingRepository(sharingApi = apiClient.sharingApi)
+    }
+
+    val dashboardRepository: DashboardRepository by lazy {
+        DashboardRepository(dashboardApi = apiClient.dashboardApi)
+    }
+
+    val assistantRepository: AssistantRepository by lazy {
+        AssistantRepository(assistantApi = apiClient.assistantApi)
+    }
+
+    val recurringRepository: RecurringRepository by lazy {
+        RecurringRepository(recurringApi = apiClient.recurringApi)
+    }
+
+    val holdingsRepository: HoldingsRepository by lazy {
+        HoldingsRepository(holdingsApi = apiClient.holdingsApi)
     }
 }

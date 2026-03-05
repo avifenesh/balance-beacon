@@ -8,15 +8,22 @@ import app.balancebeacon.mobileandroid.core.result.runAppResult
 import app.balancebeacon.mobileandroid.feature.transactions.model.CreateTransactionRequest
 import app.balancebeacon.mobileandroid.feature.transactions.model.DeleteTransactionResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionDto
+import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionRequestActionResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.UpdateTransactionRequest
 
 class TransactionsRepository(
     private val transactionsApi: TransactionsApi,
     private val pendingTransactionDao: PendingTransactionDao? = null
 ) {
-    suspend fun getTransactions(month: String? = null): AppResult<List<TransactionDto>> {
+    suspend fun getTransactions(
+        accountId: String? = null,
+        month: String? = null
+    ): AppResult<List<TransactionDto>> {
         return runAppResult {
-            transactionsApi.getTransactions(month = month).transactions
+            transactionsApi.getTransactions(
+                accountId = accountId,
+                month = month
+            ).transactions
         }
     }
 
@@ -37,6 +44,14 @@ class TransactionsRepository(
 
     suspend fun deleteTransaction(id: String): AppResult<DeleteTransactionResponse> {
         return runAppResult { transactionsApi.deleteTransaction(id = id) }
+    }
+
+    suspend fun approveTransactionRequest(id: String): AppResult<TransactionRequestActionResponse> {
+        return runAppResult { transactionsApi.approveTransactionRequest(id = id) }
+    }
+
+    suspend fun rejectTransactionRequest(id: String): AppResult<TransactionRequestActionResponse> {
+        return runAppResult { transactionsApi.rejectTransactionRequest(id = id) }
     }
 
     suspend fun enqueueTransaction(request: CreateTransactionRequest): AppResult<Long> {

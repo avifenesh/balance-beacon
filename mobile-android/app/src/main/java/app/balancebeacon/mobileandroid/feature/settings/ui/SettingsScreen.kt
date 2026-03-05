@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,7 +40,13 @@ fun SettingsScreen(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator()
+                Text("Loading settings...")
+            }
         }
         return
     }
@@ -69,10 +76,71 @@ fun SettingsScreen(
 
                 Button(
                     onClick = viewModel::saveCurrency,
-                    enabled = !state.isSaving
+                    enabled = !state.isSavingCurrency && !state.isDeletingAccount
                 ) {
-                    Text(if (state.isSaving) "Saving..." else "Save currency")
+                    Text(if (state.isSavingCurrency) "Saving..." else "Save currency")
                 }
+            }
+        }
+
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Export my data", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Generate a JSON export of your account data.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Button(
+                    onClick = viewModel::exportMyData,
+                    enabled = !state.isExportingData && !state.isDeletingAccount
+                ) {
+                    Text(if (state.isExportingData) "Exporting..." else "Export data (JSON)")
+                }
+                state.exportFormat?.let { format ->
+                    Text("Last export format: $format", style = MaterialTheme.typography.bodySmall)
+                }
+                state.exportGeneratedAt?.let { exportedAt ->
+                    Text("Exported at: $exportedAt", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Delete account", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "This action is permanent. Type your account email to confirm.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text("Account email: ${state.accountEmail}", style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(
+                    value = state.deleteConfirmEmail,
+                    onValueChange = viewModel::onDeleteConfirmEmailChanged,
+                    label = { Text("Confirm email") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = viewModel::deleteAccount,
+                    enabled = !state.isDeletingAccount && !state.isSavingCurrency && !state.isExportingData
+                ) {
+                    Text(if (state.isDeletingAccount) "Deleting..." else "Delete account")
+                }
+            }
+        }
+
+        if (state.isSavingCurrency || state.isExportingData || state.isDeletingAccount) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator()
+                Text(
+                    when {
+                        state.isDeletingAccount -> "Deleting account..."
+                        state.isExportingData -> "Exporting your data..."
+                        else -> "Saving your settings..."
+                    }
+                )
             }
         }
 

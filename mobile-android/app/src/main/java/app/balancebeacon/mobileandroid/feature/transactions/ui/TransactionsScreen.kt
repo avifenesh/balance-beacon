@@ -11,10 +11,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardTransactionRequestDto
 import app.balancebeacon.mobileandroid.feature.transactions.model.CreateTransactionRequest
 import app.balancebeacon.mobileandroid.feature.transactions.model.UpdateTransactionRequest
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
@@ -33,6 +34,7 @@ fun TransactionsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var accountId by remember { mutableStateOf("") }
+    var monthKey by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("") }
@@ -41,10 +43,6 @@ fun TransactionsScreen(
     var selectedTransactionId by remember { mutableStateOf<String?>(null) }
 
     val canSubmit = accountId.isNotBlank() && amount.isNotBlank() && type.isNotBlank() && date.isNotBlank()
-
-    LaunchedEffect(Unit) {
-        viewModel.load()
-    }
 
     Column(
         modifier = modifier
@@ -72,6 +70,12 @@ fun TransactionsScreen(
                     value = accountId,
                     onValueChange = { accountId = it },
                     label = { Text("Account ID") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = monthKey,
+                    onValueChange = { monthKey = it },
+                    label = { Text("Month Key (YYYY-MM, optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -106,7 +110,14 @@ fun TransactionsScreen(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { viewModel.load() }) {
+                    Button(
+                        onClick = {
+                            viewModel.load(
+                                accountId = accountId.ifBlank { null },
+                                month = monthKey.ifBlank { null }
+                            )
+                        }
+                    ) {
                         Text("Refresh")
                     }
                     Button(
@@ -155,6 +166,17 @@ fun TransactionsScreen(
             }
         }
 
+        RequestsSection(
+            requests = state.requestItems,
+            requestActionInProgressId = state.requestActionInProgressId,
+            requestActionMessage = state.requestActionMessage,
+            requestActionError = state.requestActionError,
+            isLoading = state.isLoading,
+            onApprove = viewModel::approveTransactionRequest,
+            onReject = viewModel::rejectTransactionRequest,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -201,3 +223,77 @@ fun TransactionsScreen(
     }
 }
 
+@Composable
+private fun RequestsSection(
+    requests: List<DashboardTransactionRequestDto>,
+    requestActionInProgressId: String?,
+    requestActionMessage: String?,
+    requestActionError: String?,
+    isLoading: Boolean,
+    onApprove: (String) -> Unit,
+    onReject: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GlassPanel(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Pending Requests", style = MaterialTheme.typography.titleMedium)
+            requestActionMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            requestActionError?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            val actionsEnabled = !isLoading && requestActionInProgressId == null
+            if (requests.isEmpty()) {
+                Text("No pending requests")
+            } else {
+                requests.take(5).forEach { request ->
+                    val fromName = request.from?.name
+                        ?: request.from?.email
+                        ?: "Unknown sender"
+                    val category = request.category?.name ?: "Uncategorized"
+                    val isRowLoading = requestActionInProgressId == request.id
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "$fromName • ${request.amount} ${request.currency} • $category • ${request.date}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        request.description?.takeIf { it.isNotBlank() }?.let { description ->
+                            Text(
+                                description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { onApprove(request.id) },
+                                enabled = actionsEnabled
+                            ) {
+                                Text(if (isRowLoading) "Working..." else "Approve")
+                            }
+                            OutlinedButton(
+                                onClick = { onReject(request.id) },
+                                enabled = actionsEnabled
+                            ) {
+                                Text(if (isRowLoading) "Working..." else "Reject")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

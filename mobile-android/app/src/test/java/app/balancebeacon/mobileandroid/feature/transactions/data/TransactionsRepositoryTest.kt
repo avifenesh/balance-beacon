@@ -4,6 +4,7 @@ import app.balancebeacon.mobileandroid.core.result.AppResult
 import app.balancebeacon.mobileandroid.feature.transactions.model.CreateTransactionRequest
 import app.balancebeacon.mobileandroid.feature.transactions.model.DeleteTransactionResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionDto
+import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionRequestActionResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionsResponse
 import app.balancebeacon.mobileandroid.feature.transactions.model.UpdateTransactionRequest
 import java.io.IOException
@@ -86,6 +87,14 @@ class TransactionsRepositoryTest {
         }
 
         override suspend fun deleteTransaction(id: String): DeleteTransactionResponse {
+            throw UnsupportedOperationException("Not used by this test")
+        }
+
+        override suspend fun approveTransactionRequest(id: String): TransactionRequestActionResponse {
+            throw UnsupportedOperationException("Not used by this test")
+        }
+
+        override suspend fun rejectTransactionRequest(id: String): TransactionRequestActionResponse {
             throw UnsupportedOperationException("Not used by this test")
         }
     }

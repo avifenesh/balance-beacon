@@ -4,6 +4,8 @@ import app.balancebeacon.mobileandroid.feature.auth.model.MessageResponse
 import app.balancebeacon.mobileandroid.feature.sharing.model.CreateSharedExpenseRequest
 import app.balancebeacon.mobileandroid.feature.sharing.model.DeclineShareResponse
 import app.balancebeacon.mobileandroid.feature.sharing.model.MarkPaidResponse
+import app.balancebeacon.mobileandroid.feature.sharing.model.SettleAllRequest
+import app.balancebeacon.mobileandroid.feature.sharing.model.SettleAllResponse
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedExpenseDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharingResponse
 import app.balancebeacon.mobileandroid.feature.sharing.model.UserLookupResponse
@@ -51,4 +53,9 @@ interface SharingApi {
     suspend fun lookupUser(
         @Query("email") email: String
     ): UserLookupResponse
+
+    @POST("sharing/settle")
+    suspend fun settleAllWithUser(
+        @Body request: SettleAllRequest
+    ): SettleAllResponse
 }

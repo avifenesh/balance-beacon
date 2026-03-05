@@ -25,10 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import app.balancebeacon.mobileandroid.feature.sharing.model.PaymentHistoryItemDto
+import app.balancebeacon.mobileandroid.feature.sharing.model.SettlementBalanceDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedExpenseDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedWithMeParticipationDto
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
-import androidx.compose.ui.unit.dp
 
 @Composable
 fun SharingScreen(
@@ -191,11 +193,30 @@ fun SharingScreen(
                 items = state.settlementBalances,
                 key = { "${it.userId}-${it.currency}" }
             ) { balance ->
-                val displayName = balance.userDisplayName?.takeIf { it.isNotBlank() } ?: balance.userEmail
-                Text(
-                    text = "$displayName: ${balance.netBalance} ${balance.currency}",
-                    style = MaterialTheme.typography.bodyMedium
+                SettlementBalanceItem(
+                    balance = balance,
+                    isActionInProgress = state.isActionInProgress,
+                    onSettle = { viewModel.settleAllWithUser(balance.userId, balance.currency) }
                 )
+            }
+        }
+        item {
+            Text(
+                "Payment History",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 12.dp)
+            )
+        }
+        if (state.paymentHistory.isEmpty()) {
+            item {
+                Text("No payment history")
+            }
+        } else {
+            items(
+                items = state.paymentHistory,
+                key = { "${it.participantId}:${it.paidAt}" }
+            ) { payment ->
+                PaymentHistoryItem(payment = payment)
             }
         }
         item {
@@ -237,6 +258,69 @@ fun SharingScreen(
                 isActionInProgress = state.isActionInProgress,
                 onDecline = viewModel::declineShare
             )
+        }
+    }
+}
+
+@Composable
+private fun SettlementBalanceItem(
+    balance: SettlementBalanceDto,
+    isActionInProgress: Boolean,
+    onSettle: () -> Unit
+) {
+    val displayName = balance.userDisplayName?.takeIf { it.isNotBlank() } ?: balance.userEmail
+    val netBalance = balance.netBalance.toDoubleOrNull() ?: 0.0
+    val canSettle = netBalance > 0.0
+
+    GlassPanel(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = "$displayName: ${balance.netBalance} ${balance.currency}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (canSettle) {
+                Button(
+                    onClick = onSettle,
+                    enabled = !isActionInProgress
+                ) {
+                    Text("Settle All")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentHistoryItem(
+    payment: PaymentHistoryItemDto
+) {
+    GlassPanel(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        val directionText = if (payment.direction.equals("received", ignoreCase = true)) {
+            "${payment.userDisplayName} paid you"
+        } else {
+            "You paid ${payment.userDisplayName}"
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(directionText, style = MaterialTheme.typography.titleSmall)
+            Text(
+                "${payment.amount} ${payment.currency}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(payment.paidAt, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

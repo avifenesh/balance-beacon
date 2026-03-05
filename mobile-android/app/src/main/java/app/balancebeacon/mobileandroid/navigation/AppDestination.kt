@@ -23,6 +23,22 @@ sealed interface AppDestination {
         override val route: String = "dashboard"
     }
 
+    data object Overview : AppDestination {
+        override val route: String = "overview"
+    }
+
+    data object Assistant : AppDestination {
+        override val route: String = "assistant"
+    }
+
+    data object Recurring : AppDestination {
+        override val route: String = "recurring"
+    }
+
+    data object Holdings : AppDestination {
+        override val route: String = "holdings"
+    }
+
     data object Onboarding : AppDestination {
         override val route: String = "onboarding"
     }

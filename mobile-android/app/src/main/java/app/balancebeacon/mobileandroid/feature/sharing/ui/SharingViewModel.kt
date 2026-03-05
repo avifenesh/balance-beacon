@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.balancebeacon.mobileandroid.core.result.AppResult
 import app.balancebeacon.mobileandroid.feature.sharing.data.SharingRepository
 import app.balancebeacon.mobileandroid.feature.sharing.model.CreateSharedExpenseParticipantRequest
+import app.balancebeacon.mobileandroid.feature.sharing.model.PaymentHistoryItemDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.ShareUserDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SettlementBalanceDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedExpenseDto
@@ -21,6 +22,7 @@ data class SharingUiState(
     val sharedByMe: List<SharedExpenseDto> = emptyList(),
     val sharedWithMe: List<SharedWithMeParticipationDto> = emptyList(),
     val settlementBalances: List<SettlementBalanceDto> = emptyList(),
+    val paymentHistory: List<PaymentHistoryItemDto> = emptyList(),
     val lookedUpUser: ShareUserDto? = null,
     val actionMessage: String? = null,
     val actionMessageIsError: Boolean = false,
@@ -43,6 +45,7 @@ class SharingViewModel(
                         sharedByMe = result.value.sharedExpenses,
                         sharedWithMe = result.value.expensesSharedWithMe,
                         settlementBalances = result.value.settlementBalances,
+                        paymentHistory = result.value.paymentHistory,
                         error = null
                     )
                 }
@@ -322,6 +325,51 @@ class SharingViewModel(
         }
     }
 
+    fun settleAllWithUser(targetUserId: String, currency: String) {
+        if (_uiState.value.isActionInProgress) return
+
+        val normalizedTargetUserId = targetUserId.trim()
+        if (normalizedTargetUserId.isBlank()) {
+            updateActionError("Target user is required")
+            return
+        }
+
+        val normalizedCurrency = currency.trim().uppercase()
+        if (normalizedCurrency.isBlank()) {
+            updateActionError("Currency is required")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isActionInProgress = true,
+                    actionMessage = null,
+                    actionMessageIsError = false
+                )
+            }
+
+            when (
+                val result = sharingRepository.settleAllWithUser(
+                    targetUserId = normalizedTargetUserId,
+                    currency = normalizedCurrency
+                )
+            ) {
+                is AppResult.Success -> {
+                    val settledCount = result.value.settledCount
+                    val successMessage = if (settledCount == 1) {
+                        "Settled 1 payment"
+                    } else {
+                        "Settled $settledCount payments"
+                    }
+                    reloadSharingDataAfterAction(successMessage)
+                }
+
+                is AppResult.Failure -> updateActionError(result.error.message)
+            }
+        }
+    }
+
     private fun updateActionError(message: String?) {
         _uiState.update {
             it.copy(
@@ -329,6 +377,32 @@ class SharingViewModel(
                 actionMessage = message ?: "Unexpected error",
                 actionMessageIsError = true
             )
+        }
+    }
+
+    private suspend fun reloadSharingDataAfterAction(successMessage: String) {
+        when (val sharingResult = sharingRepository.getSharing()) {
+            is AppResult.Success -> _uiState.update {
+                it.copy(
+                    isActionInProgress = false,
+                    sharedByMe = sharingResult.value.sharedExpenses,
+                    sharedWithMe = sharingResult.value.expensesSharedWithMe,
+                    settlementBalances = sharingResult.value.settlementBalances,
+                    paymentHistory = sharingResult.value.paymentHistory,
+                    actionMessage = successMessage,
+                    actionMessageIsError = false,
+                    error = null
+                )
+            }
+
+            is AppResult.Failure -> _uiState.update {
+                it.copy(
+                    isActionInProgress = false,
+                    actionMessage = successMessage,
+                    actionMessageIsError = false,
+                    error = sharingResult.error.message
+                )
+            }
         }
     }
 }

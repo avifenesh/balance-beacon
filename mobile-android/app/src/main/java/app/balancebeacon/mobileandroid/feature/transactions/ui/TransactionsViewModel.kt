@@ -3,6 +3,8 @@ package app.balancebeacon.mobileandroid.feature.transactions.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.balancebeacon.mobileandroid.core.result.AppResult
+import app.balancebeacon.mobileandroid.feature.dashboard.data.DashboardRepository
+import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardTransactionRequestDto
 import app.balancebeacon.mobileandroid.feature.transactions.data.TransactionsRepository
 import app.balancebeacon.mobileandroid.feature.transactions.model.CreateTransactionRequest
 import app.balancebeacon.mobileandroid.feature.transactions.model.TransactionDto
@@ -16,19 +18,54 @@ import kotlinx.coroutines.launch
 data class TransactionsUiState(
     val isLoading: Boolean = false,
     val items: List<TransactionDto> = emptyList(),
+    val requestItems: List<DashboardTransactionRequestDto> = emptyList(),
+    val activeAccountId: String? = null,
+    val activeMonth: String? = null,
+    val requestActionInProgressId: String? = null,
+    val requestActionMessage: String? = null,
+    val requestActionError: String? = null,
     val error: String? = null
 )
 
 class TransactionsViewModel(
-    private val transactionsRepository: TransactionsRepository
+    private val transactionsRepository: TransactionsRepository,
+    private val dashboardRepository: DashboardRepository? = null
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
 
-    fun load(month: String? = null) {
+    fun load(
+        accountId: String? = null,
+        month: String? = null
+    ) {
+        val normalizedAccountId = accountId?.trim()?.ifBlank { null }
+        val normalizedMonth = month?.trim()?.ifBlank { null }
+        if (normalizedMonth != null && !MONTH_KEY_REGEX.matches(normalizedMonth)) {
+            _uiState.update { it.copy(error = "Month key must use YYYY-MM format") }
+            return
+        }
+
+        if (normalizedAccountId == null) {
+            _uiState.update { it.copy(error = "Account ID is required to load transactions") }
+            return
+        }
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            when (val result = transactionsRepository.getTransactions(month = month)) {
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    error = null,
+                    activeAccountId = normalizedAccountId,
+                    activeMonth = normalizedMonth,
+                    requestActionError = null
+                )
+            }
+            when (
+                val result = transactionsRepository.getTransactions(
+                    accountId = normalizedAccountId,
+                    month = normalizedMonth
+                )
+            ) {
                 is AppResult.Success -> _uiState.update {
                     it.copy(isLoading = false, items = result.value, error = null)
                 }
@@ -37,7 +74,32 @@ class TransactionsViewModel(
                     it.copy(isLoading = false, error = result.error.message)
                 }
             }
+
+            when (
+                val dashboardResult = dashboardRepository?.getDashboard(
+                    accountId = normalizedAccountId,
+                    month = normalizedMonth
+                )
+            ) {
+                is AppResult.Success -> _uiState.update {
+                    it.copy(requestItems = dashboardResult.value.transactionRequests)
+                }
+
+                is AppResult.Failure -> _uiState.update {
+                    it.copy(requestItems = emptyList())
+                }
+
+                null -> Unit
+            }
         }
+    }
+
+    fun approveTransactionRequest(id: String) {
+        handleTransactionRequestAction(id = id, approve = true)
+    }
+
+    fun rejectTransactionRequest(id: String) {
+        handleTransactionRequestAction(id = id, approve = false)
     }
 
     fun loadById(id: String) {
@@ -122,5 +184,74 @@ class TransactionsViewModel(
         val mutableItems = items.toMutableList()
         mutableItems[existingIndex] = item
         return mutableItems
+    }
+
+    private fun handleTransactionRequestAction(
+        id: String,
+        approve: Boolean
+    ) {
+        val requestId = id.trim()
+        if (requestId.isBlank()) {
+            _uiState.update { it.copy(requestActionError = "Request ID is required") }
+            return
+        }
+
+        val state = _uiState.value
+        val accountId = state.activeAccountId?.takeIf { it.isNotBlank() }
+        if (accountId == null) {
+            _uiState.update {
+                it.copy(requestActionError = "Load transactions for an account before handling requests")
+            }
+            return
+        }
+        if (state.requestActionInProgressId != null) {
+            return
+        }
+
+        val month = state.activeMonth
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    requestActionInProgressId = requestId,
+                    requestActionMessage = null,
+                    requestActionError = null
+                )
+            }
+
+            val result = if (approve) {
+                transactionsRepository.approveTransactionRequest(requestId)
+            } else {
+                transactionsRepository.rejectTransactionRequest(requestId)
+            }
+
+            when (result) {
+                is AppResult.Success -> {
+                    val statusLabel = if (result.value.status.equals("APPROVED", ignoreCase = true)) {
+                        "approved"
+                    } else {
+                        "rejected"
+                    }
+                    _uiState.update {
+                        it.copy(
+                            requestActionInProgressId = null,
+                            requestActionMessage = "Request ${result.value.id} $statusLabel",
+                            requestActionError = null
+                        )
+                    }
+                    load(accountId = accountId, month = month)
+                }
+
+                is AppResult.Failure -> _uiState.update {
+                    it.copy(
+                        requestActionInProgressId = null,
+                        requestActionError = result.error.message
+                    )
+                }
+            }
+        }
+    }
+
+    private companion object {
+        val MONTH_KEY_REGEX = Regex("^\\d{4}-\\d{2}$")
     }
 }

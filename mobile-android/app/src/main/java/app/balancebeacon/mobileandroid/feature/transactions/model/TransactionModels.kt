@@ -49,3 +49,9 @@ data class DeleteTransactionResponse(
     val deleted: Boolean? = null,
     val message: String? = null
 )
+
+@Serializable
+data class TransactionRequestActionResponse(
+    val id: String,
+    val status: String
+)
