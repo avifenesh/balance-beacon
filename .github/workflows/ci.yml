@@ -85,12 +85,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
         env:
           DATABASE_URL: ${{ env.CI_DATABASE_URL }}
 
@@ -101,13 +106,13 @@ jobs:
           PGPASSWORD: ${{ secrets.CI_DB_PASSWORD || 'ci_password_secure' }}
 
       - name: Verify migrations
-        run: npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
+        run: pnpm exec prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
         env:
           DATABASE_URL: ${{ env.CI_DATABASE_URL }}
           SHADOW_DATABASE_URL: ${{ env.CI_SHADOW_DATABASE_URL }}
 
       - name: Apply migrations
-        run: npx prisma migrate deploy
+        run: pnpm exec prisma migrate deploy
         env:
           DATABASE_URL: ${{ env.CI_DATABASE_URL }}
 
@@ -119,15 +124,15 @@ jobs:
           PGPASSWORD: ${{ secrets.CI_DB_PASSWORD || 'ci_password_secure' }}
 
       - name: Security audit
-        run: npm audit --audit-level=high || echo "::warning::Security vulnerabilities found - see npm audit output above"
+        run: pnpm audit --audit-level=high || echo "::warning::Security vulnerabilities found - see pnpm audit output above"
         # Note: Using || echo to make this non-blocking. Prisma's dev dependency (hono) has
         # known vulnerabilities that cannot be fixed without upgrading Prisma. See TECHNICAL_DEBT.md.
 
-      - run: npm run check-types
+      - run: pnpm run check-types
 
-      - run: npm run lint
+      - run: pnpm run lint
 
-      - run: npm test
+      - run: pnpm test
         env:
           DATABASE_URL: ${{ env.CI_DATABASE_URL }}
           # Test credentials - use secrets when available, with safe defaults for convenience
