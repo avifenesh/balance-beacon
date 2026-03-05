@@ -27,7 +27,8 @@ import type { Currency } from '@prisma/client'
  * @query month - Optional. Month in YYYY-MM format (defaults to current month).
  *
  * @returns {Object} Dashboard summary with month, summary, budgetProgress, recentTransactions,
- * pendingSharedExpenses, transactionRequests, paymentHistory, history, and comparison
+ * pendingSharedExpenses, transactionRequests, paymentHistory, history, comparison,
+ * stats, and exchange-rate freshness metadata
  * @throws {400} Validation error - Invalid month format
  * @throws {401} Unauthorized - Invalid or missing auth token
  * @throws {403} Forbidden - User doesn't own the account
@@ -143,6 +144,7 @@ export async function GET(request: NextRequest) {
     const budgetProgress = dashboardData.budgets.map((budget) => ({
       categoryId: budget.categoryId,
       categoryName: budget.categoryName,
+      categoryType: budget.categoryType,
       budgeted: budget.planned.toFixed(2),
       spent: budget.actual.toFixed(2),
       remaining: budget.remaining.toFixed(2),
@@ -217,9 +219,19 @@ export async function GET(request: NextRequest) {
       change: dashboardData.comparison.change,
     }
 
+    const stats = dashboardData.stats.map((stat) => ({
+      label: stat.label,
+      amount: stat.amount,
+      variant: stat.variant,
+      helper: stat.helper,
+      breakdown: stat.breakdown ?? null,
+    }))
+
     return successResponse({
       month: monthKey,
+      preferredCurrency: dashboardData.preferredCurrency ?? null,
       summary,
+      stats,
       budgetProgress,
       recentTransactions,
       pendingSharedExpenses,
@@ -227,6 +239,7 @@ export async function GET(request: NextRequest) {
       paymentHistory,
       history,
       comparison,
+      exchangeRateLastUpdate: dashboardData.exchangeRateLastUpdate?.toISOString() ?? null,
     })
   } catch (error) {
     serverLogger.error('Failed to fetch dashboard data', { action: 'GET /api/v1/dashboard' }, error)

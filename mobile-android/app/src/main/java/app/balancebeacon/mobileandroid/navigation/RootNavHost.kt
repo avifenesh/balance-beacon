@@ -305,7 +305,12 @@ fun RootNavHost(
             composable(AppDestination.Budgets.route) {
                 val vm: BudgetsViewModel = viewModel(
                     factory = remember {
-                        simpleFactory { BudgetsViewModel(appContainer.budgetsRepository) }
+                        simpleFactory {
+                            BudgetsViewModel(
+                                budgetsRepository = appContainer.budgetsRepository,
+                                accountsRepository = appContainer.accountsRepository
+                            )
+                        }
                     }
                 )
                 FeatureShell(
@@ -505,6 +510,7 @@ private fun DashboardScreen(
             DashboardTrendCard(
                 history = dashboard.history,
                 comparison = dashboard.comparison,
+                currencyCode = dashboard.preferredCurrency ?: "USD",
                 modifier = Modifier.fillMaxWidth()
             )
         }

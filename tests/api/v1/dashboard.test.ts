@@ -131,14 +131,20 @@ describe('Dashboard API Routes', () => {
       expect(data.data.summary.totalIncome).toBeDefined()
       expect(data.data.summary.totalExpenses).toBeDefined()
       expect(data.data.summary.netResult).toBeDefined()
+      expect(data.data.stats).toBeInstanceOf(Array)
+      expect(data.data.preferredCurrency === null || typeof data.data.preferredCurrency === 'string').toBe(true)
       expect(data.data.budgetProgress).toBeInstanceOf(Array)
       expect(data.data.recentTransactions).toBeInstanceOf(Array)
       expect(typeof data.data.pendingSharedExpenses).toBe('number')
+      expect(data.data.paymentHistory).toBeInstanceOf(Array)
       expect(data.data.history).toBeInstanceOf(Array)
       expect(data.data.comparison).toBeDefined()
       expect(typeof data.data.comparison.previousMonth).toBe('string')
       expect(typeof data.data.comparison.previousNet).toBe('number')
       expect(typeof data.data.comparison.change).toBe('number')
+      expect(data.data.exchangeRateLastUpdate === null || typeof data.data.exchangeRateLastUpdate === 'string').toBe(
+        true,
+      )
       if (data.data.history.length > 0) {
         const point = data.data.history[0]
         expect(typeof point.month).toBe('string')
@@ -243,6 +249,7 @@ describe('Dashboard API Routes', () => {
       const budget = data.data.budgetProgress[0]
       expect(budget.categoryId).toBeDefined()
       expect(budget.categoryName).toBeDefined()
+      expect(typeof budget.categoryType).toBe('string')
       expect(budget.budgeted).toBeDefined()
       expect(budget.spent).toBeDefined()
       expect(budget.remaining).toBeDefined()

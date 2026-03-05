@@ -39,8 +39,8 @@ fun SharingScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var createTransactionId by rememberSaveable { mutableStateOf("") }
-    var createParticipantEmail by rememberSaveable { mutableStateOf("") }
-    var createShareAmount by rememberSaveable { mutableStateOf("") }
+    var createSplitType by rememberSaveable { mutableStateOf("EQUAL") }
+    var createParticipantsInput by rememberSaveable { mutableStateOf("") }
     var createDescription by rememberSaveable { mutableStateOf("") }
     var lookupEmail by rememberSaveable { mutableStateOf("") }
 
@@ -92,19 +92,17 @@ fun SharingScreen(
         }
         item {
             OutlinedTextField(
-                value = createParticipantEmail,
-                onValueChange = { createParticipantEmail = it },
-                label = { Text("Participant email") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                value = createSplitType,
+                onValueChange = { createSplitType = it.uppercase() },
+                label = { Text("Split type (EQUAL/PERCENTAGE/FIXED)") },
                 modifier = Modifier.fillMaxWidth()
             )
         }
         item {
             OutlinedTextField(
-                value = createShareAmount,
-                onValueChange = { createShareAmount = it },
-                label = { Text("Share amount") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                value = createParticipantsInput,
+                onValueChange = { createParticipantsInput = it },
+                label = { Text("Participants (email:value, comma/new line separated)") },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -121,8 +119,8 @@ fun SharingScreen(
                 onClick = {
                     viewModel.createSharedExpense(
                         transactionId = createTransactionId,
-                        participantEmail = createParticipantEmail,
-                        shareAmount = createShareAmount,
+                        splitType = createSplitType,
+                        participantsInput = createParticipantsInput,
                         description = createDescription
                     )
                 },
@@ -130,6 +128,13 @@ fun SharingScreen(
             ) {
                 Text(if (state.isActionInProgress) "Working..." else "Create Shared Expense")
             }
+        }
+        item {
+            Text(
+                text = "Example: alice@mail.com:50, bob@mail.com:50 (PERCENTAGE/FIXED use value; EQUAL can omit value)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         item {
             Text(

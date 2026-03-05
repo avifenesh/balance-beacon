@@ -1,7 +1,6 @@
 package app.balancebeacon.mobileandroid.feature.dashboard.model
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class DashboardSummaryDto(
@@ -14,10 +13,50 @@ data class DashboardSummaryDto(
 data class DashboardBudgetProgressDto(
     val categoryId: String,
     val categoryName: String,
+    val categoryType: String? = null,
     val budgeted: String,
     val spent: String,
     val remaining: String,
     val percentUsed: Int = 0
+)
+
+@Serializable
+data class DashboardStatCategoryDto(
+    val id: String,
+    val name: String,
+    val planned: Double = 0.0,
+    val actual: Double = 0.0,
+    val remaining: Double = 0.0
+)
+
+@Serializable
+data class DashboardStatBreakdownDto(
+    val type: String,
+    val income: Double? = null,
+    val expense: Double? = null,
+    val net: Double? = null,
+    val actualIncome: Double? = null,
+    val actualExpense: Double? = null,
+    val expectedRemainingIncome: Double? = null,
+    val remainingBudgetedExpense: Double? = null,
+    val incomeSource: String? = null,
+    val projected: Double? = null,
+    val totalPlanned: Double? = null,
+    val totalActual: Double? = null,
+    val totalRemaining: Double? = null,
+    val categories: List<DashboardStatCategoryDto> = emptyList(),
+    val plannedIncome: Double? = null,
+    val plannedExpense: Double? = null,
+    val target: Double? = null
+)
+
+@Serializable
+data class DashboardStatDto(
+    val label: String,
+    val amount: Double,
+    val variant: String? = null,
+    val helper: String? = null,
+    val breakdown: DashboardStatBreakdownDto? = null
 )
 
 @Serializable
@@ -62,26 +101,41 @@ data class DashboardTransactionRequestDto(
 @Serializable
 data class DashboardComparisonDto(
     val previousMonth: String = "",
-    val previousNet: JsonElement? = null,
-    val change: JsonElement? = null
+    val previousNet: Double = 0.0,
+    val change: Double = 0.0
 )
 
 @Serializable
 data class DashboardHistoryPointDto(
     val month: String,
-    val income: JsonElement? = null,
-    val expense: JsonElement? = null,
-    val net: JsonElement? = null
+    val income: Double = 0.0,
+    val expense: Double = 0.0,
+    val net: Double = 0.0
+)
+
+@Serializable
+data class DashboardPaymentHistoryItemDto(
+    val participantId: String,
+    val userDisplayName: String,
+    val userEmail: String,
+    val amount: String,
+    val currency: String,
+    val paidAt: String,
+    val direction: String
 )
 
 @Serializable
 data class DashboardResponse(
     val month: String,
+    val preferredCurrency: String? = null,
     val summary: DashboardSummaryDto = DashboardSummaryDto(),
+    val stats: List<DashboardStatDto> = emptyList(),
     val budgetProgress: List<DashboardBudgetProgressDto> = emptyList(),
     val recentTransactions: List<DashboardRecentTransactionDto> = emptyList(),
     val pendingSharedExpenses: Int = 0,
     val transactionRequests: List<DashboardTransactionRequestDto> = emptyList(),
+    val paymentHistory: List<DashboardPaymentHistoryItemDto> = emptyList(),
     val comparison: DashboardComparisonDto? = null,
-    val history: List<DashboardHistoryPointDto> = emptyList()
+    val history: List<DashboardHistoryPointDto> = emptyList(),
+    val exchangeRateLastUpdate: String? = null
 )

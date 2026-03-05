@@ -90,7 +90,7 @@ data class SharingResponse(
 @Serializable
 data class CreateSharedExpenseParticipantRequest(
     val email: String,
-    val shareAmount: Double,
+    val shareAmount: Double? = null,
     val sharePercentage: Double? = null
 )
 

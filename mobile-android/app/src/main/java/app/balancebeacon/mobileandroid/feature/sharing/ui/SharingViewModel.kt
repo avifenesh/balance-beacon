@@ -59,8 +59,8 @@ class SharingViewModel(
 
     fun createSharedExpense(
         transactionId: String,
-        participantEmail: String,
-        shareAmount: String,
+        splitType: String,
+        participantsInput: String,
         description: String
     ) {
         if (_uiState.value.isActionInProgress) return
@@ -71,19 +71,18 @@ class SharingViewModel(
             return
         }
 
-        val normalizedEmail = participantEmail.trim().lowercase()
-        if (normalizedEmail.isBlank()) {
-            updateActionError("Participant email is required")
-            return
-        }
-        if (!normalizedEmail.contains("@")) {
-            updateActionError("Participant email must be valid")
+        val normalizedSplitType = splitType.trim().uppercase().ifBlank { "EQUAL" }
+        if (normalizedSplitType !in SUPPORTED_SPLIT_TYPES) {
+            updateActionError("Split type must be EQUAL, PERCENTAGE, or FIXED")
             return
         }
 
-        val parsedShareAmount = shareAmount.trim().toDoubleOrNull()
-        if (parsedShareAmount == null || parsedShareAmount <= 0.0) {
-            updateActionError("Share amount must be greater than 0")
+        val parsedParticipants = parseParticipants(
+            participantsInput = participantsInput,
+            splitType = normalizedSplitType
+        )
+        if (parsedParticipants.isEmpty()) {
+            updateActionError("At least one participant is required")
             return
         }
 
@@ -99,13 +98,8 @@ class SharingViewModel(
             when (
                 val result = sharingRepository.createSharedExpense(
                     transactionId = normalizedTransactionId,
-                    splitType = "EQUAL",
-                    participants = listOf(
-                        CreateSharedExpenseParticipantRequest(
-                            email = normalizedEmail,
-                            shareAmount = parsedShareAmount
-                        )
-                    ),
+                    splitType = normalizedSplitType,
+                    participants = parsedParticipants,
                     description = description.trim().takeIf { it.isNotBlank() }
                 )
             ) {
@@ -404,5 +398,85 @@ class SharingViewModel(
                 )
             }
         }
+    }
+
+    private fun parseParticipants(
+        participantsInput: String,
+        splitType: String
+    ): List<CreateSharedExpenseParticipantRequest> {
+        val entries = participantsInput
+            .split(',', '\n')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+
+        if (entries.isEmpty()) {
+            return emptyList()
+        }
+
+        val participants = mutableListOf<CreateSharedExpenseParticipantRequest>()
+        val seenEmails = mutableSetOf<String>()
+
+        entries.forEach { entry ->
+            val parts = entry.split(':').map { it.trim() }
+            val email = parts.firstOrNull().orEmpty().lowercase()
+            if (email.isBlank() || !email.contains("@")) {
+                updateActionError("Each participant must use a valid email")
+                return emptyList()
+            }
+            if (!seenEmails.add(email)) {
+                updateActionError("Duplicate participant emails are not allowed")
+                return emptyList()
+            }
+
+            val value = parts.getOrNull(1)?.toDoubleOrNull()
+            when (splitType) {
+                "EQUAL" -> {
+                    if (value != null && value <= 0.0) {
+                        updateActionError("Optional share amount must be greater than 0")
+                        return emptyList()
+                    }
+                    participants += CreateSharedExpenseParticipantRequest(
+                        email = email,
+                        shareAmount = value
+                    )
+                }
+
+                "FIXED" -> {
+                    if (value == null || value <= 0.0) {
+                        updateActionError("Use email:amount for FIXED split")
+                        return emptyList()
+                    }
+                    participants += CreateSharedExpenseParticipantRequest(
+                        email = email,
+                        shareAmount = value
+                    )
+                }
+
+                "PERCENTAGE" -> {
+                    if (value == null || value <= 0.0 || value > 100.0) {
+                        updateActionError("Use email:percentage between 0 and 100 for PERCENTAGE split")
+                        return emptyList()
+                    }
+                    participants += CreateSharedExpenseParticipantRequest(
+                        email = email,
+                        sharePercentage = value
+                    )
+                }
+            }
+        }
+
+        if (splitType == "PERCENTAGE") {
+            val totalPercentage = participants.sumOf { it.sharePercentage ?: 0.0 }
+            if (totalPercentage > 100.0) {
+                updateActionError("Total percentage cannot exceed 100")
+                return emptyList()
+            }
+        }
+
+        return participants
+    }
+
+    private companion object {
+        val SUPPORTED_SPLIT_TYPES = setOf("EQUAL", "PERCENTAGE", "FIXED")
     }
 }

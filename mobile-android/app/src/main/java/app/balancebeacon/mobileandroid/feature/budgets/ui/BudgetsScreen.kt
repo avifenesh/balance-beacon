@@ -45,7 +45,16 @@ fun BudgetsScreen(
         planned.isNotBlank()
 
     LaunchedEffect(Unit) {
-        viewModel.load()
+        viewModel.load(
+            accountId = accountId.ifBlank { null },
+            month = monthKey.ifBlank { null }
+        )
+    }
+
+    LaunchedEffect(state.selectedAccountId) {
+        if (accountId.isBlank() && state.selectedAccountId.isNotBlank()) {
+            accountId = state.selectedAccountId
+        }
     }
 
     Column(
@@ -72,7 +81,10 @@ fun BudgetsScreen(
 
                 OutlinedTextField(
                     value = accountId,
-                    onValueChange = { accountId = it },
+                    onValueChange = {
+                        accountId = it
+                        viewModel.onAccountIdChanged(it)
+                    },
                     label = { Text("Account ID") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -110,7 +122,10 @@ fun BudgetsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                            viewModel.load(month = monthKey.ifBlank { null })
+                            viewModel.load(
+                                accountId = accountId.ifBlank { null },
+                                month = monthKey.ifBlank { null }
+                            )
                         }
                     ) {
                         Text("Refresh")
@@ -191,4 +206,3 @@ fun BudgetsScreen(
         }
     }
 }
-

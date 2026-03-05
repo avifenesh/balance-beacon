@@ -3,6 +3,7 @@ package app.balancebeacon.mobileandroid.feature.budgets.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.balancebeacon.mobileandroid.core.result.AppResult
+import app.balancebeacon.mobileandroid.feature.accounts.data.AccountsRepository
 import app.balancebeacon.mobileandroid.feature.budgets.data.BudgetsRepository
 import app.balancebeacon.mobileandroid.feature.budgets.model.BudgetDto
 import app.balancebeacon.mobileandroid.feature.budgets.model.CreateBudgetRequest
@@ -15,19 +16,39 @@ import kotlinx.coroutines.launch
 
 data class BudgetsUiState(
     val isLoading: Boolean = false,
+    val selectedAccountId: String = "",
     val items: List<BudgetDto> = emptyList(),
     val error: String? = null
 )
 
 class BudgetsViewModel(
-    private val budgetsRepository: BudgetsRepository
+    private val budgetsRepository: BudgetsRepository,
+    private val accountsRepository: AccountsRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(BudgetsUiState())
     val uiState: StateFlow<BudgetsUiState> = _uiState.asStateFlow()
 
-    fun load(month: String? = null) {
+    fun onAccountIdChanged(value: String) {
+        _uiState.update { it.copy(selectedAccountId = value.trim(), error = null) }
+    }
+
+    fun load(accountId: String? = null, month: String? = null) {
         viewModelScope.launch {
-            refreshBudgets(month = month)
+            val resolvedAccountId = resolveAccountId(accountId)
+            if (resolvedAccountId == null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        items = emptyList(),
+                        error = "Account ID is required. Please pick or enter an account."
+                    )
+                }
+                return@launch
+            }
+            refreshBudgets(
+                accountId = resolvedAccountId,
+                month = month
+            )
         }
     }
 
@@ -37,7 +58,12 @@ class BudgetsViewModel(
             when (val result = budgetsRepository.createBudget(request = request)) {
                 is AppResult.Success -> _uiState.update { state ->
                     val updatedItems = upsertBudget(state.items, result.value)
-                    state.copy(isLoading = false, items = updatedItems, error = null)
+                    state.copy(
+                        isLoading = false,
+                        selectedAccountId = request.accountId,
+                        items = updatedItems,
+                        error = null
+                    )
                 }
 
                 is AppResult.Failure -> _uiState.update {
@@ -116,18 +142,47 @@ class BudgetsViewModel(
     }
 
     private suspend fun refreshBudgets(
-        accountId: String? = null,
+        accountId: String,
         month: String? = null
     ) {
         _uiState.update { it.copy(isLoading = true, error = null) }
         when (val result = budgetsRepository.getBudgets(accountId = accountId, month = month)) {
             is AppResult.Success -> _uiState.update {
-                it.copy(isLoading = false, items = result.value, error = null)
+                it.copy(
+                    isLoading = false,
+                    selectedAccountId = accountId,
+                    items = result.value,
+                    error = null
+                )
             }
 
             is AppResult.Failure -> _uiState.update {
                 it.copy(isLoading = false, error = result.error.message)
             }
+        }
+    }
+
+    private suspend fun resolveAccountId(accountId: String?): String? {
+        val accountFromArg = accountId?.trim()?.ifBlank { null }
+        if (accountFromArg != null) {
+            return accountFromArg
+        }
+
+        val accountFromState = _uiState.value.selectedAccountId.trim().ifBlank { null }
+        if (accountFromState != null) {
+            return accountFromState
+        }
+
+        return when (val accounts = accountsRepository.getAccounts()) {
+            is AppResult.Success -> {
+                val fallbackAccountId = accounts.value.firstOrNull()?.id
+                if (fallbackAccountId != null) {
+                    _uiState.update { it.copy(selectedAccountId = fallbackAccountId) }
+                }
+                fallbackAccountId
+            }
+
+            is AppResult.Failure -> null
         }
     }
 }
