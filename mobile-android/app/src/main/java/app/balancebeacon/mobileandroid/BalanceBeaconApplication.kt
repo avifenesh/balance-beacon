@@ -10,5 +10,6 @@ class BalanceBeaconApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         appContainer = AppContainer(this)
+        appContainer.transactionsRepository.schedulePendingSync()
     }
 }

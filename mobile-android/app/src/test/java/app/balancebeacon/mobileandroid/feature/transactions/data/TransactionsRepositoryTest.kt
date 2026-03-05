@@ -17,6 +17,22 @@ import org.junit.Test
 
 class TransactionsRepositoryTest {
     @Test
+    fun schedulePendingSync_requestsBackgroundJob() {
+        val scheduler = FakePendingTransactionSyncScheduler()
+        val repository = TransactionsRepository(
+            transactionsApi = FakeTransactionsApi(
+                response = TransactionsResponse(),
+                shouldThrow = false
+            ),
+            pendingTransactionSyncScheduler = scheduler
+        )
+
+        repository.schedulePendingSync()
+
+        assertEquals(1, scheduler.scheduleCalls)
+    }
+
+    @Test
     fun getTransactions_returnsSuccessWhenApiSucceeds() = runBlocking {
         val expected = listOf(
             TransactionDto(

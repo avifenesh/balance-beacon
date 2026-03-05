@@ -44,5 +44,6 @@ Override with Gradle property:
 - `core/session`: Session manager and auth state
 - `core/database`: Room-backed pending transaction queue
 - `feature/transactions/data`: WorkManager-powered background pending-transaction sync
+- `BalanceBeaconApplication`: startup scheduling for pending transaction sync
 - `feature/*`: Auth, onboarding, dashboard, transactions, budgets, categories, accounts, sharing, settings/profile/subscription/paywall, recurring, holdings, assistant
 - `navigation`: Root nav graph and feature shell

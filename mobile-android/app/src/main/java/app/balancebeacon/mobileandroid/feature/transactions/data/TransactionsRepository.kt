@@ -25,6 +25,10 @@ class TransactionsRepository(
         private const val MAX_SYNC_ATTEMPTS = 3
     }
 
+    fun schedulePendingSync() {
+        pendingTransactionSyncScheduler?.scheduleSync()
+    }
+
     suspend fun getTransactions(
         accountId: String? = null,
         month: String? = null
