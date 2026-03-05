@@ -14,8 +14,12 @@ import app.balancebeacon.mobileandroid.feature.budgets.data.BudgetsRepository
 import app.balancebeacon.mobileandroid.feature.budgets.model.BudgetDto
 import app.balancebeacon.mobileandroid.feature.budgets.model.BudgetsResponse
 import app.balancebeacon.mobileandroid.feature.budgets.model.CreateBudgetRequest
+import app.balancebeacon.mobileandroid.feature.budgets.model.DeleteMonthlyIncomeGoalResponse
+import app.balancebeacon.mobileandroid.feature.budgets.model.MonthlyIncomeGoalDto
+import app.balancebeacon.mobileandroid.feature.budgets.model.MonthlyIncomeGoalProgressResponse
 import app.balancebeacon.mobileandroid.feature.budgets.model.QuickBudgetRequest
 import app.balancebeacon.mobileandroid.feature.budgets.model.QuickBudgetResponse
+import app.balancebeacon.mobileandroid.feature.budgets.model.UpsertMonthlyIncomeGoalRequest
 import app.balancebeacon.mobileandroid.testutil.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -110,6 +114,40 @@ class BudgetsViewModelTest {
 
         override suspend fun createQuickBudget(request: QuickBudgetRequest): QuickBudgetResponse {
             throw UnsupportedOperationException("Not needed")
+        }
+
+        override suspend fun getIncomeGoalProgress(
+            accountId: String,
+            monthKey: String
+        ): MonthlyIncomeGoalProgressResponse {
+            return MonthlyIncomeGoalProgressResponse(
+                incomeGoal = MonthlyIncomeGoalDto(
+                    accountId = accountId,
+                    month = "$monthKey-01T00:00:00.000Z",
+                    amount = "1000.00",
+                    currency = "USD"
+                ),
+                actualIncome = "0.00"
+            )
+        }
+
+        override suspend fun upsertIncomeGoal(
+            request: UpsertMonthlyIncomeGoalRequest
+        ): MonthlyIncomeGoalDto {
+            return MonthlyIncomeGoalDto(
+                accountId = request.accountId,
+                month = "${request.monthKey}-01T00:00:00.000Z",
+                amount = request.amount.toString(),
+                currency = request.currency,
+                isDefault = request.setAsDefault
+            )
+        }
+
+        override suspend fun deleteIncomeGoal(
+            accountId: String,
+            monthKey: String
+        ): DeleteMonthlyIncomeGoalResponse {
+            return DeleteMonthlyIncomeGoalResponse(deleted = true)
         }
 
         override suspend fun deleteBudget(

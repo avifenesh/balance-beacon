@@ -50,6 +50,20 @@ export const deleteBudgetApiSchema = z.object({
   monthKey: z.string().min(7),
 })
 
+export const monthlyIncomeGoalApiSchema = z.object({
+  accountId: z.string().min(1),
+  monthKey: z.string().min(7),
+  amount: z.coerce.number().min(0.01, 'Income goal must be greater than 0'),
+  currency: z.nativeEnum(Currency).default(Currency.USD),
+  notes: z.string().max(240).optional().nullable(),
+  setAsDefault: z.boolean().optional().default(false),
+})
+
+export const deleteMonthlyIncomeGoalApiSchema = z.object({
+  accountId: z.string().min(1),
+  monthKey: z.string().min(7),
+})
+
 // ============================================
 // Recurring Template Schemas (API)
 // ============================================

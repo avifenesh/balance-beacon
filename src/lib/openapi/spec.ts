@@ -254,6 +254,40 @@ export function generateOpenAPIDocument() {
           },
           required: ['id', 'accountId', 'categoryId', 'month', 'planned', 'currency'],
         },
+        CreateMonthlyIncomeGoal: {
+          type: 'object',
+          properties: {
+            accountId: { type: 'string', minLength: 1 },
+            monthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
+            amount: { type: 'number', minimum: 0.01, example: 5000.0 },
+            currency: { $ref: '#/components/schemas/Currency' },
+            notes: { type: 'string', maxLength: 240, nullable: true },
+            setAsDefault: { type: 'boolean', default: false },
+          },
+          required: ['accountId', 'monthKey', 'amount', 'currency'],
+        },
+        MonthlyIncomeGoal: {
+          type: 'object',
+          properties: {
+            accountId: { type: 'string' },
+            month: { type: 'string', format: 'date-time' },
+            amount: { type: 'string' },
+            currency: { $ref: '#/components/schemas/Currency' },
+            notes: { type: 'string', nullable: true },
+            isDefault: { type: 'boolean' },
+          },
+          required: ['accountId', 'month', 'amount', 'currency', 'isDefault'],
+        },
+        MonthlyIncomeGoalProgress: {
+          type: 'object',
+          properties: {
+            incomeGoal: {
+              oneOf: [{ $ref: '#/components/schemas/MonthlyIncomeGoal' }, { type: 'null' }],
+            },
+            actualIncome: { type: 'string' },
+          },
+          required: ['actualIncome'],
+        },
 
         // Category
         CreateCategory: {
@@ -648,6 +682,78 @@ export function generateOpenAPIDocument() {
           parameters: [
             { name: 'accountId', in: 'query', required: true, schema: { type: 'string' } },
             { name: 'categoryId', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            '200': {
+              description: 'Deleted',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/DeleteResponse' } } },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+            '404': {
+              description: 'Not found',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+          },
+        },
+      },
+      '/budgets/income-goal': {
+        get: {
+          tags: ['Budgets'],
+          summary: 'Get monthly income goal progress',
+          parameters: [
+            { name: 'accountId', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            '200': {
+              description: 'Income goal progress',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/MonthlyIncomeGoalProgress' } } },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+            '403': {
+              description: 'Forbidden',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+          },
+        },
+        post: {
+          tags: ['Budgets'],
+          summary: 'Create or update monthly income goal',
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateMonthlyIncomeGoal' } } },
+          },
+          responses: {
+            '201': {
+              description: 'Income goal saved',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/MonthlyIncomeGoal' } } },
+            },
+            '400': {
+              description: 'Validation error',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+            '403': {
+              description: 'Forbidden',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+          },
+        },
+        delete: {
+          tags: ['Budgets'],
+          summary: 'Delete month-specific income goal',
+          parameters: [
+            { name: 'accountId', in: 'query', required: true, schema: { type: 'string' } },
             { name: 'monthKey', in: 'query', required: true, schema: { type: 'string' } },
           ],
           responses: {

@@ -5,8 +5,12 @@ import app.balancebeacon.mobileandroid.core.result.runAppResult
 import app.balancebeacon.mobileandroid.feature.auth.model.MessageResponse
 import app.balancebeacon.mobileandroid.feature.budgets.model.BudgetDto
 import app.balancebeacon.mobileandroid.feature.budgets.model.CreateBudgetRequest
+import app.balancebeacon.mobileandroid.feature.budgets.model.DeleteMonthlyIncomeGoalResponse
+import app.balancebeacon.mobileandroid.feature.budgets.model.MonthlyIncomeGoalDto
+import app.balancebeacon.mobileandroid.feature.budgets.model.MonthlyIncomeGoalProgressResponse
 import app.balancebeacon.mobileandroid.feature.budgets.model.QuickBudgetRequest
 import app.balancebeacon.mobileandroid.feature.budgets.model.QuickBudgetResponse
+import app.balancebeacon.mobileandroid.feature.budgets.model.UpsertMonthlyIncomeGoalRequest
 
 class BudgetsRepository(
     private val budgetsApi: BudgetsApi
@@ -37,5 +41,25 @@ class BudgetsRepository(
 
     suspend fun createQuickBudget(request: QuickBudgetRequest): AppResult<QuickBudgetResponse> {
         return runAppResult { budgetsApi.createQuickBudget(request = request) }
+    }
+
+    suspend fun getIncomeGoalProgress(
+        accountId: String,
+        monthKey: String
+    ): AppResult<MonthlyIncomeGoalProgressResponse> {
+        return runAppResult { budgetsApi.getIncomeGoalProgress(accountId = accountId, monthKey = monthKey) }
+    }
+
+    suspend fun upsertIncomeGoal(
+        request: UpsertMonthlyIncomeGoalRequest
+    ): AppResult<MonthlyIncomeGoalDto> {
+        return runAppResult { budgetsApi.upsertIncomeGoal(request = request) }
+    }
+
+    suspend fun deleteIncomeGoal(
+        accountId: String,
+        monthKey: String
+    ): AppResult<DeleteMonthlyIncomeGoalResponse> {
+        return runAppResult { budgetsApi.deleteIncomeGoal(accountId = accountId, monthKey = monthKey) }
     }
 }
