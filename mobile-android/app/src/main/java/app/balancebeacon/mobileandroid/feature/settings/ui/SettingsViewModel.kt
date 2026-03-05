@@ -19,8 +19,10 @@ data class SettingsUiState(
     val currency: String = "USD",
     val accountEmail: String = "",
     val deleteConfirmEmail: String = "",
+    val selectedExportFormat: String = "JSON",
     val exportFormat: String? = null,
     val exportGeneratedAt: String? = null,
+    val exportData: String? = null,
     val message: String? = null,
     val error: String? = null
 )
@@ -60,6 +62,16 @@ class SettingsViewModel(
         _uiState.update { it.copy(deleteConfirmEmail = value, message = null, error = null) }
     }
 
+    fun onExportFormatChanged(value: String) {
+        _uiState.update {
+            it.copy(
+                selectedExportFormat = value.trim().uppercase(Locale.ROOT).ifBlank { "JSON" },
+                message = null,
+                error = null
+            )
+        }
+    }
+
     fun saveCurrency() {
         val state = _uiState.value
         if (state.currency.isBlank()) {
@@ -87,26 +99,28 @@ class SettingsViewModel(
     }
 
     fun exportMyData() {
+        val format = _uiState.value.selectedExportFormat.trim().lowercase(Locale.ROOT).ifBlank { "json" }
         viewModelScope.launch {
             _uiState.update { it.copy(isExportingData = true, message = null, error = null) }
-            when (val result = authRepository.exportUserData(format = "json")) {
+            when (val result = authRepository.exportUserData(format = format)) {
                 is AppResult.Success -> {
-                    val format = result.value.format
+                    val responseFormat = result.value.format
                         ?.trim()
-                        ?.ifBlank { "json" }
+                        ?.ifBlank { format }
                         ?.uppercase(Locale.ROOT)
-                        ?: "JSON"
+                        ?: format.uppercase(Locale.ROOT)
                     val exportedAt = result.value.exportedAt?.trim().takeUnless { it.isNullOrBlank() }
                     val message = if (exportedAt != null) {
-                        "Export ready ($format) at $exportedAt"
+                        "Export ready ($responseFormat) at $exportedAt"
                     } else {
-                        "Export ready ($format)"
+                        "Export ready ($responseFormat)"
                     }
                     _uiState.update {
                         it.copy(
                             isExportingData = false,
-                            exportFormat = format,
+                            exportFormat = responseFormat,
                             exportGeneratedAt = exportedAt,
+                            exportData = result.value.data,
                             message = message,
                             error = null
                         )

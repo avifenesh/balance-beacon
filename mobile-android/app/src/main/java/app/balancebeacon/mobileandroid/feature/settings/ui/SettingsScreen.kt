@@ -1,5 +1,6 @@
 package app.balancebeacon.mobileandroid.feature.settings.ui
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +18,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 
 private val CurrencyOptions = listOf("USD", "EUR", "ILS")
+private val ExportFormatOptions = listOf("JSON", "CSV")
 
 @Composable
 fun SettingsScreen(
@@ -30,6 +33,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.load()
@@ -87,20 +91,55 @@ fun SettingsScreen(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Export my data", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Generate a JSON export of your account data.",
+                    "Generate and share a portable export of your account data.",
                     style = MaterialTheme.typography.bodyMedium
                 )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ExportFormatOptions.forEach { option ->
+                        OutlinedButton(
+                            onClick = { viewModel.onExportFormatChanged(option) }
+                        ) {
+                            Text(if (state.selectedExportFormat == option) "• $option" else option)
+                        }
+                    }
+                }
                 Button(
                     onClick = viewModel::exportMyData,
                     enabled = !state.isExportingData && !state.isDeletingAccount
                 ) {
-                    Text(if (state.isExportingData) "Exporting..." else "Export data (JSON)")
+                    Text(
+                        if (state.isExportingData) {
+                            "Exporting..."
+                        } else {
+                            "Export data (${state.selectedExportFormat})"
+                        }
+                    )
                 }
                 state.exportFormat?.let { format ->
                     Text("Last export format: $format", style = MaterialTheme.typography.bodySmall)
                 }
                 state.exportGeneratedAt?.let { exportedAt ->
                     Text("Exported at: $exportedAt", style = MaterialTheme.typography.bodySmall)
+                }
+                if (!state.exportData.isNullOrBlank()) {
+                    OutlinedButton(
+                        enabled = !state.isDeletingAccount,
+                        onClick = {
+                            val exportFormat = state.exportFormat?.lowercase() ?: "json"
+                            val mimeType = if (exportFormat == "csv") "text/csv" else "application/json"
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = mimeType
+                                putExtra(Intent.EXTRA_SUBJECT, "Balance Beacon export ($exportFormat)")
+                                putExtra(Intent.EXTRA_TEXT, state.exportData)
+                            }
+                            context.startActivity(
+                                Intent.createChooser(shareIntent, "Share export")
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    ) {
+                        Text("Share last export")
+                    }
                 }
             }
         }
