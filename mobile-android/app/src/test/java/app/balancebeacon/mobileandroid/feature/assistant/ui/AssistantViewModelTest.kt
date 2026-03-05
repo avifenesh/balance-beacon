@@ -16,6 +16,7 @@ import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantChatSess
 import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantSessionMessage
 import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantSessionSnapshot
 import app.balancebeacon.mobileandroid.testutil.MainDispatcherRule
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceTimeBy
@@ -159,7 +160,10 @@ class AssistantViewModelTest {
         assistantApi: FakeAssistantApi = FakeAssistantApi()
     ): AssistantViewModel {
         return AssistantViewModel(
-            assistantRepository = AssistantRepository(assistantApi),
+            assistantRepository = AssistantRepository(
+                assistantApi = assistantApi,
+                ioDispatcher = Dispatchers.Main
+            ),
             accountsRepository = AccountsRepository(FakeAccountsApi()),
             assistantSessionStore = store
         )

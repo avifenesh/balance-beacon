@@ -200,11 +200,12 @@ class AssistantViewModel(
         }
 
         val userMessage = createAssistantMessage(role = "user", text = message)
+        val assistantMessage = createAssistantMessage(role = "assistant", text = "")
         val sessionsAfterUserMessage = updateSession(
             sessions = state.sessions,
             sessionId = activeSession.id
         ) { session ->
-            val updatedMessages = session.messages + userMessage
+            val updatedMessages = session.messages + userMessage + assistantMessage
             val derivedTitle = if (session.isCustomTitle) {
                 null
             } else {
@@ -235,22 +236,34 @@ class AssistantViewModel(
                 messages = sessionsAfterUserMessage
                     .first { it.id == activeSession.id }
                     .messages
+                    .filter { it.id != assistantMessage.id }
                     .map { AssistantMessageDto(role = it.role, content = it.text) }
             )
 
             try {
-                when (val result = assistantRepository.chat(request = request)) {
-                    is AppResult.Success -> {
-                        val assistantMessage = createAssistantMessage(role = "assistant", text = result.value)
-                        val sessionsAfterAssistant = updateSession(
-                            sessions = _uiState.value.sessions,
-                            sessionId = activeSession.id
-                        ) { session ->
-                            session.copy(
-                                messages = session.messages + assistantMessage,
-                                updatedAt = currentAssistantTimestamp()
+                when (
+                    val result = assistantRepository.streamChat(
+                        request = request,
+                        onPartial = { partial ->
+                            val updatedSessions = updateSessionMessage(
+                                sessions = _uiState.value.sessions,
+                                sessionId = activeSession.id,
+                                messageId = assistantMessage.id,
+                                text = partial
                             )
+                            _uiState.update { current ->
+                                current.copy(sessions = updatedSessions)
+                            }
                         }
+                    )
+                ) {
+                    is AppResult.Success -> {
+                        val sessionsAfterAssistant = updateSessionMessage(
+                            sessions = _uiState.value.sessions,
+                            sessionId = activeSession.id,
+                            messageId = assistantMessage.id,
+                            text = result.value
+                        )
 
                         _uiState.update {
                             it.copy(
@@ -264,16 +277,25 @@ class AssistantViewModel(
 
                     is AppResult.Failure -> {
                         if (result.error.cause is CancellationException) {
-                            markGenerationStopped(activeSession.id)
+                            markGenerationStopped(activeSession.id, assistantMessage.id)
                         } else {
+                            val sessionsAfterFailure = removeEmptyAssistantPlaceholder(
+                                sessions = _uiState.value.sessions,
+                                sessionId = activeSession.id,
+                                messageId = assistantMessage.id
+                            )
                             _uiState.update {
-                                it.copy(isSending = false, error = result.error.message)
+                                it.copy(
+                                    isSending = false,
+                                    sessions = sessionsAfterFailure,
+                                    error = result.error.message
+                                )
                             }
                         }
                     }
                 }
             } catch (_: CancellationException) {
-                markGenerationStopped(activeSession.id)
+                markGenerationStopped(activeSession.id, assistantMessage.id)
             } finally {
                 sendJob = null
             }
@@ -348,12 +370,48 @@ class AssistantViewModel(
         }
     }
 
-    private fun markGenerationStopped(sessionId: String) {
+    private fun updateSessionMessage(
+        sessions: List<AssistantChatSession>,
+        sessionId: String,
+        messageId: String,
+        text: String
+    ): List<AssistantChatSession> {
+        return updateSession(sessions, sessionId) { session ->
+            session.copy(
+                messages = session.messages.map { message ->
+                    if (message.id == messageId) {
+                        message.copy(text = text)
+                    } else {
+                        message
+                    }
+                },
+                updatedAt = currentAssistantTimestamp()
+            )
+        }
+    }
+
+    private fun removeEmptyAssistantPlaceholder(
+        sessions: List<AssistantChatSession>,
+        sessionId: String,
+        messageId: String
+    ): List<AssistantChatSession> {
+        return updateSession(sessions, sessionId) { session ->
+            session.copy(
+                messages = session.messages.filterNot { message ->
+                    message.id == messageId && message.text.isBlank()
+                },
+                updatedAt = currentAssistantTimestamp()
+            )
+        }
+    }
+
+    private fun markGenerationStopped(sessionId: String, assistantMessageId: String) {
         val stopMessage = createAssistantMessage(role = "assistant", text = "Generation stopped.")
-        val stoppedSessions = updateSession(
+        val stoppedSessions = updateSession(removeEmptyAssistantPlaceholder(
             sessions = _uiState.value.sessions,
-            sessionId = sessionId
-        ) { session ->
+            sessionId = sessionId,
+            messageId = assistantMessageId
+        ), sessionId) { session ->
             session.copy(
                 messages = session.messages + stopMessage,
                 updatedAt = currentAssistantTimestamp()

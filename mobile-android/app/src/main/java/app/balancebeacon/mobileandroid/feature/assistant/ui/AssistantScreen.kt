@@ -242,7 +242,7 @@ private fun AssistantMessageCard(message: AssistantSessionMessage) {
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = message.text,
+                text = message.text.ifBlank { "Thinking..." },
                 style = MaterialTheme.typography.bodyMedium
             )
         }
