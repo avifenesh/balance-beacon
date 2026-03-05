@@ -3,6 +3,8 @@ package app.balancebeacon.mobileandroid.navigation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -505,6 +507,8 @@ private fun DashboardScreen(
         "Subscription" to onOpenSubscription,
         "Paywall" to onOpenPaywall
     )
+    val featuredActions = navigationActions.take(6)
+    val secondaryActions = navigationActions.drop(6)
 
     Column(
         modifier = modifier
@@ -551,6 +555,30 @@ private fun DashboardScreen(
             }
         }
 
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Quick access", style = MaterialTheme.typography.titleMedium)
+                featuredActions.chunked(2).forEach { rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        rowItems.forEach { (label, action) ->
+                            Button(
+                                onClick = action,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(label)
+                            }
+                        }
+                        repeat(2 - rowItems.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+
         dashboardState.data?.let { dashboard ->
             DashboardTrendCard(
                 history = dashboard.history,
@@ -569,7 +597,13 @@ private fun DashboardScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(navigationActions) { (label, action) ->
+                item {
+                    Text(
+                        text = "More destinations",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                items(secondaryActions) { (label, action) ->
                     Button(
                         onClick = action,
                         modifier = Modifier.fillMaxWidth()
