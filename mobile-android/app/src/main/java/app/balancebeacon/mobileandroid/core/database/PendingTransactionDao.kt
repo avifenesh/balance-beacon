@@ -13,11 +13,12 @@ interface PendingTransactionDao {
     @Query(
         """
         SELECT * FROM pending_transactions
+        WHERE attempts < :maxAttempts
         ORDER BY createdAtEpochMs ASC
         LIMIT :limit
         """
     )
-    suspend fun listPending(limit: Int = 50): List<PendingTransactionEntity>
+    suspend fun listPending(limit: Int = 50, maxAttempts: Int = 3): List<PendingTransactionEntity>
 
     @Query("DELETE FROM pending_transactions WHERE id = :id")
     suspend fun deleteById(id: Long)

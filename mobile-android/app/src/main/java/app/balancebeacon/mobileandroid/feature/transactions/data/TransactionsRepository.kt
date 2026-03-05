@@ -15,6 +15,10 @@ class TransactionsRepository(
     private val transactionsApi: TransactionsApi,
     private val pendingTransactionDao: PendingTransactionDao? = null
 ) {
+    companion object {
+        private const val MAX_SYNC_ATTEMPTS = 3
+    }
+
     suspend fun getTransactions(
         accountId: String? = null,
         month: String? = null
@@ -78,7 +82,7 @@ class TransactionsRepository(
         val dao = pendingTransactionDao ?: return AppResult.Success(0)
 
         return runAppResult {
-            val pendingItems = dao.listPending(limit = maxItems)
+            val pendingItems = dao.listPending(limit = maxItems, maxAttempts = MAX_SYNC_ATTEMPTS)
             var syncedCount = 0
 
             pendingItems.forEach { item ->
