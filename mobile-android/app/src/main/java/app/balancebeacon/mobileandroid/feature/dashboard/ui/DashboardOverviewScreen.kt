@@ -109,6 +109,13 @@ fun DashboardOverviewScreen(
                             Text("Fetching dashboard data...")
                         }
                     }
+                    state.statusMessage?.let { message ->
+                        Text(
+                            text = message,
+                            color = MaterialTheme.colorScheme.secondary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                     state.error?.let { error ->
                         Text(
                             text = error,
@@ -181,7 +188,10 @@ fun DashboardOverviewScreen(
             item {
                 RequestsSection(
                     items = dashboard.transactionRequests,
-                    defaultCurrencyCode = currencyCode
+                    defaultCurrencyCode = currencyCode,
+                    requestActionInProgressId = state.requestActionInProgressId,
+                    onApproveRequest = viewModel::approveTransactionRequest,
+                    onRejectRequest = viewModel::rejectTransactionRequest
                 )
             }
 
@@ -718,7 +728,10 @@ private fun TrendChart(
 @Composable
 private fun RequestsSection(
     items: List<DashboardTransactionRequestDto>,
-    defaultCurrencyCode: String
+    defaultCurrencyCode: String,
+    requestActionInProgressId: String?,
+    onApproveRequest: (String) -> Unit,
+    onRejectRequest: (String) -> Unit
 ) {
     GlassPanel(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -746,6 +759,21 @@ private fun RequestsSection(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val isActionRunning = requestActionInProgressId == request.id
+                        Button(
+                            onClick = { onApproveRequest(request.id) },
+                            enabled = !isActionRunning && requestActionInProgressId == null
+                        ) {
+                            Text(if (isActionRunning) "Working..." else "Approve")
+                        }
+                        Button(
+                            onClick = { onRejectRequest(request.id) },
+                            enabled = !isActionRunning && requestActionInProgressId == null
+                        ) {
+                            Text(if (isActionRunning) "Working..." else "Reject")
+                        }
                     }
                 }
             }

@@ -160,7 +160,12 @@ fun RootNavHost(
             composable(AppDestination.Dashboard.route) {
                 val dashboardVm: DashboardViewModel = viewModel(
                     factory = remember {
-                        simpleFactory { DashboardViewModel(appContainer.dashboardRepository) }
+                        simpleFactory {
+                            DashboardViewModel(
+                                dashboardRepository = appContainer.dashboardRepository,
+                                transactionsRepository = appContainer.transactionsRepository
+                            )
+                        }
                     }
                 )
                 DashboardScreen(
@@ -190,7 +195,12 @@ fun RootNavHost(
             composable(AppDestination.Overview.route) {
                 val vm: DashboardViewModel = viewModel(
                     factory = remember {
-                        simpleFactory { DashboardViewModel(appContainer.dashboardRepository) }
+                        simpleFactory {
+                            DashboardViewModel(
+                                dashboardRepository = appContainer.dashboardRepository,
+                                transactionsRepository = appContainer.transactionsRepository
+                            )
+                        }
                     }
                 )
                 FeatureShell(
