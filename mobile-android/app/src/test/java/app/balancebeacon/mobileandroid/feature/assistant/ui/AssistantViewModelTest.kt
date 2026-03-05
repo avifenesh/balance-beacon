@@ -17,6 +17,8 @@ import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantSessionM
 import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantSessionSnapshot
 import app.balancebeacon.mobileandroid.testutil.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
@@ -113,6 +115,45 @@ class AssistantViewModelTest {
         assertEquals("Saved response", state.sessions.first().messages.first().text)
     }
 
+    @Test
+    fun renameCurrentSession_updatesTitleAndPersistsCustomName() = runTest {
+        val store = FakeAssistantSessionStore()
+        val viewModel = createViewModel(store = store)
+
+        viewModel.initialize()
+        advanceUntilIdle()
+        viewModel.onSessionTitleChanged("Quarter close review")
+        viewModel.renameCurrentSession()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals("Quarter close review", state.sessions.first().title)
+        assertEquals("Quarter close review", state.sessionTitleInput)
+        assertEquals("Quarter close review", store.savedSnapshots["acc_primary::${state.monthKey}"]!!.sessions.first().title)
+    }
+
+    @Test
+    fun stopSending_cancelsRequestAndAddsStoppedMessage() = runTest {
+        val store = FakeAssistantSessionStore()
+        val viewModel = createViewModel(
+            store = store,
+            assistantApi = FakeAssistantApi(responseDelayMs = 5_000)
+        )
+
+        viewModel.initialize()
+        advanceUntilIdle()
+        viewModel.onMessageInputChanged("Give me a long answer")
+        viewModel.sendMessage()
+        advanceTimeBy(100)
+        viewModel.stopSending()
+        advanceUntilIdle()
+
+        val currentSession = viewModel.uiState.value.sessions.first { it.id == viewModel.uiState.value.activeSessionId }
+        assertEquals(listOf("user", "assistant"), currentSession.messages.map { it.role })
+        assertEquals("Generation stopped.", currentSession.messages.last().text)
+        assertTrue(viewModel.uiState.value.isSending.not())
+    }
+
     private fun createViewModel(
         store: FakeAssistantSessionStore,
         assistantApi: FakeAssistantApi = FakeAssistantApi()
@@ -165,11 +206,16 @@ class AssistantViewModelTest {
         }
     }
 
-    private class FakeAssistantApi : AssistantApi {
+    private class FakeAssistantApi(
+        private val responseDelayMs: Long = 0
+    ) : AssistantApi {
         val requests = mutableListOf<AssistantChatRequest>()
 
         override suspend fun chat(request: AssistantChatRequest): Response<okhttp3.ResponseBody> {
             requests += request
+            if (responseDelayMs > 0) {
+                delay(responseDelayMs)
+            }
             val body = """{"message":"You are on track."}"""
                 .toResponseBody("application/json".toMediaType())
             return Response.success(body)

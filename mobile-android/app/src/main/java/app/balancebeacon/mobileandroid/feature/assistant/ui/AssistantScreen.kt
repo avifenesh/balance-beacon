@@ -58,9 +58,9 @@ fun AssistantScreen(
     ) {
         GlassPanel(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Assistant", style = MaterialTheme.typography.headlineSmall)
+                Text("Balance AI 3.1", style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "Ask Balance AI with saved conversation threads scoped to the selected account and month.",
+                    "Ask Balance AI 3.1 with saved conversation threads scoped to the selected account and month.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -130,18 +130,36 @@ fun AssistantScreen(
                 }
 
                 OutlinedTextField(
+                    value = state.sessionTitleInput,
+                    onValueChange = viewModel::onSessionTitleChanged,
+                    label = { Text("Conversation title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
                     value = state.messageInput,
                     onValueChange = viewModel::onMessageInputChanged,
-                    label = { Text("Ask the assistant") },
+                    label = { Text("Ask Balance AI 3.1") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = viewModel::renameCurrentSession,
+                        enabled = currentSession != null && !state.isSending
+                    ) {
+                        Text("Rename")
+                    }
                     Button(
                         onClick = viewModel::sendMessage,
                         enabled = !state.isSending
                     ) {
                         Text(if (state.isSending) "Sending..." else "Send")
+                    }
+                    if (state.isSending) {
+                        OutlinedButton(onClick = viewModel::stopSending) {
+                            Text("Stop")
+                        }
                     }
                     if (state.isSending) {
                         CircularProgressIndicator()

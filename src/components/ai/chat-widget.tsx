@@ -464,7 +464,7 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
         aria-label="Open AI Assistant"
       >
         <Sparkles className="h-5 w-5 text-sky-300" />
-        <span className="hidden sm:inline">Ask Balance AI</span>
+        <span className="hidden sm:inline">Ask Balance AI 3.1</span>
       </button>
     )
   }
@@ -478,7 +478,7 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
               <Sparkles className="h-5 w-5" />
             </span>
             <div className="flex flex-col">
-              <h3 className="text-sm font-semibold text-white">Balance AI Advisor</h3>
+              <h3 className="text-sm font-semibold text-white">Balance AI 3.1</h3>
               <p className="text-xs text-slate-300">Insights grounded in your accounts and budgets.</p>
             </div>
           </div>

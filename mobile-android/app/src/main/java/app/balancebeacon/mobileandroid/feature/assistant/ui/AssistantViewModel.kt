@@ -10,8 +10,9 @@ import app.balancebeacon.mobileandroid.feature.assistant.data.AssistantSessionSt
 import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantChatRequest
 import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantChatSession
 import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantMessageDto
-import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantSessionMessage
 import app.balancebeacon.mobileandroid.feature.assistant.model.AssistantSessionSnapshot
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +28,7 @@ data class AssistantUiState(
     val messageInput: String = "",
     val sessions: List<AssistantChatSession> = emptyList(),
     val activeSessionId: String = "",
+    val sessionTitleInput: String = "",
     val error: String? = null
 )
 
@@ -39,6 +41,7 @@ class AssistantViewModel(
     val uiState: StateFlow<AssistantUiState> = _uiState.asStateFlow()
 
     private var initialized = false
+    private var sendJob: Job? = null
 
     fun initialize() {
         if (initialized) return
@@ -96,7 +99,8 @@ class AssistantViewModel(
     }
 
     fun selectSession(id: String) {
-        _uiState.update { it.copy(activeSessionId = id, error = null) }
+        val title = _uiState.value.sessions.firstOrNull { it.id == id }?.title.orEmpty()
+        _uiState.update { it.copy(activeSessionId = id, sessionTitleInput = title, error = null) }
         persistCurrentScope()
     }
 
@@ -108,6 +112,7 @@ class AssistantViewModel(
             it.copy(
                 sessions = nextSessions,
                 activeSessionId = nextActiveId,
+                sessionTitleInput = nextSessions.last().title,
                 error = null
             )
         }
@@ -122,10 +127,48 @@ class AssistantViewModel(
 
         val nextSessions = state.sessions.filterNot { it.id == id }
         val nextActiveId = if (state.activeSessionId == id) nextSessions.first().id else state.activeSessionId
+        val nextTitle = nextSessions.firstOrNull { it.id == nextActiveId }?.title.orEmpty()
         _uiState.update {
             it.copy(
                 sessions = nextSessions,
                 activeSessionId = nextActiveId,
+                sessionTitleInput = nextTitle,
+                error = null
+            )
+        }
+        persistCurrentScope()
+    }
+
+    fun onSessionTitleChanged(value: String) {
+        _uiState.update { it.copy(sessionTitleInput = value, error = null) }
+    }
+
+    fun renameCurrentSession() {
+        val state = _uiState.value
+        val currentSession = currentSession(state)
+        val nextTitle = state.sessionTitleInput.trim()
+
+        if (currentSession == null) {
+            _uiState.update { it.copy(error = "Create a conversation first") }
+            return
+        }
+        if (nextTitle.isBlank()) {
+            _uiState.update { it.copy(error = "Conversation title cannot be empty") }
+            return
+        }
+
+        val renamedSessions = updateSession(state.sessions, currentSession.id) { session ->
+            session.copy(
+                title = nextTitle.take(64),
+                isCustomTitle = true,
+                updatedAt = currentAssistantTimestamp()
+            )
+        }
+
+        _uiState.update {
+            it.copy(
+                sessions = renamedSessions,
+                sessionTitleInput = nextTitle.take(64),
                 error = null
             )
         }
@@ -185,7 +228,7 @@ class AssistantViewModel(
         }
         persistCurrentScope()
 
-        viewModelScope.launch {
+        sendJob = viewModelScope.launch {
             val request = AssistantChatRequest(
                 accountId = accountId,
                 monthKey = monthKey,
@@ -195,34 +238,50 @@ class AssistantViewModel(
                     .map { AssistantMessageDto(role = it.role, content = it.text) }
             )
 
-            when (val result = assistantRepository.chat(request = request)) {
-                is AppResult.Success -> {
-                    val assistantMessage = createAssistantMessage(role = "assistant", text = result.value)
-                    val sessionsAfterAssistant = updateSession(
-                        sessions = _uiState.value.sessions,
-                        sessionId = activeSession.id
-                    ) { session ->
-                        session.copy(
-                            messages = session.messages + assistantMessage,
-                            updatedAt = currentAssistantTimestamp()
-                        )
+            try {
+                when (val result = assistantRepository.chat(request = request)) {
+                    is AppResult.Success -> {
+                        val assistantMessage = createAssistantMessage(role = "assistant", text = result.value)
+                        val sessionsAfterAssistant = updateSession(
+                            sessions = _uiState.value.sessions,
+                            sessionId = activeSession.id
+                        ) { session ->
+                            session.copy(
+                                messages = session.messages + assistantMessage,
+                                updatedAt = currentAssistantTimestamp()
+                            )
+                        }
+
+                        _uiState.update {
+                            it.copy(
+                                isSending = false,
+                                sessions = sessionsAfterAssistant,
+                                error = null
+                            )
+                        }
+                        persistCurrentScope()
                     }
 
-                    _uiState.update {
-                        it.copy(
-                            isSending = false,
-                            sessions = sessionsAfterAssistant,
-                            error = null
-                        )
+                    is AppResult.Failure -> {
+                        if (result.error.cause is CancellationException) {
+                            markGenerationStopped(activeSession.id)
+                        } else {
+                            _uiState.update {
+                                it.copy(isSending = false, error = result.error.message)
+                            }
+                        }
                     }
-                    persistCurrentScope()
                 }
-
-                is AppResult.Failure -> _uiState.update {
-                    it.copy(isSending = false, error = result.error.message)
-                }
+            } catch (_: CancellationException) {
+                markGenerationStopped(activeSession.id)
+            } finally {
+                sendJob = null
             }
         }
+    }
+
+    fun stopSending() {
+        sendJob?.cancel()
     }
 
     private suspend fun loadSessionScope(accountId: String, monthKey: String) {
@@ -238,6 +297,7 @@ class AssistantViewModel(
                 monthKey = monthKey,
                 sessions = sessions,
                 activeSessionId = activeSessionId,
+                sessionTitleInput = sessions.firstOrNull { it.id == activeSessionId }?.title.orEmpty(),
                 error = null
             )
         }
@@ -286,6 +346,27 @@ class AssistantViewModel(
                 session
             }
         }
+    }
+
+    private fun markGenerationStopped(sessionId: String) {
+        val stopMessage = createAssistantMessage(role = "assistant", text = "Generation stopped.")
+        val stoppedSessions = updateSession(
+            sessions = _uiState.value.sessions,
+            sessionId = sessionId
+        ) { session ->
+            session.copy(
+                messages = session.messages + stopMessage,
+                updatedAt = currentAssistantTimestamp()
+            )
+        }
+        _uiState.update {
+            it.copy(
+                isSending = false,
+                sessions = stoppedSessions,
+                error = null
+            )
+        }
+        persistCurrentScope()
     }
 
     private fun scopeKey(accountId: String, monthKey: String): String {
