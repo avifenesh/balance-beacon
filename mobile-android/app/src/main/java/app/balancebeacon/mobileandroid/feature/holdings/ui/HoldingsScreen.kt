@@ -21,9 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.holdings.model.HoldingDto
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonPrimitive
 
 @Composable
 fun HoldingsScreen(
@@ -31,22 +28,7 @@ fun HoldingsScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
-    val totalMarketValue = remember(state.holdings) {
-        state.holdings.sumOf { it.marketValue.toDoubleValue() ?: 0.0 }
-    }
-    val totalCostBasis = remember(state.holdings) {
-        state.holdings.sumOf { holding ->
-            val quantity = holding.quantity.toDoubleOrNull() ?: 0.0
-            val averageCost = holding.averageCost.toDoubleOrNull() ?: 0.0
-            quantity * averageCost
-        }
-    }
-    val totalGainLoss = totalMarketValue - totalCostBasis
-    val totalGainLossPercent = if (totalCostBasis > 0.0) {
-        (totalGainLoss / totalCostBasis) * 100.0
-    } else {
-        0.0
-    }
+    val snapshot = remember(state.holdings) { portfolioSnapshot(state.holdings) }
     val canCreate = state.accountId.isNotBlank() &&
         state.formCategoryId.isNotBlank() &&
         state.formSymbol.isNotBlank() &&
@@ -172,12 +154,12 @@ fun HoldingsScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text("Portfolio snapshot", style = MaterialTheme.typography.titleMedium)
-                    Text("Market value: ${formatAmount(totalMarketValue)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Cost basis: ${formatAmount(totalCostBasis)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Market value: ${formatAmount(snapshot.totalMarketValue)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Cost basis: ${formatAmount(snapshot.totalCostBasis)}", style = MaterialTheme.typography.bodySmall)
                     Text(
-                        text = "Gain/Loss: ${formatSignedAmount(totalGainLoss)} (${formatAmount(totalGainLossPercent)}%)",
+                        text = "Gain/Loss: ${formatSignedAmount(snapshot.totalGainLoss)} (${formatAmount(snapshot.totalGainLossPercent)}%)",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (totalGainLoss >= 0.0) {
+                        color = if (snapshot.totalGainLoss >= 0.0) {
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.error
@@ -210,17 +192,7 @@ private fun HoldingCard(
     onDelete: () -> Unit,
     isMutating: Boolean
 ) {
-    val quantity = holding.quantity.toDoubleOrNull() ?: 0.0
-    val averageCost = holding.averageCost.toDoubleOrNull() ?: 0.0
-    val currentPrice = holding.currentPrice.toDoubleValue()
-    val marketValue = holding.marketValue.toDoubleValue() ?: currentPrice?.let { it * quantity }
-    val costBasis = quantity * averageCost
-    val gainLoss = if (marketValue != null) marketValue - costBasis else null
-    val gainLossPercent = if (gainLoss != null && costBasis > 0.0) {
-        (gainLoss / costBasis) * 100.0
-    } else {
-        null
-    }
+    val metrics = remember(holding) { holdingMetrics(holding) }
 
     GlassPanel(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -239,16 +211,16 @@ private fun HoldingCard(
                 },
                 style = MaterialTheme.typography.bodySmall
             )
-            Text("Average Cost: ${formatAmount(averageCost)}", style = MaterialTheme.typography.bodySmall)
-            currentPrice?.let {
+            Text("Average Cost: ${formatAmount(metrics.averageCost)}", style = MaterialTheme.typography.bodySmall)
+            metrics.currentPrice?.let {
                 Text("Current Price: ${formatAmount(it)}", style = MaterialTheme.typography.bodySmall)
             }
-            marketValue?.let {
+            metrics.marketValue?.let {
                 Text("Market Value: ${formatAmount(it)}", style = MaterialTheme.typography.bodySmall)
             }
-            Text("Cost Basis: ${formatAmount(costBasis)}", style = MaterialTheme.typography.bodySmall)
-            gainLoss?.let {
-                val percent = gainLossPercent ?: 0.0
+            Text("Cost Basis: ${formatAmount(metrics.costBasis)}", style = MaterialTheme.typography.bodySmall)
+            metrics.gainLoss?.let {
+                val percent = metrics.gainLossPercent ?: 0.0
                 Text(
                     text = "Gain/Loss: ${formatSignedAmount(it)} (${formatAmount(percent)}%)",
                     style = MaterialTheme.typography.bodySmall,
@@ -283,19 +255,6 @@ private fun HoldingCard(
             }
         }
     }
-}
-
-private fun JsonElement?.toDoubleValue(): Double? {
-    val element = this ?: return null
-    if (element is JsonNull) return null
-    if (element is JsonPrimitive) {
-        return if (element.isString) {
-            element.content.toDoubleOrNull()
-        } else {
-            element.toString().toDoubleOrNull()
-        }
-    }
-    return element.toString().toDoubleOrNull()
 }
 
 private fun formatAmount(value: Double): String {

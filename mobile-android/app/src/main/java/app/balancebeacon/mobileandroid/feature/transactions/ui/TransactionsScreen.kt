@@ -49,36 +49,12 @@ fun TransactionsScreen(
 
     val canSubmit = accountId.isNotBlank() && amount.isNotBlank() && type.isNotBlank() && date.isNotBlank()
     val filteredItems = remember(state.items, searchQuery, listTypeFilter, listAccountFilter) {
-        val normalizedQuery = searchQuery.trim().lowercase()
-        val normalizedTypeFilter = listTypeFilter.trim().uppercase()
-        val normalizedAccountFilter = listAccountFilter.trim().lowercase()
-
-        state.items.filter { tx ->
-            val matchesType = normalizedTypeFilter.isBlank() ||
-                normalizedTypeFilter == "ALL" ||
-                tx.type.equals(normalizedTypeFilter, ignoreCase = true)
-            val matchesAccount = normalizedAccountFilter.isBlank() ||
-                tx.accountId.lowercase().contains(normalizedAccountFilter)
-            val searchableText = buildString {
-                append(tx.type)
-                append(' ')
-                append(tx.amount)
-                append(' ')
-                append(tx.accountId)
-                append(' ')
-                append(tx.date)
-                tx.description?.let {
-                    append(' ')
-                    append(it)
-                }
-                tx.categoryId?.let {
-                    append(' ')
-                    append(it)
-                }
-            }.lowercase()
-            val matchesQuery = normalizedQuery.isBlank() || searchableText.contains(normalizedQuery)
-            matchesType && matchesAccount && matchesQuery
-        }
+        filterTransactions(
+            items = state.items,
+            searchQuery = searchQuery,
+            listTypeFilter = listTypeFilter,
+            listAccountFilter = listAccountFilter
+        )
     }
 
     Column(
@@ -277,9 +253,9 @@ fun TransactionsScreen(
                             ) {
                                 Text("Delete")
                             }
-                            if (tx.type.equals("EXPENSE", ignoreCase = true) && onShareTransaction != null) {
+                            if (isShareEligible(tx.type, onShareTransaction != null)) {
                                 OutlinedButton(
-                                    onClick = { onShareTransaction(tx.id) }
+                                    onClick = { onShareTransaction?.invoke(tx.id) }
                                 ) {
                                     Text("Share")
                                 }

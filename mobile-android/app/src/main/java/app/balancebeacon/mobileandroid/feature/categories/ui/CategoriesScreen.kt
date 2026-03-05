@@ -38,21 +38,10 @@ fun CategoriesScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var visibleCount by rememberSaveable { mutableStateOf(DEFAULT_VISIBLE_COUNT) }
     val filteredItems = remember(state.items, searchQuery) {
-        val normalizedQuery = searchQuery.trim().lowercase()
-        if (normalizedQuery.isBlank()) {
-            state.items
-        } else {
-            state.items.filter { category ->
-                val haystack = buildString {
-                    append(category.name)
-                    append(' ')
-                    append(category.type)
-                    append(' ')
-                    append(category.color.orEmpty())
-                }.lowercase()
-                haystack.contains(normalizedQuery)
-            }
-        }
+        filterCategories(
+            items = state.items,
+            searchQuery = searchQuery
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -311,11 +300,11 @@ fun CategoriesScreen(
             if (filteredItems.size > visibleCount) {
                 item {
                     OutlinedButton(
-                        onClick = { visibleCount += DEFAULT_VISIBLE_COUNT },
+                        onClick = { visibleCount = nextVisibleCategoryCount(visibleCount) },
                         enabled = !state.isMutating,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Load more (${filteredItems.size - visibleCount} remaining)")
+                        Text("Load more (${remainingCategoryCount(filteredItems.size, visibleCount)} remaining)")
                     }
                 }
             }
@@ -364,5 +353,3 @@ private fun CategoryItem(
         }
     }
 }
-
-private const val DEFAULT_VISIBLE_COUNT = 12
