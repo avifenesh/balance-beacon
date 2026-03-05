@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.holdings.model.HoldingDto
@@ -30,6 +31,22 @@ fun HoldingsScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val totalMarketValue = remember(state.holdings) {
+        state.holdings.sumOf { it.marketValue.toDoubleValue() ?: 0.0 }
+    }
+    val totalCostBasis = remember(state.holdings) {
+        state.holdings.sumOf { holding ->
+            val quantity = holding.quantity.toDoubleOrNull() ?: 0.0
+            val averageCost = holding.averageCost.toDoubleOrNull() ?: 0.0
+            quantity * averageCost
+        }
+    }
+    val totalGainLoss = totalMarketValue - totalCostBasis
+    val totalGainLossPercent = if (totalCostBasis > 0.0) {
+        (totalGainLoss / totalCostBasis) * 100.0
+    } else {
+        0.0
+    }
     val canCreate = state.accountId.isNotBlank() &&
         state.formCategoryId.isNotBlank() &&
         state.formSymbol.isNotBlank() &&
@@ -148,6 +165,28 @@ fun HoldingsScreen(
             }
         }
 
+        if (state.holdings.isNotEmpty()) {
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("Portfolio snapshot", style = MaterialTheme.typography.titleMedium)
+                    Text("Market value: ${formatAmount(totalMarketValue)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Cost basis: ${formatAmount(totalCostBasis)}", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = "Gain/Loss: ${formatSignedAmount(totalGainLoss)} (${formatAmount(totalGainLossPercent)}%)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (totalGainLoss >= 0.0) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
+                    )
+                }
+            }
+        }
+
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -171,8 +210,17 @@ private fun HoldingCard(
     onDelete: () -> Unit,
     isMutating: Boolean
 ) {
-    val currentPrice = holding.currentPrice.toDisplayString()
-    val marketValue = holding.marketValue.toDisplayString()
+    val quantity = holding.quantity.toDoubleOrNull() ?: 0.0
+    val averageCost = holding.averageCost.toDoubleOrNull() ?: 0.0
+    val currentPrice = holding.currentPrice.toDoubleValue()
+    val marketValue = holding.marketValue.toDoubleValue() ?: currentPrice?.let { it * quantity }
+    val costBasis = quantity * averageCost
+    val gainLoss = if (marketValue != null) marketValue - costBasis else null
+    val gainLossPercent = if (gainLoss != null && costBasis > 0.0) {
+        (gainLoss / costBasis) * 100.0
+    } else {
+        null
+    }
 
     GlassPanel(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -183,18 +231,44 @@ private fun HoldingCard(
                 text = holding.symbol,
                 style = MaterialTheme.typography.titleMedium
             )
-            Text("Quantity: ${holding.quantity}", style = MaterialTheme.typography.bodySmall)
-            Text("Average Cost: ${holding.averageCost}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = if (holding.isStale == true) {
+                    "Quantity: ${holding.quantity} • Price status: stale"
+                } else {
+                    "Quantity: ${holding.quantity}"
+                },
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text("Average Cost: ${formatAmount(averageCost)}", style = MaterialTheme.typography.bodySmall)
             currentPrice?.let {
-                Text("Current Price: $it", style = MaterialTheme.typography.bodySmall)
+                Text("Current Price: ${formatAmount(it)}", style = MaterialTheme.typography.bodySmall)
             }
             marketValue?.let {
-                Text("Market Value: $it", style = MaterialTheme.typography.bodySmall)
+                Text("Market Value: ${formatAmount(it)}", style = MaterialTheme.typography.bodySmall)
+            }
+            Text("Cost Basis: ${formatAmount(costBasis)}", style = MaterialTheme.typography.bodySmall)
+            gainLoss?.let {
+                val percent = gainLossPercent ?: 0.0
+                Text(
+                    text = "Gain/Loss: ${formatSignedAmount(it)} (${formatAmount(percent)}%)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (it >= 0.0) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    }
+                )
             }
             Text(
                 text = "Currency: ${holding.currencyCode ?: "USD"}",
                 style = MaterialTheme.typography.bodySmall
             )
+            holding.lastPriceUpdate?.let {
+                Text(
+                    text = "Last update: $it",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
             holding.notes?.takeIf { it.isNotBlank() }?.let {
                 Text("Notes: $it", style = MaterialTheme.typography.bodySmall)
             }
@@ -211,11 +285,27 @@ private fun HoldingCard(
     }
 }
 
-private fun JsonElement?.toDisplayString(): String? {
+private fun JsonElement?.toDoubleValue(): Double? {
     val element = this ?: return null
     if (element is JsonNull) return null
     if (element is JsonPrimitive) {
-        return if (element.isString) element.content else element.toString()
+        return if (element.isString) {
+            element.content.toDoubleOrNull()
+        } else {
+            element.toString().toDoubleOrNull()
+        }
     }
-    return element.toString()
+    return element.toString().toDoubleOrNull()
+}
+
+private fun formatAmount(value: Double): String {
+    return "%.2f".format(value)
+}
+
+private fun formatSignedAmount(value: Double): String {
+    return if (value >= 0.0) {
+        "+${formatAmount(value)}"
+    } else {
+        formatAmount(value)
+    }
 }
