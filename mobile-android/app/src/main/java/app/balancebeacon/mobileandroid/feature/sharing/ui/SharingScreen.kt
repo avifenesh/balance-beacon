@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedExpenseDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedWithMeParticipationDto
+import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -248,49 +249,53 @@ private fun SharedByMeItem(
     onMarkPaid: (String) -> Unit,
     onSendReminder: (String) -> Unit
 ) {
-    Column(
+    GlassPanel(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .padding(vertical = 4.dp)
     ) {
-        val title = sharedExpense.description
-            ?: sharedExpense.transaction?.description
-            ?: "Shared expense"
-        Text(title, style = MaterialTheme.typography.titleSmall)
-        Text(
-            text = "${sharedExpense.totalAmount} ${sharedExpense.currency} (${sharedExpense.splitType})",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        OutlinedButton(onClick = onDeleteShare, enabled = !isActionInProgress) {
-            Text("Delete Share")
-        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            val title = sharedExpense.description
+                ?: sharedExpense.transaction?.description
+                ?: "Shared expense"
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "${sharedExpense.totalAmount} ${sharedExpense.currency} (${sharedExpense.splitType})",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            OutlinedButton(onClick = onDeleteShare, enabled = !isActionInProgress) {
+                Text("Delete Share")
+            }
 
-        if (sharedExpense.participants.isEmpty()) {
-            Text("No participants", style = MaterialTheme.typography.bodySmall)
-        } else {
-            sharedExpense.participants.forEach { participant ->
-                val participantName = participant.participant?.displayName?.takeIf { it.isNotBlank() }
-                    ?: participant.participant?.email
-                    ?: "Participant"
-                Text(
-                    text = "$participantName • ${participant.shareAmount} • ${participant.status}",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            if (sharedExpense.participants.isEmpty()) {
+                Text("No participants", style = MaterialTheme.typography.bodySmall)
+            } else {
+                sharedExpense.participants.forEach { participant ->
+                    val participantName = participant.participant?.displayName?.takeIf { it.isNotBlank() }
+                        ?: participant.participant?.email
+                        ?: "Participant"
+                    Text(
+                        text = "$participantName • ${participant.shareAmount} • ${participant.status}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
 
-                if (participant.status.equals("PENDING", ignoreCase = true)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = { onMarkPaid(participant.id) },
-                            enabled = !isActionInProgress
-                        ) {
-                            Text("Mark Paid")
-                        }
-                        OutlinedButton(
-                            onClick = { onSendReminder(participant.id) },
-                            enabled = !isActionInProgress
-                        ) {
-                            Text("Send Reminder")
+                    if (participant.status.equals("PENDING", ignoreCase = true)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { onMarkPaid(participant.id) },
+                                enabled = !isActionInProgress
+                            ) {
+                                Text("Mark Paid")
+                            }
+                            OutlinedButton(
+                                onClick = { onSendReminder(participant.id) },
+                                enabled = !isActionInProgress
+                            ) {
+                                Text("Send Reminder")
+                            }
                         }
                     }
                 }
@@ -305,36 +310,40 @@ private fun SharedWithMeItem(
     isActionInProgress: Boolean,
     onDecline: (String) -> Unit
 ) {
-    Column(
+    GlassPanel(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .padding(vertical = 4.dp)
     ) {
-        val sharedExpense = participation.sharedExpense
-        val title = sharedExpense?.description
-            ?: sharedExpense?.transaction?.description
-            ?: "Shared expense"
-        val currency = sharedExpense?.currency ?: ""
-        val owner = sharedExpense?.participants?.firstOrNull()?.participant?.displayName
-            ?: sharedExpense?.participants?.firstOrNull()?.participant?.email
-            ?: "Unknown"
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            val sharedExpense = participation.sharedExpense
+            val title = sharedExpense?.description
+                ?: sharedExpense?.transaction?.description
+                ?: "Shared expense"
+            val currency = sharedExpense?.currency ?: ""
+            val owner = sharedExpense?.participants?.firstOrNull()?.participant?.displayName
+                ?: sharedExpense?.participants?.firstOrNull()?.participant?.email
+                ?: "Unknown"
 
-        Text(title, style = MaterialTheme.typography.titleSmall)
-        Text(
-            text = "Owner: $owner",
-            style = MaterialTheme.typography.bodySmall
-        )
-        Text(
-            text = "Your share: ${participation.shareAmount} $currency (${participation.status})",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        if (participation.status.equals("PENDING", ignoreCase = true)) {
-            Button(
-                onClick = { onDecline(participation.id) },
-                enabled = !isActionInProgress
-            ) {
-                Text("Decline")
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "Owner: $owner",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = "Your share: ${participation.shareAmount} $currency (${participation.status})",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (participation.status.equals("PENDING", ignoreCase = true)) {
+                Button(
+                    onClick = { onDecline(participation.id) },
+                    enabled = !isActionInProgress
+                ) {
+                    Text("Decline")
+                }
             }
         }
     }

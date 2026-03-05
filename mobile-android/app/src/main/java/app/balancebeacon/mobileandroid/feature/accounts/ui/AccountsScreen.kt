@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -24,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.accounts.model.AccountDto
+import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 
 @Composable
 fun AccountsScreen(
@@ -53,111 +52,124 @@ fun AccountsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Accounts", style = MaterialTheme.typography.headlineSmall)
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("Accounts", style = MaterialTheme.typography.headlineSmall)
 
-        OutlinedTextField(
-            value = state.createName,
-            onValueChange = viewModel::onCreateNameChanged,
-            label = { Text("New account name") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            enabled = !state.isMutating
-        )
+                OutlinedTextField(
+                    value = state.createName,
+                    onValueChange = viewModel::onCreateNameChanged,
+                    label = { Text("New account name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.isMutating
+                )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = state.createType,
-                onValueChange = viewModel::onCreateTypeChanged,
-                label = { Text("Type (SELF/PARTNER/OTHER)") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                enabled = !state.isMutating
-            )
-            OutlinedTextField(
-                value = state.createPreferredCurrency,
-                onValueChange = viewModel::onCreatePreferredCurrencyChanged,
-                label = { Text("Currency (optional)") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                enabled = !state.isMutating
-            )
-        }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = state.createType,
+                        onValueChange = viewModel::onCreateTypeChanged,
+                        label = { Text("Type (SELF/PARTNER/OTHER)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        enabled = !state.isMutating
+                    )
+                    OutlinedTextField(
+                        value = state.createPreferredCurrency,
+                        onValueChange = viewModel::onCreatePreferredCurrencyChanged,
+                        label = { Text("Currency (optional)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        enabled = !state.isMutating
+                    )
+                }
 
-        OutlinedTextField(
-            value = state.createColor,
-            onValueChange = viewModel::onCreateColorChanged,
-            label = { Text("Color hex (optional)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            enabled = !state.isMutating
-        )
+                OutlinedTextField(
+                    value = state.createColor,
+                    onValueChange = viewModel::onCreateColorChanged,
+                    label = { Text("Color hex (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.isMutating
+                )
 
-        Button(
-            onClick = viewModel::createAccount,
-            enabled = !state.isMutating
-        ) {
-            Text(if (state.isMutating) "Working..." else "Create account")
+                Button(
+                    onClick = viewModel::createAccount,
+                    enabled = !state.isMutating
+                ) {
+                    Text(if (state.isMutating) "Working..." else "Create account")
+                }
+            }
         }
 
         if (state.editingAccountId != null) {
-            HorizontalDivider()
-            Text("Edit account", style = MaterialTheme.typography.titleMedium)
-
-            OutlinedTextField(
-                value = state.editName,
-                onValueChange = viewModel::onEditNameChanged,
-                label = { Text("Edit name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = !state.isMutating
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = state.editType,
-                    onValueChange = viewModel::onEditTypeChanged,
-                    label = { Text("Type") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    enabled = !state.isMutating
-                )
-                OutlinedTextField(
-                    value = state.editPreferredCurrency,
-                    onValueChange = viewModel::onEditPreferredCurrencyChanged,
-                    label = { Text("Currency") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    enabled = !state.isMutating
-                )
-            }
-
-            OutlinedTextField(
-                value = state.editColor,
-                onValueChange = viewModel::onEditColorChanged,
-                label = { Text("Color hex") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = !state.isMutating
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = viewModel::updateAccount,
-                    enabled = !state.isMutating
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Save")
-                }
-                TextButton(
-                    onClick = viewModel::cancelEditing,
-                    enabled = !state.isMutating
-                ) {
-                    Text("Cancel")
+                    Text("Edit account", style = MaterialTheme.typography.titleMedium)
+
+                    OutlinedTextField(
+                        value = state.editName,
+                        onValueChange = viewModel::onEditNameChanged,
+                        label = { Text("Edit name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !state.isMutating
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = state.editType,
+                            onValueChange = viewModel::onEditTypeChanged,
+                            label = { Text("Type") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            enabled = !state.isMutating
+                        )
+                        OutlinedTextField(
+                            value = state.editPreferredCurrency,
+                            onValueChange = viewModel::onEditPreferredCurrencyChanged,
+                            label = { Text("Currency") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            enabled = !state.isMutating
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = state.editColor,
+                        onValueChange = viewModel::onEditColorChanged,
+                        label = { Text("Color hex") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !state.isMutating
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = viewModel::updateAccount,
+                            enabled = !state.isMutating
+                        ) {
+                            Text("Save")
+                        }
+                        TextButton(
+                            onClick = viewModel::cancelEditing,
+                            enabled = !state.isMutating
+                        ) {
+                            Text("Cancel")
+                        }
+                    }
                 }
             }
         }
@@ -199,11 +211,9 @@ private fun AccountItem(
     onEdit: (AccountDto) -> Unit,
     onDelete: (String) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    GlassPanel(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(

@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.budgets.model.CreateBudgetRequest
 import app.balancebeacon.mobileandroid.feature.budgets.model.QuickBudgetRequest
+import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 
 @Composable
 fun BudgetsScreen(
@@ -53,94 +54,101 @@ fun BudgetsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("Budgets", style = MaterialTheme.typography.headlineSmall)
-        if (state.isLoading) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CircularProgressIndicator()
-                Text("Syncing...")
-            }
-        }
-        state.error?.let {
-            Text(it, color = MaterialTheme.colorScheme.error)
-        }
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("Budgets", style = MaterialTheme.typography.headlineSmall)
+                if (state.isLoading) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CircularProgressIndicator()
+                        Text("Syncing...")
+                    }
+                }
+                state.error?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
 
-        OutlinedTextField(
-            value = accountId,
-            onValueChange = { accountId = it },
-            label = { Text("Account ID") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = categoryId,
-            onValueChange = { categoryId = it },
-            label = { Text("Category ID") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = monthKey,
-            onValueChange = { monthKey = it },
-            label = { Text("Month Key (YYYY-MM)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = planned,
-            onValueChange = { planned = it },
-            label = { Text("Planned Amount") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = currencyCode,
-            onValueChange = { currencyCode = it },
-            label = { Text("Currency (optional)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = notes,
-            onValueChange = { notes = it },
-            label = { Text("Notes (optional)") },
-            modifier = Modifier.fillMaxWidth()
-        )
+                OutlinedTextField(
+                    value = accountId,
+                    onValueChange = { accountId = it },
+                    label = { Text("Account ID") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = categoryId,
+                    onValueChange = { categoryId = it },
+                    label = { Text("Category ID") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = monthKey,
+                    onValueChange = { monthKey = it },
+                    label = { Text("Month Key (YYYY-MM)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = planned,
+                    onValueChange = { planned = it },
+                    label = { Text("Planned Amount") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = currencyCode,
+                    onValueChange = { currencyCode = it },
+                    label = { Text("Currency (optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes (optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = {
-                    viewModel.load(month = monthKey.ifBlank { null })
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            viewModel.load(month = monthKey.ifBlank { null })
+                        }
+                    ) {
+                        Text("Refresh")
+                    }
+                    Button(
+                        enabled = canSubmit,
+                        onClick = {
+                            viewModel.createBudget(
+                                request = CreateBudgetRequest(
+                                    accountId = accountId,
+                                    categoryId = categoryId,
+                                    monthKey = monthKey,
+                                    planned = planned,
+                                    currencyCode = currencyCode.ifBlank { null },
+                                    notes = notes.ifBlank { null }
+                                )
+                            )
+                        }
+                    ) {
+                        Text("Create")
+                    }
+                    Button(
+                        enabled = canSubmit,
+                        onClick = {
+                            viewModel.createQuickBudget(
+                                request = QuickBudgetRequest(
+                                    accountId = accountId,
+                                    categoryId = categoryId,
+                                    monthKey = monthKey,
+                                    planned = planned,
+                                    currencyCode = currencyCode.ifBlank { null }
+                                )
+                            )
+                        }
+                    ) {
+                        Text("Quick")
+                    }
                 }
-            ) {
-                Text("Refresh")
-            }
-            Button(
-                enabled = canSubmit,
-                onClick = {
-                    viewModel.createBudget(
-                        request = CreateBudgetRequest(
-                            accountId = accountId,
-                            categoryId = categoryId,
-                            monthKey = monthKey,
-                            planned = planned,
-                            currencyCode = currencyCode.ifBlank { null },
-                            notes = notes.ifBlank { null }
-                        )
-                    )
-                }
-            ) {
-                Text("Create")
-            }
-            Button(
-                enabled = canSubmit,
-                onClick = {
-                    viewModel.createQuickBudget(
-                        request = QuickBudgetRequest(
-                            accountId = accountId,
-                            categoryId = categoryId,
-                            monthKey = monthKey,
-                            planned = planned,
-                            currencyCode = currencyCode.ifBlank { null }
-                        )
-                    )
-                }
-            ) {
-                Text("Quick")
             }
         }
 
@@ -152,31 +160,31 @@ fun BudgetsScreen(
                 items = state.items,
                 key = { item -> "${item.accountId}:${item.categoryId}:${item.monthKey}" }
             ) { item ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "${item.monthKey} - ${item.amount}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text("Account: ${item.accountId}", style = MaterialTheme.typography.bodySmall)
-                    Text("Category: ${item.categoryId}", style = MaterialTheme.typography.bodySmall)
-                    item.notes?.let {
-                        Text("Notes: $it", style = MaterialTheme.typography.bodySmall)
-                    }
-                    Button(
-                        onClick = {
-                            viewModel.deleteBudget(
-                                accountId = item.accountId,
-                                categoryId = item.categoryId,
-                                monthKey = item.monthKey
-                            )
-                        }
+                GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("Delete")
+                        Text(
+                            text = "${item.monthKey} - ${item.amount}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text("Account: ${item.accountId}", style = MaterialTheme.typography.bodySmall)
+                        Text("Category: ${item.categoryId}", style = MaterialTheme.typography.bodySmall)
+                        item.notes?.let {
+                            Text("Notes: $it", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Button(
+                            onClick = {
+                                viewModel.deleteBudget(
+                                    accountId = item.accountId,
+                                    categoryId = item.categoryId,
+                                    monthKey = item.monthKey
+                                )
+                            }
+                        ) {
+                            Text("Delete")
+                        }
                     }
                 }
             }

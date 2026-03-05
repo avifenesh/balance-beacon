@@ -1,13 +1,18 @@
 package app.balancebeacon.mobileandroid.navigation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,6 +62,7 @@ import app.balancebeacon.mobileandroid.feature.subscription.ui.SubscriptionScree
 import app.balancebeacon.mobileandroid.feature.subscription.ui.SubscriptionViewModel
 import app.balancebeacon.mobileandroid.feature.transactions.ui.TransactionsScreen
 import app.balancebeacon.mobileandroid.feature.transactions.ui.TransactionsViewModel
+import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -64,8 +70,6 @@ fun RootNavHost(
     appContainer: AppContainer,
     modifier: Modifier = Modifier
 ) {
-    val navController = rememberNavController()
-    val coroutineScope = rememberCoroutineScope()
     val sessionState by appContainer.sessionManager.sessionState.collectAsState()
 
     if (sessionState == SessionState.Loading) {
@@ -74,6 +78,8 @@ fun RootNavHost(
     }
 
     key(sessionState) {
+        val navController = rememberNavController()
+        val coroutineScope = rememberCoroutineScope()
         val startDestination = when (sessionState) {
             SessionState.Authenticated -> AppDestination.Dashboard.route
             SessionState.Unauthenticated, SessionState.Loading -> AppDestination.Login.route
@@ -308,11 +314,24 @@ fun RootNavHost(
 @Composable
 private fun LoadingScreen(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        CircularProgressIndicator()
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator()
+                Text("Loading workspace...", style = MaterialTheme.typography.titleMedium)
+            }
+        }
     }
 }
 
@@ -331,25 +350,60 @@ private fun DashboardScreen(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val navigationActions = listOf(
+        "Transactions" to onOpenTransactions,
+        "Budgets" to onOpenBudgets,
+        "Accounts" to onOpenAccounts,
+        "Categories" to onOpenCategories,
+        "Sharing" to onOpenSharing,
+        "Profile" to onOpenProfile,
+        "Settings" to onOpenSettings,
+        "Onboarding" to onOpenOnboarding,
+        "Subscription" to onOpenSubscription,
+        "Paywall" to onOpenPaywall
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        Text("Dashboard", style = MaterialTheme.typography.headlineSmall)
-        Button(onClick = onOpenTransactions) { Text("Transactions") }
-        Button(onClick = onOpenBudgets) { Text("Budgets") }
-        Button(onClick = onOpenAccounts) { Text("Accounts") }
-        Button(onClick = onOpenCategories) { Text("Categories") }
-        Button(onClick = onOpenSharing) { Text("Sharing") }
-        Button(onClick = onOpenProfile) { Text("Profile") }
-        Button(onClick = onOpenSettings) { Text("Settings") }
-        Button(onClick = onOpenOnboarding) { Text("Onboarding") }
-        Button(onClick = onOpenSubscription) { Text("Subscription") }
-        Button(onClick = onOpenPaywall) { Text("Paywall") }
-        Button(onClick = onSignOut) { Text("Sign Out") }
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Dashboard", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    "Use the same web features in Android with the same dark glass styling.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        GlassPanel(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(navigationActions) { (label, action) ->
+                    Button(
+                        onClick = action,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(label)
+                    }
+                }
+            }
+        }
+
+        TextButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
+            Text("Sign Out")
+        }
     }
 }
 
@@ -365,11 +419,26 @@ private fun FeatureShell(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge)
-        Button(onClick = onBack) {
-            Text("Back")
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(title, style = MaterialTheme.typography.titleLarge)
+                TextButton(onClick = onBack) {
+                    Text("Back")
+                }
+            }
         }
-        content()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            GlassPanel(modifier = Modifier.fillMaxSize()) {
+                content()
+            }
+        }
     }
 }
 

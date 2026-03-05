@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 
 @Composable
 fun ProfileScreen(
@@ -49,61 +50,75 @@ fun ProfileScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Profile", style = MaterialTheme.typography.headlineSmall)
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Profile", style = MaterialTheme.typography.headlineSmall)
 
-        OutlinedTextField(
-            value = state.email,
-            onValueChange = {},
-            label = { Text("Email") },
-            enabled = false,
-            modifier = Modifier.fillMaxWidth()
-        )
+                OutlinedTextField(
+                    value = state.email,
+                    onValueChange = {},
+                    label = { Text("Email") },
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        OutlinedTextField(
-            value = state.displayName,
-            onValueChange = viewModel::onDisplayNameChanged,
-            label = { Text("Display name") },
-            modifier = Modifier.fillMaxWidth()
-        )
+                OutlinedTextField(
+                    value = state.displayName,
+                    onValueChange = viewModel::onDisplayNameChanged,
+                    label = { Text("Display name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        Text(
-            text = "Preferred currency: ${state.preferredCurrency}",
-            style = MaterialTheme.typography.bodyMedium
-        )
+                Text(
+                    text = "Preferred currency: ${state.preferredCurrency}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
 
-        Button(
-            onClick = viewModel::saveProfile,
-            enabled = !state.isSaving
-        ) {
-            Text(if (state.isSaving) "Saving..." else "Save profile")
+                Button(
+                    onClick = viewModel::saveProfile,
+                    enabled = !state.isSaving
+                ) {
+                    Text(if (state.isSaving) "Saving..." else "Save profile")
+                }
+            }
         }
 
-        OutlinedTextField(
-            value = state.exportFormat,
-            onValueChange = viewModel::onExportFormatChanged,
-            label = { Text("Export format (json/csv)") },
-            modifier = Modifier.fillMaxWidth()
-        )
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = state.exportFormat,
+                    onValueChange = viewModel::onExportFormatChanged,
+                    label = { Text("Export format (json/csv)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        Button(
-            onClick = viewModel::exportData,
-            enabled = !state.isExporting
-        ) {
-            Text(if (state.isExporting) "Exporting..." else "Export data")
-        }
+                Button(
+                    onClick = viewModel::exportData,
+                    enabled = !state.isExporting
+                ) {
+                    Text(if (state.isExporting) "Exporting..." else "Export data")
+                }
 
-        OutlinedTextField(
-            value = state.confirmEmail,
-            onValueChange = viewModel::onConfirmEmailChanged,
-            label = { Text("Confirm email for delete") },
-            modifier = Modifier.fillMaxWidth()
-        )
+                OutlinedTextField(
+                    value = state.confirmEmail,
+                    onValueChange = viewModel::onConfirmEmailChanged,
+                    label = { Text("Confirm email for delete") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        Button(
-            onClick = viewModel::deleteAccount,
-            enabled = !state.isDeleting
-        ) {
-            Text(if (state.isDeleting) "Deleting..." else "Delete account")
+                Button(
+                    onClick = viewModel::deleteAccount,
+                    enabled = !state.isDeleting
+                ) {
+                    Text(if (state.isDeleting) "Deleting..." else "Delete account")
+                }
+            }
         }
 
         state.accountStatus?.let {
