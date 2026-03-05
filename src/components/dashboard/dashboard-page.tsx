@@ -638,7 +638,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                 onClick={() => setExpandedStat(isExpanded ? null : stat.label)}
                 className={cn(cardClassName, 'cursor-pointer hover:bg-white/10 text-left')}
                 aria-expanded={isExpanded}
-                aria-controls="stat-breakdown-panel"
+                aria-controls={`stat-breakdown-panel-${stat.label.replace(/\s+/g, '-').toLowerCase()}`}
                 aria-label={`View ${stat.label} breakdown`}
                 data-testid="stat-card"
               >
@@ -660,7 +660,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
 
             return (
               <div
-                id="stat-breakdown-panel"
+                id={`stat-breakdown-panel-${stat.label.replace(/\s+/g, '-').toLowerCase()}`}
                 className="relative z-10 mt-2 rounded-xl border border-white/15 bg-white/5 p-4 backdrop-blur"
               >
                 <div className="flex items-center justify-between mb-3">
