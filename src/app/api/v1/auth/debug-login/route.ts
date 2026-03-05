@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AccountType, Currency, SubscriptionStatus, TransactionType } from '@prisma/client'
+import {
+  AccountType,
+  Currency,
+  PaymentStatus,
+  RequestStatus,
+  SplitType,
+  SubscriptionStatus,
+  TransactionType,
+} from '@prisma/client'
 import { generateAccessToken, generateRefreshToken } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
 import { TRIAL_DURATION_DAYS } from '@/lib/subscription-constants'
@@ -16,6 +24,22 @@ const DEMO_DISPLAY_NAME = 'Android Demo'
 const DEMO_ACCOUNT_NAME = 'Android Demo'
 const DEMO_PRICE_SOURCE = 'debug-seed'
 const DEMO_MONTHLY_INCOME_GOAL = 6200
+const DEMO_PEERS = [
+  {
+    key: 'maya',
+    email: 'android-maya@balancebeacon.local',
+    displayName: 'Maya Chen',
+    accountName: 'Maya Chen',
+    color: '#14b8a6',
+  },
+  {
+    key: 'liam',
+    email: 'android-liam@balancebeacon.local',
+    displayName: 'Liam Ortiz',
+    accountName: 'Liam Ortiz',
+    color: '#f97316',
+  },
+] as const
 
 const DEMO_BUDGETS = [
   { categoryName: 'Housing', planned: 1700 },
@@ -112,6 +136,13 @@ type DemoCategoryMaps = {
   holding: Map<string, string>
 }
 
+type DemoPeerSeed = {
+  key: (typeof DEMO_PEERS)[number]['key']
+  userId: string
+  accountId: string
+  categoryMaps: DemoCategoryMaps
+}
+
 export async function POST(_request: NextRequest) {
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -201,9 +232,12 @@ export async function POST(_request: NextRequest) {
   })
 
   const categoryMaps = await ensureDemoCategories(user.id)
+  const peers = await ensureDemoPeers()
   await seedDemoAccountData({
+    demoUserId: user.id,
     accountId: account.id,
     categoryMaps,
+    peers,
   })
   await invalidateDashboardCache({ accountId: account.id })
 
@@ -341,13 +375,104 @@ async function ensureDemoCategories(userId: string): Promise<DemoCategoryMaps> {
   return { expense, income, holding }
 }
 
-async function seedDemoAccountData({ accountId, categoryMaps }: { accountId: string; categoryMaps: DemoCategoryMaps }) {
+async function ensureDemoPeers(): Promise<DemoPeerSeed[]> {
+  return Promise.all(
+    DEMO_PEERS.map(async (peer) => {
+      const user = await prisma.user.upsert({
+        where: { email: peer.email },
+        update: {
+          displayName: peer.displayName,
+          emailVerified: true,
+          preferredCurrency: Currency.USD,
+          hasCompletedOnboarding: true,
+          deletedAt: null,
+        },
+        create: {
+          email: peer.email,
+          displayName: peer.displayName,
+          passwordHash: 'debug-login-unavailable',
+          emailVerified: true,
+          preferredCurrency: Currency.USD,
+          hasCompletedOnboarding: true,
+        },
+        select: {
+          id: true,
+        },
+      })
+
+      const account = await prisma.account.upsert({
+        where: {
+          userId_name: {
+            userId: user.id,
+            name: peer.accountName,
+          },
+        },
+        update: {
+          type: AccountType.SELF,
+          preferredCurrency: Currency.USD,
+          color: peer.color,
+          icon: 'Users',
+          description: 'Auto-provisioned local Android debug counterparty',
+          deletedAt: null,
+        },
+        create: {
+          userId: user.id,
+          name: peer.accountName,
+          type: AccountType.SELF,
+          preferredCurrency: Currency.USD,
+          color: peer.color,
+          icon: 'Users',
+          description: 'Auto-provisioned local Android debug counterparty',
+        },
+        select: {
+          id: true,
+        },
+      })
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { activeAccountId: account.id },
+      })
+
+      return {
+        key: peer.key,
+        userId: user.id,
+        accountId: account.id,
+        categoryMaps: await ensureDemoCategories(user.id),
+      }
+    }),
+  )
+}
+
+async function seedDemoAccountData({
+  demoUserId,
+  accountId,
+  categoryMaps,
+  peers,
+}: {
+  demoUserId: string
+  accountId: string
+  categoryMaps: DemoCategoryMaps
+  peers: DemoPeerSeed[]
+}) {
   const currentMonthKey = getMonthKey(new Date())
   const currentMonthStart = getMonthStartFromKey(currentMonthKey)
   const recurringStartMonth = getMonthStartFromKey(shiftMonth(currentMonthKey, -5))
+  const seededAccountIds = [accountId, ...peers.map((peer) => peer.accountId)]
 
   await Promise.all([
-    prisma.transaction.deleteMany({ where: { accountId } }),
+    prisma.transactionRequest.deleteMany({
+      where: {
+        OR: [{ toId: { in: seededAccountIds } }, { fromId: { in: seededAccountIds } }],
+      },
+    }),
+    prisma.transaction.deleteMany({
+      where: {
+        accountId: {
+          in: seededAccountIds,
+        },
+      },
+    }),
     prisma.budget.deleteMany({ where: { accountId } }),
     prisma.monthlyIncomeGoal.deleteMany({ where: { accountId } }),
     prisma.holding.deleteMany({ where: { accountId } }),
@@ -445,6 +570,166 @@ async function seedDemoAccountData({ accountId, categoryMaps }: { accountId: str
       source: DEMO_PRICE_SOURCE,
       fetchedAt: new Date(),
     })),
+  })
+
+  await seedDemoSharingData({
+    demoUserId,
+    demoAccountId: accountId,
+    demoCategoryMaps: categoryMaps,
+    peers,
+    currentMonthStart,
+  })
+}
+
+async function seedDemoSharingData({
+  demoUserId,
+  demoAccountId,
+  demoCategoryMaps,
+  peers,
+  currentMonthStart,
+}: {
+  demoUserId: string
+  demoAccountId: string
+  demoCategoryMaps: DemoCategoryMaps
+  peers: DemoPeerSeed[]
+  currentMonthStart: Date
+}) {
+  const maya = requireDemoPeer(peers, 'maya')
+  const liam = requireDemoPeer(peers, 'liam')
+
+  const dinnerTransaction = await prisma.transaction.create({
+    data: {
+      accountId: demoAccountId,
+      categoryId: requireCategoryId(demoCategoryMaps.expense, 'Dining Out'),
+      type: TransactionType.EXPENSE,
+      amount: 108,
+      currency: Currency.USD,
+      date: createUtcMonthDate(currentMonthStart, resolveDemoDay(0, 6)),
+      month: currentMonthStart,
+      description: 'Team dinner split',
+    },
+    select: {
+      id: true,
+    },
+  })
+
+  await prisma.sharedExpense.create({
+    data: {
+      transactionId: dinnerTransaction.id,
+      ownerId: demoUserId,
+      splitType: SplitType.EQUAL,
+      totalAmount: 108,
+      currency: Currency.USD,
+      description: 'Team dinner split',
+      participants: {
+        create: [
+          {
+            userId: liam.userId,
+            shareAmount: 54,
+            status: PaymentStatus.PAID,
+            paidAt: createUtcMonthDate(currentMonthStart, resolveDemoDay(0, 5)),
+          },
+        ],
+      },
+    },
+  })
+
+  const groceriesTransaction = await prisma.transaction.create({
+    data: {
+      accountId: maya.accountId,
+      categoryId: requireCategoryId(maya.categoryMaps.expense, 'Groceries'),
+      type: TransactionType.EXPENSE,
+      amount: 84,
+      currency: Currency.USD,
+      date: createUtcMonthDate(currentMonthStart, resolveDemoDay(0, 4)),
+      month: currentMonthStart,
+      description: 'Weekend groceries split',
+    },
+    select: {
+      id: true,
+    },
+  })
+
+  await prisma.sharedExpense.create({
+    data: {
+      transactionId: groceriesTransaction.id,
+      ownerId: maya.userId,
+      splitType: SplitType.EQUAL,
+      totalAmount: 84,
+      currency: Currency.USD,
+      description: 'Weekend groceries split',
+      participants: {
+        create: [
+          {
+            userId: demoUserId,
+            shareAmount: 42,
+            status: PaymentStatus.PAID,
+            paidAt: createUtcMonthDate(currentMonthStart, resolveDemoDay(0, 4)),
+          },
+        ],
+      },
+    },
+  })
+
+  const ticketsTransaction = await prisma.transaction.create({
+    data: {
+      accountId: liam.accountId,
+      categoryId: requireCategoryId(liam.categoryMaps.expense, 'Entertainment'),
+      type: TransactionType.EXPENSE,
+      amount: 64,
+      currency: Currency.USD,
+      date: createUtcMonthDate(currentMonthStart, resolveDemoDay(0, 5)),
+      month: currentMonthStart,
+      description: 'Concert tickets',
+    },
+    select: {
+      id: true,
+    },
+  })
+
+  await prisma.sharedExpense.create({
+    data: {
+      transactionId: ticketsTransaction.id,
+      ownerId: liam.userId,
+      splitType: SplitType.EQUAL,
+      totalAmount: 64,
+      currency: Currency.USD,
+      description: 'Concert tickets',
+      participants: {
+        create: [
+          {
+            userId: demoUserId,
+            shareAmount: 32,
+            status: PaymentStatus.PENDING,
+          },
+        ],
+      },
+    },
+  })
+
+  await prisma.transactionRequest.createMany({
+    data: [
+      {
+        fromId: maya.accountId,
+        toId: demoAccountId,
+        categoryId: requireCategoryId(demoCategoryMaps.expense, 'Dining Out'),
+        amount: 28,
+        currency: Currency.USD,
+        date: createUtcMonthDate(currentMonthStart, resolveDemoDay(0, 5)),
+        description: 'Add my half of the ramen run',
+        status: RequestStatus.PENDING,
+      },
+      {
+        fromId: liam.accountId,
+        toId: demoAccountId,
+        categoryId: requireCategoryId(demoCategoryMaps.expense, 'Transportation'),
+        amount: 18,
+        currency: Currency.USD,
+        date: createUtcMonthDate(currentMonthStart, resolveDemoDay(0, 4)),
+        description: 'Parking split from the airport pickup',
+        status: RequestStatus.PENDING,
+      },
+    ],
   })
 }
 
@@ -564,7 +849,15 @@ function createUtcMonthDate(monthStart: Date, day: number): Date {
 }
 
 function resolveDemoDay(monthsAgo: number, day: number): number {
-  return monthsAgo == 0 ? Math.min(day, 5) : day
+  return monthsAgo === 0 ? Math.min(day, new Date().getUTCDate()) : day
+}
+
+function requireDemoPeer(peers: DemoPeerSeed[], key: DemoPeerSeed['key']): DemoPeerSeed {
+  const peer = peers.find((entry) => entry.key === key)
+  if (!peer) {
+    throw new Error(`Missing demo peer seed: ${key}`)
+  }
+  return peer
 }
 
 function requireCategoryId(categoryMap: Map<string, string>, categoryName: string): string {
