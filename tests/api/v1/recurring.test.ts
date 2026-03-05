@@ -318,6 +318,8 @@ describe('Recurring Template API Routes', () => {
       expect(data.data.recurringTemplates).toHaveLength(2)
       expect(data.data.recurringTemplates[0].dayOfMonth).toBe(5)
       expect(data.data.recurringTemplates[1].dayOfMonth).toBe(10)
+      expect(data.data.recurringTemplates[0].accountName).toBe('TestAccount')
+      expect(data.data.recurringTemplates[1].accountName).toBe('TestAccount')
       expect(data.data.recurringTemplates[0].amount).toBe('50')
     })
 

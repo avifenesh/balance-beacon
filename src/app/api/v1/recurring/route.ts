@@ -81,6 +81,11 @@ export async function GET(request: NextRequest) {
         ...(isActiveFilter !== undefined ? { isActive: isActiveFilter } : {}),
       },
       include: {
+        account: {
+          select: {
+            name: true,
+          },
+        },
         category: {
           select: {
             id: true,
@@ -97,6 +102,7 @@ export async function GET(request: NextRequest) {
       recurringTemplates: templates.map((template) => ({
         id: template.id,
         accountId: template.accountId,
+        accountName: template.account.name,
         categoryId: template.categoryId,
         type: template.type,
         amount: template.amount.toString(),
