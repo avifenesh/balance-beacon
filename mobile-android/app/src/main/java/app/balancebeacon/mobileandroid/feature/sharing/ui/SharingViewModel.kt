@@ -82,7 +82,9 @@ class SharingViewModel(
             splitType = normalizedSplitType
         )
         if (parsedParticipants.isEmpty()) {
-            updateActionError("At least one participant is required")
+            if (!_uiState.value.actionMessageIsError) {
+                updateActionError("At least one participant is required")
+            }
             return
         }
 
