@@ -4,6 +4,7 @@ import app.balancebeacon.mobileandroid.core.result.AppResult
 import app.balancebeacon.mobileandroid.core.result.runAppResult
 import app.balancebeacon.mobileandroid.feature.recurring.model.ApplyRecurringRequest
 import app.balancebeacon.mobileandroid.feature.recurring.model.ApplyRecurringResponse
+import app.balancebeacon.mobileandroid.feature.recurring.model.DeleteRecurringResponse
 import app.balancebeacon.mobileandroid.feature.recurring.model.RecurringTemplateDto
 import app.balancebeacon.mobileandroid.feature.recurring.model.ToggleRecurringRequest
 import app.balancebeacon.mobileandroid.feature.recurring.model.ToggleRecurringResponse
@@ -34,6 +35,12 @@ class RecurringRepository(
         return runAppResult {
             recurringApi.toggleRecurringTemplate(id = id, request = ToggleRecurringRequest(isActive = isActive))
         }
+    }
+
+    suspend fun deleteRecurringTemplate(
+        id: String
+    ): AppResult<DeleteRecurringResponse> {
+        return runAppResult { recurringApi.deleteRecurringTemplate(id = id) }
     }
 
     suspend fun applyRecurringTemplates(

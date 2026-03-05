@@ -357,6 +357,14 @@ export function generateOpenAPIDocument() {
           },
           required: ['isActive'],
         },
+        DeleteRecurring: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            deleted: { type: 'boolean' },
+          },
+          required: ['id', 'deleted'],
+        },
         ApplyRecurring: {
           type: 'object',
           properties: {
@@ -861,6 +869,27 @@ export function generateOpenAPIDocument() {
             '200': {
               description: 'Toggled',
               content: { 'application/json': { schema: { $ref: '#/components/schemas/IdResponse' } } },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+            '404': {
+              description: 'Not found',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            },
+          },
+        },
+      },
+      '/recurring/{id}': {
+        delete: {
+          tags: ['Recurring'],
+          summary: 'Delete recurring template',
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': {
+              description: 'Deleted',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/DeleteRecurring' } } },
             },
             '401': {
               description: 'Unauthorized',

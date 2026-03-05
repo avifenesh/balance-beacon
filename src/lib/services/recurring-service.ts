@@ -23,6 +23,11 @@ export interface ToggleRecurringTemplateInput {
   isActive: boolean
 }
 
+export interface DeleteRecurringTemplateInput {
+  id: string
+  deletedBy: string
+}
+
 export interface ApplyRecurringTemplatesInput {
   monthKey: string
   accountId: string
@@ -63,6 +68,19 @@ export async function toggleRecurringTemplate(input: ToggleRecurringTemplateInpu
   return await prisma.recurringTemplate.update({
     where: { id: input.id },
     data: { isActive: input.isActive },
+  })
+}
+
+/**
+ * Soft delete a recurring template
+ */
+export async function deleteRecurringTemplate(input: DeleteRecurringTemplateInput) {
+  return await prisma.recurringTemplate.update({
+    where: { id: input.id },
+    data: {
+      deletedAt: new Date(),
+      deletedBy: input.deletedBy,
+    },
   })
 }
 

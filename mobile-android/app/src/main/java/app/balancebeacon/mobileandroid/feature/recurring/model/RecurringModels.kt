@@ -58,6 +58,12 @@ data class ToggleRecurringResponse(
 )
 
 @Serializable
+data class DeleteRecurringResponse(
+    val id: String,
+    val deleted: Boolean
+)
+
+@Serializable
 data class ApplyRecurringRequest(
     val accountId: String? = null,
     val monthKey: String,

@@ -206,7 +206,8 @@ fun RecurringScreen(
             RecurringTemplateItem(
                 template = template,
                 isMutating = state.isMutating,
-                onToggle = { viewModel.toggleTemplate(template.id, !template.isActive) }
+                onToggle = { viewModel.toggleTemplate(template.id, !template.isActive) },
+                onDelete = { viewModel.deleteTemplate(template.id) }
             )
         }
     }
@@ -216,7 +217,8 @@ fun RecurringScreen(
 private fun RecurringTemplateItem(
     template: RecurringTemplateDto,
     isMutating: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    onDelete: () -> Unit
 ) {
     GlassPanel(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -238,11 +240,19 @@ private fun RecurringTemplateItem(
             template.description?.takeIf { it.isNotBlank() }?.let {
                 Text(text = it, style = MaterialTheme.typography.bodySmall)
             }
-            OutlinedButton(
-                onClick = onToggle,
-                enabled = !isMutating
-            ) {
-                Text(if (template.isActive) "Pause" else "Activate")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = onToggle,
+                    enabled = !isMutating
+                ) {
+                    Text(if (template.isActive) "Pause" else "Activate")
+                }
+                OutlinedButton(
+                    onClick = onDelete,
+                    enabled = !isMutating
+                ) {
+                    Text("Delete")
+                }
             }
         }
     }

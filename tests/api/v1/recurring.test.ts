@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET as ListRecurringTemplates, POST as UpsertRecurringTemplate } from '@/app/api/v1/recurring/route'
 import { PATCH as ToggleRecurringTemplate } from '@/app/api/v1/recurring/[id]/toggle/route'
+import { DELETE as DeleteRecurringTemplate } from '@/app/api/v1/recurring/[id]/route'
 import { POST as ApplyRecurringTemplates } from '@/app/api/v1/recurring/apply/route'
 import { generateAccessToken } from '@/lib/jwt'
 import { resetEnvCache } from '@/lib/env-schema'
@@ -693,6 +694,107 @@ describe('Recurring Template API Routes', () => {
 
       const response = await ApplyRecurringTemplates(request)
       expect(response.status).toBe(400)
+    })
+  })
+
+  describe('DELETE /api/v1/recurring/[id]', () => {
+    let templateId: string
+
+    beforeEach(async () => {
+      const template = await prisma.recurringTemplate.create({
+        data: {
+          accountId,
+          categoryId,
+          type: 'EXPENSE',
+          amount: 80,
+          currency: 'USD',
+          dayOfMonth: 8,
+          description: 'TEST_Delete',
+          startMonth: new Date('2024-01-01'),
+          isActive: true,
+        },
+      })
+      templateId = template.id
+    })
+
+    it('soft deletes template with valid JWT', async () => {
+      const request = new NextRequest(`http://localhost/api/v1/recurring/${templateId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await DeleteRecurringTemplate(request, {
+        params: Promise.resolve({ id: templateId }),
+      })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.deleted).toBe(true)
+
+      const deletedTemplate = await prisma.recurringTemplate.findUnique({
+        where: { id: templateId },
+      })
+      expect(deletedTemplate?.deletedAt).toBeTruthy()
+      expect(deletedTemplate?.deletedBy).toBe(TEST_USER_ID)
+    })
+
+    it('returns 404 for unknown template', async () => {
+      const request = new NextRequest('http://localhost/api/v1/recurring/nonexistent-id', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await DeleteRecurringTemplate(request, {
+        params: Promise.resolve({ id: 'nonexistent-id' }),
+      })
+
+      expect(response.status).toBe(404)
+    })
+
+    it('returns 404 when template belongs to another user', async () => {
+      const otherTemplate = await prisma.recurringTemplate.create({
+        data: {
+          accountId: otherAccountId,
+          categoryId,
+          type: 'EXPENSE',
+          amount: 40,
+          currency: 'USD',
+          dayOfMonth: 5,
+          description: 'TEST_DeleteForbidden',
+          startMonth: new Date('2024-01-01'),
+          isActive: true,
+        },
+      })
+
+      const request = new NextRequest(`http://localhost/api/v1/recurring/${otherTemplate.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await DeleteRecurringTemplate(request, {
+        params: Promise.resolve({ id: otherTemplate.id }),
+      })
+
+      expect(response.status).toBe(404)
+    })
+
+    it('returns 401 with missing token', async () => {
+      const request = new NextRequest(`http://localhost/api/v1/recurring/${templateId}`, {
+        method: 'DELETE',
+      })
+
+      const response = await DeleteRecurringTemplate(request, {
+        params: Promise.resolve({ id: templateId }),
+      })
+
+      expect(response.status).toBe(401)
     })
   })
 })

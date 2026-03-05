@@ -205,6 +205,21 @@ class RecurringViewModel(
         }
     }
 
+    fun deleteTemplate(id: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isMutating = true, error = null, statusMessage = null) }
+            when (val result = recurringRepository.deleteRecurringTemplate(id = id)) {
+                is AppResult.Success -> refreshTemplatesAfterMutation(
+                    statusMessage = if (result.value.deleted) "Template deleted" else "Template updated"
+                )
+
+                is AppResult.Failure -> _uiState.update {
+                    it.copy(isMutating = false, error = result.error.message)
+                }
+            }
+        }
+    }
+
     fun applyTemplates() {
         val state = _uiState.value
         if (!MONTH_KEY_REGEX.matches(state.monthKey.trim())) {

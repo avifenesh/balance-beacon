@@ -2,12 +2,14 @@ package app.balancebeacon.mobileandroid.feature.recurring.data
 
 import app.balancebeacon.mobileandroid.feature.recurring.model.ApplyRecurringRequest
 import app.balancebeacon.mobileandroid.feature.recurring.model.ApplyRecurringResponse
+import app.balancebeacon.mobileandroid.feature.recurring.model.DeleteRecurringResponse
 import app.balancebeacon.mobileandroid.feature.recurring.model.RecurringTemplateDto
 import app.balancebeacon.mobileandroid.feature.recurring.model.RecurringTemplatesResponse
 import app.balancebeacon.mobileandroid.feature.recurring.model.ToggleRecurringRequest
 import app.balancebeacon.mobileandroid.feature.recurring.model.ToggleRecurringResponse
 import app.balancebeacon.mobileandroid.feature.recurring.model.UpsertRecurringTemplateRequest
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -32,9 +34,13 @@ interface RecurringApi {
         @Body request: ToggleRecurringRequest
     ): ToggleRecurringResponse
 
+    @DELETE("recurring/{id}")
+    suspend fun deleteRecurringTemplate(
+        @Path("id") id: String
+    ): DeleteRecurringResponse
+
     @POST("recurring/apply")
     suspend fun applyRecurringTemplates(
         @Body request: ApplyRecurringRequest
     ): ApplyRecurringResponse
 }
-
