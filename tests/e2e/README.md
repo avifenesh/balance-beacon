@@ -5,6 +5,7 @@ Comprehensive end-to-end test suite for Balance Beacon web application using Pla
 ## Overview
 
 This test suite covers:
+
 - **Authentication** (17 tests): Login, registration, password reset, session management
 - **Onboarding** (8 tests): Wizard flow, step navigation, redirects
 - **Transactions** (8 tests): Create, edit, delete, filter transactions
@@ -97,6 +98,7 @@ npx playwright test -g "should successfully login"
 ### Page Object Model
 
 Test pages are organized in `tests/e2e/pages/`:
+
 - `base-page.ts` - Common methods for all pages
 - `login-page.ts` - Authentication flows
 - `dashboard-page.ts` - Main dashboard interactions
@@ -107,12 +109,14 @@ Test pages are organized in `tests/e2e/pages/`:
 ### Helpers
 
 Reusable utilities in `tests/e2e/helpers/`:
+
 - `auth-helpers.ts` - Login/logout functions
 - `fixtures.ts` - Test users, categories, date helpers
 
 ### Test Specs
 
 Test files in `tests/e2e/`:
+
 - `auth.spec.ts` - Authentication tests
 - `onboarding.spec.ts` - Onboarding wizard tests
 - `transactions.spec.ts` - Transaction CRUD tests
@@ -168,31 +172,14 @@ test.describe('transactions', () => {
 ### Architecture Notes
 
 **Settings UI**: The settings functionality is implemented as a dropdown menu triggered by an "Account" button in the header, not as a dedicated `/settings` page route. Tests should use:
+
 - `page.getByRole('button', { name: /account/i })` to open the menu
 - `page.getByRole('menu', { name: /account settings/i })` to interact with the dropdown
 - `page.getByRole('menuitem', { name: /.../ })` for menu options
 
+## Execution Model
 
-## CI/CD
-
-Tests run automatically on:
-- Pull requests to main
-- Push to main branch
-- Manual workflow dispatch
-
-### GitHub Actions Workflow
-
-See `.github/workflows/e2e-web.yml` for CI configuration.
-
-Required GitHub secrets:
-- `E2E_USER1_EMAIL`
-- `E2E_USER1_DISPLAY_NAME`
-- `E2E_USER1_PASSWORD_HASH`
-- `E2E_USER2_EMAIL`
-- `E2E_USER2_DISPLAY_NAME`
-- `E2E_USER2_PASSWORD_HASH`
-- `E2E_JWT_SECRET`
-- `E2E_CSRF_SECRET`
+Web E2E tests are local-only and are not executed in GitHub Actions CI.
 
 ## Debugging
 
@@ -219,6 +206,7 @@ Videos are recorded on first retry for failed tests.
 ## Configuration
 
 See `playwright.config.ts` for:
+
 - Test timeout (60 seconds)
 - Expect timeout (5 seconds)
 - Browser configuration
@@ -231,6 +219,7 @@ See `playwright.config.ts` for:
 ### Tests timing out
 
 Increase timeout in `playwright.config.ts`:
+
 ```typescript
 timeout: 120_000, // 2 minutes
 ```
@@ -246,7 +235,7 @@ Ensure test users exist in database. Re-run `npm run db:seed:e2e`.
 ### Flaky tests
 
 Run with retries:
+
 ```bash
 npx playwright test --retries=2
 ```
-

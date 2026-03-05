@@ -18,6 +18,7 @@ URL path versioning:
 ```
 
 **Why**:
+
 - Explicit and visible
 - Easy to route at infrastructure level
 - Clear version separation in codebase
@@ -29,36 +30,36 @@ URL path versioning:
 
 ### Breaking (Require New Version)
 
-| Change Type | Example |
-|-------------|---------|
-| Remove endpoint | DELETE `/api/v1/legacy/endpoint` |
-| Remove required field | Remove `accountId` from request |
-| Change field type | `amount: string` → `amount: number` |
-| Change response structure | `{ data: T }` → `T` |
-| Remove enum value | Remove `Currency.BTC` |
-| Change authentication | JWT → API Key |
-| Change error codes | 400 → 422 for validation |
+| Change Type               | Example                             |
+| ------------------------- | ----------------------------------- |
+| Remove endpoint           | DELETE `/api/v1/legacy/endpoint`    |
+| Remove required field     | Remove `accountId` from request     |
+| Change field type         | `amount: string` → `amount: number` |
+| Change response structure | `{ data: T }` → `T`                 |
+| Remove enum value         | Remove `Currency.BTC`               |
+| Change authentication     | JWT → API Key                       |
+| Change error codes        | 400 → 422 for validation            |
 
 ### Non-Breaking (Same Version)
 
-| Change Type | Example |
-|-------------|---------|
-| Add endpoint | New `/api/v1/reports` |
-| Add optional field | New `notes?: string` field |
-| Add enum value | Add `Currency.GBP` |
-| Add response field | New `createdAt` in response |
-| Performance improvements | Faster queries |
-| Bug fixes | Fix calculation error |
-| Documentation updates | Clarify behavior |
+| Change Type              | Example                     |
+| ------------------------ | --------------------------- |
+| Add endpoint             | New `/api/v1/reports`       |
+| Add optional field       | New `notes?: string` field  |
+| Add enum value           | Add `Currency.GBP`          |
+| Add response field       | New `createdAt` in response |
+| Performance improvements | Faster queries              |
+| Bug fixes                | Fix calculation error       |
+| Documentation updates    | Clarify behavior            |
 
 ## Deprecation Policy
 
-| Phase | Duration | Actions |
-|-------|----------|---------|
-| Announcement | Day 0 | Document deprecation, update docs |
-| Deprecation | 6 months | Add `Deprecated` header, log usage |
+| Phase          | Duration     | Actions                             |
+| -------------- | ------------ | ----------------------------------- |
+| Announcement   | Day 0        | Document deprecation, update docs   |
+| Deprecation    | 6 months     | Add `Deprecated` header, log usage  |
 | Sunset Warning | Last 30 days | Increase log severity, notify users |
-| Removal | End | Remove version |
+| Removal        | End          | Remove version                      |
 
 ### Deprecation Headers
 
@@ -71,10 +72,10 @@ Link: </api/v2/transactions>; rel="successor-version"
 
 ## Version Support
 
-| Version | Status | Support Until | Notes |
-|---------|--------|---------------|-------|
-| v1 | Active | N/A (current) | Full support |
-| v2 | Planned | - | Sprint 4 (Mobile) |
+| Version | Status  | Support Until | Notes             |
+| ------- | ------- | ------------- | ----------------- |
+| v1      | Active  | N/A (current) | Full support      |
+| v2      | Planned | -             | Sprint 4 (Mobile) |
 
 ## Directory Structure
 
@@ -110,7 +111,7 @@ Mobile clients should send:
 
 ```http
 X-Client-Version: 1.2.0
-X-Client-Platform: ios
+X-Client-Platform: android
 ```
 
 Purpose: analytics, targeted deprecation notices, debugging.
@@ -120,9 +121,15 @@ Purpose: analytics, targeted deprecation notices, debugging.
 ### Version-Agnostic Errors
 
 ```typescript
-{ error: "Rate limit exceeded" }  // 429
-{ error: "Unauthorized" }          // 401
-{ error: "Internal server error" } // 500
+{
+  error: 'Rate limit exceeded'
+} // 429
+{
+  error: 'Unauthorized'
+} // 401
+{
+  error: 'Internal server error'
+} // 500
 ```
 
 ### Version-Specific Validation
@@ -147,6 +154,7 @@ tests/api/
 **Released**: January 2026
 
 **Endpoints**:
+
 - Auth: login, logout, refresh
 - Transactions: CRUD + requests
 - Budgets: upsert, delete

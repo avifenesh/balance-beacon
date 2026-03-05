@@ -5,7 +5,8 @@ import { TRIAL_DURATION_DAYS, SUBSCRIPTION_PRICE_CENTS } from '@/lib/subscriptio
 
 export const metadata: Metadata = {
   title: 'Pricing - Balance Beacon',
-  description: 'Simple, transparent pricing. Start your 14-day free trial and take control of your finances for just $3/month.',
+  description:
+    'Simple, transparent pricing. Start your 14-day free trial and take control of your finances for just $3/month.',
 }
 
 function CheckIcon({ className }: { className?: string }) {
@@ -46,7 +47,7 @@ const features = [
   'Investment portfolio tracking',
   'Expense sharing with friends and roommates',
   'Data export (CSV)',
-  'Mobile app access (iOS and Android)',
+  'Mobile app access (Android)',
 ]
 
 export default function PricingPage() {
@@ -81,7 +82,8 @@ export default function PricingPage() {
               One plan. Everything included.
             </h1>
             <p className="mx-auto max-w-2xl text-lg text-slate-200/80">
-              No hidden fees. No complicated tiers. Just a straightforward price for a tool that helps you understand your finances in 30 seconds.
+              No hidden fees. No complicated tiers. Just a straightforward price for a tool that helps you understand
+              your finances in 30 seconds.
             </p>
           </div>
 
@@ -98,9 +100,7 @@ export default function PricingPage() {
                   <span className="text-5xl font-bold text-white">{priceDisplay}</span>
                   <span className="text-lg text-slate-400">/month</span>
                 </div>
-                <p className="mt-2 text-sm text-slate-300">
-                  After your {TRIAL_DURATION_DAYS}-day free trial
-                </p>
+                <p className="mt-2 text-sm text-slate-300">After your {TRIAL_DURATION_DAYS}-day free trial</p>
               </div>
 
               <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
@@ -133,16 +133,12 @@ export default function PricingPage() {
                 Start Free Trial
               </Link>
 
-              <p className="mt-4 text-center text-xs text-slate-400">
-                30-day money-back guarantee. Cancel anytime.
-              </p>
+              <p className="mt-4 text-center text-xs text-slate-400">30-day money-back guarantee. Cancel anytime.</p>
             </div>
           </div>
 
           <div className="mt-16">
-            <h2 className="mb-8 text-center text-2xl font-semibold text-white">
-              Free Trial vs Premium
-            </h2>
+            <h2 className="mb-8 text-center text-2xl font-semibold text-white">Free Trial vs Premium</h2>
             <div className="overflow-hidden rounded-2xl border border-white/15" role="table">
               <div className="grid grid-cols-1 md:grid-cols-3" role="rowgroup">
                 <div className="hidden border-b border-white/15 bg-white/5 p-4 md:block" role="columnheader">
@@ -243,10 +239,7 @@ export default function PricingPage() {
           <div className="mt-12 text-center">
             <p className="text-slate-400">
               Questions? Contact us at{' '}
-              <a
-                href="mailto:support@balancebeacon.app"
-                className="text-sky-300 transition-colors hover:text-sky-200"
-              >
+              <a href="mailto:support@balancebeacon.app" className="text-sky-300 transition-colors hover:text-sky-200">
                 support@balancebeacon.app
               </a>
             </p>

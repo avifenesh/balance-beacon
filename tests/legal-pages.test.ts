@@ -106,17 +106,15 @@ describe('Domain References', () => {
     expect(content).not.toContain('noreply@balancebeacon.com')
   })
 
-  it('should use balancebeacon.app bundle identifiers in mobile app.json', async () => {
+  it('should use balancebeacon.app bundle identifiers in Android native app', async () => {
     const fs = await import('fs/promises')
     const path = await import('path')
-    const appJsonPath = path.join(process.cwd(), 'mobile/app.json')
-    const content = await fs.readFile(appJsonPath, 'utf-8')
-    const appConfig = JSON.parse(content)
+    const androidGradlePath = path.join(process.cwd(), 'mobile-android/app/build.gradle.kts')
+    const content = await fs.readFile(androidGradlePath, 'utf-8')
 
-    expect(appConfig.expo.name).toBe('Balance Beacon')
-    expect(appConfig.expo.slug).toBe('balance-beacon')
-    expect(appConfig.expo.ios.bundleIdentifier).toBe('app.balancebeacon.mobile')
-    expect(appConfig.expo.android.package).toBe('app.balancebeacon.mobile')
+    expect(content).toContain('namespace = "app.balancebeacon.mobileandroid"')
+    expect(content).toContain('applicationId = "app.balancebeacon.mobileandroid"')
+    expect(content).toContain('buildConfigField("String", "PRICING_URL", "\\"https://balancebeacon.app/pricing\\"")')
   })
 })
 

@@ -50,12 +50,10 @@ npm run test:e2e         # Playwright E2E tests (see tests/e2e/README.md)
 npm run check-types      # TypeScript check
 npm run build            # Build production bundle
 
-# Mobile commands (run from mobile/ directory)
-cd mobile
-npm start                # Start Expo dev server
-npm run ios              # Run on iOS simulator
-npm run android          # Run on Android emulator
-npm test                 # Run mobile tests
+# Native Android commands (run from mobile-android/ directory)
+cd mobile-android
+./gradlew :app:assembleDebug -x lint   # Build debug APK
+./gradlew :app:testDebugUnitTest       # Run Android unit tests
 ```
 
 ## Structure
@@ -78,8 +76,8 @@ npm test                 # Run mobile tests
 - `prisma/schema.prisma` - Models: User, Account, Category, Transaction, Budget, RecurringTemplate, Holding
 - `tests/` - Vitest unit tests
 - `tests/e2e/` - Playwright E2E tests (see `tests/e2e/README.md`)
-- `mobile/` - React Native mobile app (Expo)
-  - See `mobile/README.md` for setup instructions
+- `mobile-android/` - Native Android app (Kotlin + Jetpack Compose)
+  - See `mobile-android/README.md` for setup instructions
 
 ## Patterns
 
@@ -181,6 +179,7 @@ Only for small fixes, typos, docs, or emergency hotfixes. Everything else goes t
 Write tests to find bugs, not just pass coverage. Verify real behavior and edge cases, not just happy paths.
 
 **Test suites:**
+
 - `tests/` - Unit tests (Vitest) for actions, schemas, lib functions
 - `tests/e2e/` - End-to-end tests (Playwright) for web UI flows
 - `tests/security/` - XSS attack payload tests

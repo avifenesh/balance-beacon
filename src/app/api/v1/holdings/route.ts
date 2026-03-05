@@ -3,6 +3,7 @@ import { requireJwtAuth } from '@/lib/api-auth'
 import { createHolding } from '@/lib/services/holding-service'
 import { validateHoldingCategory, validateStockSymbol } from '@/lib/services/holding-service'
 import { holdingSchema } from '@/schemas'
+import { prisma } from '@/lib/prisma'
 import {
   validationError,
   authError,
@@ -17,6 +18,90 @@ import { ensureApiAccountOwnership } from '@/lib/api-auth-helpers'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 import { NotFoundError, ValidationError, isServiceError } from '@/lib/services/errors'
+
+/**
+ * GET /api/v1/holdings
+ *
+ * Retrieves holdings for an authenticated user's account.
+ *
+ * @query accountId - Required. The account to fetch holdings from.
+ *
+ * @returns {Object} { holdings: Holding[] }
+ * @throws {400} Validation error - Missing accountId
+ * @throws {401} Unauthorized - Invalid or missing auth token
+ * @throws {403} Forbidden - User doesn't own the account
+ * @throws {429} Rate limited - Too many requests
+ */
+export async function GET(request: NextRequest) {
+  // 1. Authenticate
+  let user
+  try {
+    user = requireJwtAuth(request)
+  } catch (error) {
+    return authError(error instanceof Error ? error.message : 'Unauthorized')
+  }
+
+  // 1.5 Rate limit check
+  const rateLimit = checkRateLimit(user.userId)
+  if (!rateLimit.allowed) {
+    return rateLimitError(rateLimit.resetAt)
+  }
+  incrementRateLimit(user.userId)
+
+  // Note: No subscription check for GET - users can always view their data
+
+  // 2. Parse query parameters
+  const { searchParams } = new URL(request.url)
+  const accountId = searchParams.get('accountId')
+
+  if (!accountId) {
+    return validationError({ accountId: ['accountId is required'] })
+  }
+
+  // 3. Authorize account access by userId (single check to prevent enumeration)
+  const accountOwnership = await ensureApiAccountOwnership(accountId, user.userId)
+  if (!accountOwnership.allowed) {
+    return forbiddenError('Access denied')
+  }
+
+  // 4. Execute query
+  try {
+    const holdings = await prisma.holding.findMany({
+      where: {
+        accountId,
+        deletedAt: null,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            color: true,
+          },
+        },
+      },
+      orderBy: { symbol: 'asc' },
+    })
+
+    return successResponse({
+      holdings: holdings.map((holding) => ({
+        id: holding.id,
+        accountId: holding.accountId,
+        categoryId: holding.categoryId,
+        symbol: holding.symbol,
+        quantity: holding.quantity.toString(),
+        averageCost: holding.averageCost.toString(),
+        currency: holding.currency,
+        notes: holding.notes,
+        category: holding.category,
+      })),
+    })
+  } catch (error) {
+    serverLogger.error('Failed to fetch holdings', { action: 'GET /api/v1/holdings' }, error)
+    return serverError('Unable to fetch holdings')
+  }
+}
 
 /**
  * POST /api/v1/holdings

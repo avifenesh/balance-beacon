@@ -1,0 +1,385 @@
+package app.balancebeacon.mobileandroid.navigation
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import app.balancebeacon.mobileandroid.core.AppContainer
+import app.balancebeacon.mobileandroid.core.session.SessionState
+import app.balancebeacon.mobileandroid.feature.accounts.ui.AccountsScreen
+import app.balancebeacon.mobileandroid.feature.accounts.ui.AccountsViewModel
+import app.balancebeacon.mobileandroid.feature.auth.ui.LoginScreen
+import app.balancebeacon.mobileandroid.feature.auth.ui.LoginViewModel
+import app.balancebeacon.mobileandroid.feature.auth.ui.LoginViewModelFactory
+import app.balancebeacon.mobileandroid.feature.auth.ui.RegisterScreen
+import app.balancebeacon.mobileandroid.feature.auth.ui.RegisterViewModel
+import app.balancebeacon.mobileandroid.feature.auth.ui.RegisterViewModelFactory
+import app.balancebeacon.mobileandroid.feature.auth.ui.ResetPasswordScreen
+import app.balancebeacon.mobileandroid.feature.auth.ui.ResetPasswordViewModel
+import app.balancebeacon.mobileandroid.feature.auth.ui.ResetPasswordViewModelFactory
+import app.balancebeacon.mobileandroid.feature.auth.ui.VerifyEmailScreen
+import app.balancebeacon.mobileandroid.feature.auth.ui.VerifyEmailViewModel
+import app.balancebeacon.mobileandroid.feature.auth.ui.VerifyEmailViewModelFactory
+import app.balancebeacon.mobileandroid.feature.budgets.ui.BudgetsScreen
+import app.balancebeacon.mobileandroid.feature.budgets.ui.BudgetsViewModel
+import app.balancebeacon.mobileandroid.feature.categories.ui.CategoriesScreen
+import app.balancebeacon.mobileandroid.feature.categories.ui.CategoriesViewModel
+import app.balancebeacon.mobileandroid.feature.onboarding.ui.OnboardingScreen
+import app.balancebeacon.mobileandroid.feature.onboarding.ui.OnboardingViewModel
+import app.balancebeacon.mobileandroid.feature.paywall.ui.PaywallScreen
+import app.balancebeacon.mobileandroid.feature.profile.ui.ProfileScreen
+import app.balancebeacon.mobileandroid.feature.profile.ui.ProfileViewModel
+import app.balancebeacon.mobileandroid.feature.sharing.ui.SharingScreen
+import app.balancebeacon.mobileandroid.feature.sharing.ui.SharingViewModel
+import app.balancebeacon.mobileandroid.feature.settings.ui.SettingsScreen
+import app.balancebeacon.mobileandroid.feature.settings.ui.SettingsViewModel
+import app.balancebeacon.mobileandroid.feature.subscription.ui.SubscriptionScreen
+import app.balancebeacon.mobileandroid.feature.subscription.ui.SubscriptionViewModel
+import app.balancebeacon.mobileandroid.feature.transactions.ui.TransactionsScreen
+import app.balancebeacon.mobileandroid.feature.transactions.ui.TransactionsViewModel
+import kotlinx.coroutines.launch
+
+@Composable
+fun RootNavHost(
+    appContainer: AppContainer,
+    modifier: Modifier = Modifier
+) {
+    val navController = rememberNavController()
+    val coroutineScope = rememberCoroutineScope()
+    val sessionState by appContainer.sessionManager.sessionState.collectAsState()
+
+    if (sessionState == SessionState.Loading) {
+        LoadingScreen(modifier = modifier)
+        return
+    }
+
+    key(sessionState) {
+        val startDestination = when (sessionState) {
+            SessionState.Authenticated -> AppDestination.Dashboard.route
+            SessionState.Unauthenticated, SessionState.Loading -> AppDestination.Login.route
+        }
+
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = modifier
+        ) {
+            composable(AppDestination.Login.route) {
+                val loginViewModel: LoginViewModel = viewModel(
+                    factory = remember { LoginViewModelFactory(appContainer.authRepository) }
+                )
+                LoginScreen(
+                    viewModel = loginViewModel,
+                    onRegisterClick = { navController.navigate(AppDestination.Register.route) },
+                    onResetPasswordClick = { navController.navigate(AppDestination.ResetPassword.route) },
+                    onVerifyEmailClick = { navController.navigate(AppDestination.VerifyEmail.route) }
+                )
+            }
+
+            composable(AppDestination.Register.route) {
+                val registerViewModel: RegisterViewModel = viewModel(
+                    factory = remember { RegisterViewModelFactory(appContainer.authRepository) }
+                )
+                FeatureShell(
+                    title = "Register",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    RegisterScreen(
+                        viewModel = registerViewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            composable(AppDestination.ResetPassword.route) {
+                val resetPasswordViewModel: ResetPasswordViewModel = viewModel(
+                    factory = remember { ResetPasswordViewModelFactory(appContainer.authRepository) }
+                )
+                FeatureShell(
+                    title = "Reset Password",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    ResetPasswordScreen(
+                        viewModel = resetPasswordViewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            composable(AppDestination.VerifyEmail.route) {
+                val verifyEmailViewModel: VerifyEmailViewModel = viewModel(
+                    factory = remember { VerifyEmailViewModelFactory(appContainer.authRepository) }
+                )
+                FeatureShell(
+                    title = "Verify Email",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    VerifyEmailScreen(
+                        viewModel = verifyEmailViewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            composable(AppDestination.Dashboard.route) {
+                DashboardScreen(
+                    onOpenOnboarding = { navController.navigate(AppDestination.Onboarding.route) },
+                    onOpenSubscription = { navController.navigate(AppDestination.Subscription.route) },
+                    onOpenPaywall = { navController.navigate(AppDestination.Paywall.route) },
+                    onOpenTransactions = { navController.navigate(AppDestination.Transactions.route) },
+                    onOpenBudgets = { navController.navigate(AppDestination.Budgets.route) },
+                    onOpenAccounts = { navController.navigate(AppDestination.Accounts.route) },
+                    onOpenCategories = { navController.navigate(AppDestination.Categories.route) },
+                    onOpenSharing = { navController.navigate(AppDestination.Sharing.route) },
+                    onOpenProfile = { navController.navigate(AppDestination.Profile.route) },
+                    onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
+                    onSignOut = {
+                        coroutineScope.launch {
+                            appContainer.authRepository.logout()
+                        }
+                    }
+                )
+            }
+
+            composable(AppDestination.Onboarding.route) {
+                val vm: OnboardingViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { OnboardingViewModel(appContainer.onboardingRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Onboarding",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    OnboardingScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Subscription.route) {
+                val vm: SubscriptionViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { SubscriptionViewModel(appContainer.subscriptionRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Subscription",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    SubscriptionScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Paywall.route) {
+                FeatureShell(
+                    title = "Paywall",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    PaywallScreen(
+                        onUpgradeClick = { navController.navigate(AppDestination.Subscription.route) },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            composable(AppDestination.Transactions.route) {
+                val vm: TransactionsViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { TransactionsViewModel(appContainer.transactionsRepository) }
+                    }
+                )
+                LaunchedEffect(Unit) {
+                    vm.load()
+                }
+                FeatureShell(
+                    title = "Transactions",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    TransactionsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Budgets.route) {
+                val vm: BudgetsViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { BudgetsViewModel(appContainer.budgetsRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Budgets",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    BudgetsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Accounts.route) {
+                val vm: AccountsViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { AccountsViewModel(appContainer.accountsRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Accounts",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    AccountsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Categories.route) {
+                val vm: CategoriesViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { CategoriesViewModel(appContainer.categoriesRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Categories",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    CategoriesScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Sharing.route) {
+                val vm: SharingViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { SharingViewModel(appContainer.sharingRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Sharing",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    SharingScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Profile.route) {
+                val vm: ProfileViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { ProfileViewModel(appContainer.authRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Profile",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    ProfileScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+
+            composable(AppDestination.Settings.route) {
+                val vm: SettingsViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { SettingsViewModel(appContainer.authRepository) }
+                    }
+                )
+                FeatureShell(
+                    title = "Settings",
+                    onBack = { navController.popBackStack() }
+                ) {
+                    SettingsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadingScreen(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun DashboardScreen(
+    onOpenOnboarding: () -> Unit,
+    onOpenSubscription: () -> Unit,
+    onOpenPaywall: () -> Unit,
+    onOpenTransactions: () -> Unit,
+    onOpenBudgets: () -> Unit,
+    onOpenAccounts: () -> Unit,
+    onOpenCategories: () -> Unit,
+    onOpenSharing: () -> Unit,
+    onOpenProfile: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onSignOut: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text("Dashboard", style = MaterialTheme.typography.headlineSmall)
+        Button(onClick = onOpenTransactions) { Text("Transactions") }
+        Button(onClick = onOpenBudgets) { Text("Budgets") }
+        Button(onClick = onOpenAccounts) { Text("Accounts") }
+        Button(onClick = onOpenCategories) { Text("Categories") }
+        Button(onClick = onOpenSharing) { Text("Sharing") }
+        Button(onClick = onOpenProfile) { Text("Profile") }
+        Button(onClick = onOpenSettings) { Text("Settings") }
+        Button(onClick = onOpenOnboarding) { Text("Onboarding") }
+        Button(onClick = onOpenSubscription) { Text("Subscription") }
+        Button(onClick = onOpenPaywall) { Text("Paywall") }
+        Button(onClick = onSignOut) { Text("Sign Out") }
+    }
+}
+
+@Composable
+private fun FeatureShell(
+    title: String,
+    onBack: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(title, style = MaterialTheme.typography.titleLarge)
+        Button(onClick = onBack) {
+            Text("Back")
+        }
+        content()
+    }
+}
+
+private fun <VM : ViewModel> simpleFactory(
+    creator: () -> VM
+): ViewModelProvider.Factory {
+    return object : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            @Suppress("UNCHECKED_CAST")
+            return creator() as T
+        }
+    }
+}

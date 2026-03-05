@@ -3,11 +3,8 @@
   "ignores": [
     {
       "rule_ids": ["DS137138", "DS126858", "DS162092"],
-      "paths": [
-        ".github/workflows/e2e-mobile.yml",
-        "mobile/e2e/**"
-      ],
-      "comment": "Localhost URLs are expected in E2E test configurations - tests run locally against emulator/simulator"
+      "paths": ["mobile/e2e/**"],
+      "comment": "Localhost URLs are expected in E2E test configurations - tests run locally against Android emulator"
     },
     {
       "rule_ids": ["DS162092"],

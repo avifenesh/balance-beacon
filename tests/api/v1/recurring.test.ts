@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST as UpsertRecurringTemplate } from '@/app/api/v1/recurring/route'
+import { GET as ListRecurringTemplates, POST as UpsertRecurringTemplate } from '@/app/api/v1/recurring/route'
 import { PATCH as ToggleRecurringTemplate } from '@/app/api/v1/recurring/[id]/toggle/route'
 import { POST as ApplyRecurringTemplates } from '@/app/api/v1/recurring/apply/route'
 import { generateAccessToken } from '@/lib/jwt'
@@ -270,6 +270,134 @@ describe('Recurring Template API Routes', () => {
 
       const response = await UpsertRecurringTemplate(request)
       expect(response.status).toBe(400)
+    })
+  })
+
+  describe('GET /api/v1/recurring', () => {
+    it('lists recurring templates for owned account', async () => {
+      await prisma.recurringTemplate.createMany({
+        data: [
+          {
+            accountId,
+            categoryId,
+            type: 'EXPENSE',
+            amount: 100,
+            currency: 'USD',
+            dayOfMonth: 10,
+            description: 'TEST_ListActive',
+            startMonth: new Date('2024-01-01'),
+            isActive: true,
+          },
+          {
+            accountId,
+            categoryId,
+            type: 'EXPENSE',
+            amount: 50,
+            currency: 'USD',
+            dayOfMonth: 5,
+            description: 'TEST_ListInactive',
+            startMonth: new Date('2024-01-01'),
+            isActive: false,
+          },
+        ],
+      })
+
+      const request = new NextRequest(`http://localhost/api/v1/recurring?accountId=${accountId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await ListRecurringTemplates(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.recurringTemplates).toHaveLength(2)
+      expect(data.data.recurringTemplates[0].dayOfMonth).toBe(5)
+      expect(data.data.recurringTemplates[1].dayOfMonth).toBe(10)
+      expect(data.data.recurringTemplates[0].amount).toBe('50')
+    })
+
+    it('filters recurring templates by isActive=true', async () => {
+      await prisma.recurringTemplate.createMany({
+        data: [
+          {
+            accountId,
+            categoryId,
+            type: 'EXPENSE',
+            amount: 100,
+            currency: 'USD',
+            dayOfMonth: 1,
+            description: 'TEST_FilterActive',
+            startMonth: new Date('2024-01-01'),
+            isActive: true,
+          },
+          {
+            accountId,
+            categoryId,
+            type: 'EXPENSE',
+            amount: 25,
+            currency: 'USD',
+            dayOfMonth: 2,
+            description: 'TEST_FilterInactive',
+            startMonth: new Date('2024-01-01'),
+            isActive: false,
+          },
+        ],
+      })
+
+      const request = new NextRequest(`http://localhost/api/v1/recurring?accountId=${accountId}&isActive=true`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await ListRecurringTemplates(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.recurringTemplates).toHaveLength(1)
+      expect(data.data.recurringTemplates[0].description).toBe('TEST_FilterActive')
+    })
+
+    it('returns 400 when accountId is missing', async () => {
+      const request = new NextRequest('http://localhost/api/v1/recurring', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await ListRecurringTemplates(request)
+      expect(response.status).toBe(400)
+    })
+
+    it('returns 400 when isActive is invalid', async () => {
+      const request = new NextRequest(`http://localhost/api/v1/recurring?accountId=${accountId}&isActive=yes`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await ListRecurringTemplates(request)
+      expect(response.status).toBe(400)
+    })
+
+    it('returns 403 for unauthorized account access', async () => {
+      const request = new NextRequest(`http://localhost/api/v1/recurring?accountId=${otherAccountId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await ListRecurringTemplates(request)
+      expect(response.status).toBe(403)
     })
   })
 

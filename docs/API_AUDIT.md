@@ -2,7 +2,6 @@
 
 Server actions and REST API endpoints audit for Issue #64.
 
-
 - **Server Actions**: 43 actions across 9 files (excluding shared.ts utilities)
 - **REST Endpoints**: 24 route files with ~40 HTTP method handlers
 - **Mobile Compatibility**: REST API is mobile-ready; server actions require web session
@@ -11,149 +10,149 @@ Server actions and REST API endpoints audit for Issue #64.
 
 ### Auth Actions (`src/app/actions/auth.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `loginAction` | Authenticate user | `{ email, password }` | Cookie session, CSRF rotation |
-| `logoutAction` | Clear session | None | Cookie session |
-| `registerAction` | Register new user | `{ email, password, displayName }` | None (stateless) |
-| `verifyEmailAction` | Verify email token | `{ token }` | None (stateless) |
-| `resendVerificationEmailAction` | Resend verification | `{ email }` | None (stateless) |
-| `requestPasswordResetAction` | Request password reset | `{ email }` | None (stateless) |
-| `resetPasswordAction` | Reset password | `{ token, newPassword }` | None (stateless) |
-| `deleteAccountAction` | Delete user (GDPR) | `{ csrfToken, confirmEmail }` | CSRF, cookie session |
-| `exportUserDataAction` | Export user data (GDPR) | `{ csrfToken, format }` | CSRF |
-| `persistActiveAccountAction` | Switch active account | `{ csrfToken, accountId }` | CSRF, cookie session |
+| Function                        | Purpose                 | Parameters                         | Mobile Issues                 |
+| ------------------------------- | ----------------------- | ---------------------------------- | ----------------------------- |
+| `loginAction`                   | Authenticate user       | `{ email, password }`              | Cookie session, CSRF rotation |
+| `logoutAction`                  | Clear session           | None                               | Cookie session                |
+| `registerAction`                | Register new user       | `{ email, password, displayName }` | None (stateless)              |
+| `verifyEmailAction`             | Verify email token      | `{ token }`                        | None (stateless)              |
+| `resendVerificationEmailAction` | Resend verification     | `{ email }`                        | None (stateless)              |
+| `requestPasswordResetAction`    | Request password reset  | `{ email }`                        | None (stateless)              |
+| `resetPasswordAction`           | Reset password          | `{ token, newPassword }`           | None (stateless)              |
+| `deleteAccountAction`           | Delete user (GDPR)      | `{ csrfToken, confirmEmail }`      | CSRF, cookie session          |
+| `exportUserDataAction`          | Export user data (GDPR) | `{ csrfToken, format }`            | CSRF                          |
+| `persistActiveAccountAction`    | Switch active account   | `{ csrfToken, accountId }`         | CSRF, cookie session          |
 
 ### Transaction Actions (`src/app/actions/transactions.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `createTransactionAction` | Create transaction | `TransactionInput` | CSRF, `revalidatePath` |
-| `updateTransactionAction` | Update transaction | `TransactionUpdateInput` | CSRF, `revalidatePath` |
-| `deleteTransactionAction` | Delete transaction | `{ id, csrfToken }` | CSRF, `revalidatePath` |
-| `createTransactionRequestAction` | Create request between accounts | `TransactionRequestInput` | CSRF, `revalidatePath` |
-| `approveTransactionRequestAction` | Approve request | `{ id, csrfToken }` | CSRF, `revalidatePath` |
-| `rejectTransactionRequestAction` | Reject request | `{ id, csrfToken }` | CSRF, `revalidatePath` |
+| Function                          | Purpose                         | Parameters                | Mobile Issues          |
+| --------------------------------- | ------------------------------- | ------------------------- | ---------------------- |
+| `createTransactionAction`         | Create transaction              | `TransactionInput`        | CSRF, `revalidatePath` |
+| `updateTransactionAction`         | Update transaction              | `TransactionUpdateInput`  | CSRF, `revalidatePath` |
+| `deleteTransactionAction`         | Delete transaction              | `{ id, csrfToken }`       | CSRF, `revalidatePath` |
+| `createTransactionRequestAction`  | Create request between accounts | `TransactionRequestInput` | CSRF, `revalidatePath` |
+| `approveTransactionRequestAction` | Approve request                 | `{ id, csrfToken }`       | CSRF, `revalidatePath` |
+| `rejectTransactionRequestAction`  | Reject request                  | `{ id, csrfToken }`       | CSRF, `revalidatePath` |
 
 ### Budget Actions (`src/app/actions/budgets.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `upsertBudgetAction` | Create/update budget | `BudgetInput` | CSRF, `revalidatePath` |
-| `deleteBudgetAction` | Delete budget | `{ csrfToken, accountId, categoryId, monthKey }` | CSRF, `revalidatePath` |
+| Function             | Purpose              | Parameters                                       | Mobile Issues          |
+| -------------------- | -------------------- | ------------------------------------------------ | ---------------------- |
+| `upsertBudgetAction` | Create/update budget | `BudgetInput`                                    | CSRF, `revalidatePath` |
+| `deleteBudgetAction` | Delete budget        | `{ csrfToken, accountId, categoryId, monthKey }` | CSRF, `revalidatePath` |
 
 ### Category Actions (`src/app/actions/categories.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `createCategoryAction` | Create category | `{ csrfToken, name, type, color? }` | CSRF, `revalidatePath`, `requireSession` |
-| `archiveCategoryAction` | Archive/unarchive | `{ csrfToken, id, isArchived }` | CSRF, `revalidatePath`, `requireSession` |
+| Function                | Purpose           | Parameters                          | Mobile Issues                            |
+| ----------------------- | ----------------- | ----------------------------------- | ---------------------------------------- |
+| `createCategoryAction`  | Create category   | `{ csrfToken, name, type, color? }` | CSRF, `revalidatePath`, `requireSession` |
+| `archiveCategoryAction` | Archive/unarchive | `{ csrfToken, id, isArchived }`     | CSRF, `revalidatePath`, `requireSession` |
 
 ### Holdings Actions (`src/app/actions/holdings.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `createHoldingAction` | Create holding | `HoldingInput` | CSRF, `revalidatePath` |
-| `updateHoldingAction` | Update holding | `{ csrfToken, id, quantity, averageCost, notes? }` | CSRF, `revalidatePath` |
-| `deleteHoldingAction` | Delete holding | `{ csrfToken, id }` | CSRF, `revalidatePath` |
-| `refreshHoldingPricesAction` | Refresh stock prices | `{ csrfToken, accountId }` | CSRF, `revalidatePath` |
+| Function                     | Purpose              | Parameters                                         | Mobile Issues          |
+| ---------------------------- | -------------------- | -------------------------------------------------- | ---------------------- |
+| `createHoldingAction`        | Create holding       | `HoldingInput`                                     | CSRF, `revalidatePath` |
+| `updateHoldingAction`        | Update holding       | `{ csrfToken, id, quantity, averageCost, notes? }` | CSRF, `revalidatePath` |
+| `deleteHoldingAction`        | Delete holding       | `{ csrfToken, id }`                                | CSRF, `revalidatePath` |
+| `refreshHoldingPricesAction` | Refresh stock prices | `{ csrfToken, accountId }`                         | CSRF, `revalidatePath` |
 
 ### Recurring Actions (`src/app/actions/recurring.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `upsertRecurringTemplateAction` | Create/update template | `RecurringTemplateInput` | CSRF, `revalidatePath` |
-| `toggleRecurringTemplateAction` | Toggle active status | `{ csrfToken, id, isActive }` | CSRF, `revalidatePath` |
+| Function                        | Purpose                  | Parameters                                         | Mobile Issues          |
+| ------------------------------- | ------------------------ | -------------------------------------------------- | ---------------------- |
+| `upsertRecurringTemplateAction` | Create/update template   | `RecurringTemplateInput`                           | CSRF, `revalidatePath` |
+| `toggleRecurringTemplateAction` | Toggle active status     | `{ csrfToken, id, isActive }`                      | CSRF, `revalidatePath` |
 | `applyRecurringTemplatesAction` | Apply templates to month | `{ csrfToken, monthKey, accountId, templateIds? }` | CSRF, `revalidatePath` |
 
 ### Expense Sharing Actions (`src/app/actions/expense-sharing.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `shareExpenseAction` | Share expense with users | `ShareExpenseInput` | CSRF, `revalidatePath` |
-| `markSharePaidAction` | Mark share as paid | `{ csrfToken, participantId }` | CSRF, `revalidatePath` |
-| `cancelSharedExpenseAction` | Cancel shared expense | `{ csrfToken, sharedExpenseId }` | CSRF, `revalidatePath` |
-| `declineShareAction` | Decline share | `{ csrfToken, participantId }` | CSRF, `revalidatePath` |
-| `getMySharedExpensesAction` | Get shared expenses | None | None (read-only) |
-| `getExpensesSharedWithMeAction` | Get expenses shared with me | None | None (read-only) |
-| `lookupUserForSharingAction` | Lookup user by email | `{ csrfToken, email }` | CSRF |
-| `sendPaymentReminderAction` | Send payment reminder | `{ csrfToken, participantId }` | CSRF, `revalidatePath` |
+| Function                        | Purpose                     | Parameters                       | Mobile Issues          |
+| ------------------------------- | --------------------------- | -------------------------------- | ---------------------- |
+| `shareExpenseAction`            | Share expense with users    | `ShareExpenseInput`              | CSRF, `revalidatePath` |
+| `markSharePaidAction`           | Mark share as paid          | `{ csrfToken, participantId }`   | CSRF, `revalidatePath` |
+| `cancelSharedExpenseAction`     | Cancel shared expense       | `{ csrfToken, sharedExpenseId }` | CSRF, `revalidatePath` |
+| `declineShareAction`            | Decline share               | `{ csrfToken, participantId }`   | CSRF, `revalidatePath` |
+| `getMySharedExpensesAction`     | Get shared expenses         | None                             | None (read-only)       |
+| `getExpensesSharedWithMeAction` | Get expenses shared with me | None                             | None (read-only)       |
+| `lookupUserForSharingAction`    | Lookup user by email        | `{ csrfToken, email }`           | CSRF                   |
+| `sendPaymentReminderAction`     | Send payment reminder       | `{ csrfToken, participantId }`   | CSRF, `revalidatePath` |
 
 ### Onboarding Actions (`src/app/actions/onboarding.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `completeOnboardingAction` | Mark onboarding complete | `{ csrfToken }` | CSRF, `revalidatePath`, `requireSession` |
-| `skipOnboardingAction` | Skip onboarding | `{ csrfToken }` | CSRF, `revalidatePath`, `requireSession` |
-| `updatePreferredCurrencyAction` | Update currency preference | `{ csrfToken, currency }` | CSRF, `revalidatePath`, `requireSession` |
-| `createInitialCategoriesAction` | Create initial categories | `{ csrfToken, categories }` | CSRF, `revalidatePath`, `requireSession` |
-| `createQuickBudgetAction` | Create quick budget | `{ csrfToken, accountId, categoryId, monthKey, planned, currency }` | CSRF, `revalidatePath`, `requireSession` |
-| `seedSampleDataAction` | Seed sample data | `{ csrfToken }` | CSRF, `revalidatePath`, `requireSession` |
+| Function                        | Purpose                    | Parameters                                                          | Mobile Issues                            |
+| ------------------------------- | -------------------------- | ------------------------------------------------------------------- | ---------------------------------------- |
+| `completeOnboardingAction`      | Mark onboarding complete   | `{ csrfToken }`                                                     | CSRF, `revalidatePath`, `requireSession` |
+| `skipOnboardingAction`          | Skip onboarding            | `{ csrfToken }`                                                     | CSRF, `revalidatePath`, `requireSession` |
+| `updatePreferredCurrencyAction` | Update currency preference | `{ csrfToken, currency }`                                           | CSRF, `revalidatePath`, `requireSession` |
+| `createInitialCategoriesAction` | Create initial categories  | `{ csrfToken, categories }`                                         | CSRF, `revalidatePath`, `requireSession` |
+| `createQuickBudgetAction`       | Create quick budget        | `{ csrfToken, accountId, categoryId, monthKey, planned, currency }` | CSRF, `revalidatePath`, `requireSession` |
+| `seedSampleDataAction`          | Seed sample data           | `{ csrfToken }`                                                     | CSRF, `revalidatePath`, `requireSession` |
 
 ### Misc Actions (`src/app/actions/misc.ts`)
 
-| Function | Purpose | Parameters | Mobile Issues |
-|----------|---------|------------|---------------|
-| `refreshExchangeRatesAction` | Refresh exchange rates | `{ csrfToken }` | CSRF, `revalidatePath`, `requireSession` |
-| `setBalanceAction` | Set account balance | `{ csrfToken, accountId, targetBalance, currency, monthKey }` | CSRF, `revalidatePath` |
+| Function                     | Purpose                | Parameters                                                    | Mobile Issues                            |
+| ---------------------------- | ---------------------- | ------------------------------------------------------------- | ---------------------------------------- |
+| `refreshExchangeRatesAction` | Refresh exchange rates | `{ csrfToken }`                                               | CSRF, `revalidatePath`, `requireSession` |
+| `setBalanceAction`           | Set account balance    | `{ csrfToken, accountId, targetBalance, currency, monthKey }` | CSRF, `revalidatePath`                   |
 
 ## REST API Endpoints Inventory
 
 ### Auth Endpoints (`/api/v1/auth/`)
 
-| Endpoint | Method | Purpose | Auth |
-|----------|--------|---------|------|
-| `/api/v1/auth/login` | POST | Authenticate user | None |
-| `/api/v1/auth/logout` | POST | Invalidate refresh token | Refresh Token |
-| `/api/v1/auth/refresh` | POST | Refresh access token | Refresh Token |
-| `/api/v1/auth/account` | DELETE | Delete user account (GDPR) | JWT Bearer |
-| `/api/v1/auth/export` | GET | Export user data (GDPR Article 20) | JWT Bearer |
+| Endpoint               | Method | Purpose                            | Auth          |
+| ---------------------- | ------ | ---------------------------------- | ------------- |
+| `/api/v1/auth/login`   | POST   | Authenticate user                  | None          |
+| `/api/v1/auth/logout`  | POST   | Invalidate refresh token           | Refresh Token |
+| `/api/v1/auth/refresh` | POST   | Refresh access token               | Refresh Token |
+| `/api/v1/auth/account` | DELETE | Delete user account (GDPR)         | JWT Bearer    |
+| `/api/v1/auth/export`  | GET    | Export user data (GDPR Article 20) | JWT Bearer    |
 
 ### Transaction Endpoints (`/api/v1/transactions/`)
 
-| Endpoint | Method | Purpose | Auth |
-|----------|--------|---------|------|
-| `/api/v1/transactions` | POST | Create transaction | JWT Bearer |
-| `/api/v1/transactions/[id]` | GET | Get transaction | JWT Bearer |
-| `/api/v1/transactions/[id]` | PUT | Update transaction | JWT Bearer |
-| `/api/v1/transactions/[id]` | DELETE | Delete transaction | JWT Bearer |
-| `/api/v1/transactions/requests` | GET | Get requests | JWT Bearer |
-| `/api/v1/transactions/requests` | POST | Create request | JWT Bearer + Subscription |
-| `/api/v1/transactions/requests/[id]/approve` | POST | Approve request | JWT Bearer + Subscription |
-| `/api/v1/transactions/requests/[id]/reject` | POST | Reject request | JWT Bearer + Subscription |
+| Endpoint                                     | Method | Purpose            | Auth                      |
+| -------------------------------------------- | ------ | ------------------ | ------------------------- |
+| `/api/v1/transactions`                       | POST   | Create transaction | JWT Bearer                |
+| `/api/v1/transactions/[id]`                  | GET    | Get transaction    | JWT Bearer                |
+| `/api/v1/transactions/[id]`                  | PUT    | Update transaction | JWT Bearer                |
+| `/api/v1/transactions/[id]`                  | DELETE | Delete transaction | JWT Bearer                |
+| `/api/v1/transactions/requests`              | GET    | Get requests       | JWT Bearer                |
+| `/api/v1/transactions/requests`              | POST   | Create request     | JWT Bearer + Subscription |
+| `/api/v1/transactions/requests/[id]/approve` | POST   | Approve request    | JWT Bearer + Subscription |
+| `/api/v1/transactions/requests/[id]/reject`  | POST   | Reject request     | JWT Bearer + Subscription |
 
 ### Budget Endpoints (`/api/v1/budgets/`)
 
-| Endpoint | Method | Purpose | Auth |
-|----------|--------|---------|------|
-| `/api/v1/budgets` | POST | Upsert budget | JWT Bearer |
+| Endpoint          | Method | Purpose       | Auth       |
+| ----------------- | ------ | ------------- | ---------- |
+| `/api/v1/budgets` | POST   | Upsert budget | JWT Bearer |
 | `/api/v1/budgets` | DELETE | Delete budget | JWT Bearer |
 
 ### Category Endpoints (`/api/v1/categories/`)
 
-| Endpoint | Method | Purpose | Auth |
-|----------|--------|---------|------|
-| `/api/v1/categories` | POST | Create category | JWT Bearer |
-| `/api/v1/categories/[id]/archive` | PATCH | Archive category | JWT Bearer |
-| `/api/v1/categories/[id]` | PUT | Update category | JWT Bearer |
+| Endpoint                          | Method | Purpose          | Auth       |
+| --------------------------------- | ------ | ---------------- | ---------- |
+| `/api/v1/categories`              | POST   | Create category  | JWT Bearer |
+| `/api/v1/categories/[id]/archive` | PATCH  | Archive category | JWT Bearer |
+| `/api/v1/categories/[id]`         | PUT    | Update category  | JWT Bearer |
 
 ### Holdings Endpoints (`/api/v1/holdings/`)
 
-| Endpoint | Method | Purpose | Auth |
-|----------|--------|---------|------|
-| `/api/v1/holdings` | POST | Create holding | JWT Bearer |
-| `/api/v1/holdings/[id]` | GET | Get holding | JWT Bearer |
-| `/api/v1/holdings/[id]` | PUT | Update holding | JWT Bearer |
-| `/api/v1/holdings/[id]` | DELETE | Delete holding | JWT Bearer |
-| `/api/v1/holdings/refresh` | POST | Refresh prices | JWT Bearer |
+| Endpoint                   | Method | Purpose        | Auth       |
+| -------------------------- | ------ | -------------- | ---------- |
+| `/api/v1/holdings`         | POST   | Create holding | JWT Bearer |
+| `/api/v1/holdings/[id]`    | GET    | Get holding    | JWT Bearer |
+| `/api/v1/holdings/[id]`    | PUT    | Update holding | JWT Bearer |
+| `/api/v1/holdings/[id]`    | DELETE | Delete holding | JWT Bearer |
+| `/api/v1/holdings/refresh` | POST   | Refresh prices | JWT Bearer |
 
 ### Recurring Endpoints (`/api/v1/recurring/`)
 
-| Endpoint | Method | Purpose | Auth |
-|----------|--------|---------|------|
-| `/api/v1/recurring` | POST | Upsert template | JWT Bearer |
-| `/api/v1/recurring/[id]/toggle` | PATCH | Toggle active | JWT Bearer |
-| `/api/v1/recurring/apply` | POST | Apply templates | JWT Bearer |
+| Endpoint                        | Method | Purpose         | Auth       |
+| ------------------------------- | ------ | --------------- | ---------- |
+| `/api/v1/recurring`             | POST   | Upsert template | JWT Bearer |
+| `/api/v1/recurring/[id]/toggle` | PATCH  | Toggle active   | JWT Bearer |
+| `/api/v1/recurring/apply`       | POST   | Apply templates | JWT Bearer |
 
 ## Mobile-Incompatible Patterns
 
@@ -190,6 +189,7 @@ Server actions and REST API endpoints audit for Issue #64.
 ---
 
 ## REST Endpoints Status
+
 > **Updated**: 2026-01-29
 
 ### Expense Sharing Endpoints
@@ -217,8 +217,8 @@ Server actions and REST API endpoints audit for Issue #64.
 ✅ GET    /api/v1/accounts           - List user accounts
 ✅ POST   /api/v1/accounts           - Create new account
 ✅ GET    /api/v1/users/me           - Current user profile
-⚠️  GET    /api/v1/holdings           - List holdings for account (Issue #196)
-⚠️  GET    /api/v1/recurring          - List recurring templates (Issue #197)
+✅ GET    /api/v1/holdings           - List holdings for account (Issue #196)
+✅ GET    /api/v1/recurring          - List recurring templates (Issue #197)
 ✅ GET    /api/v1/dashboard          - Dashboard summary data (Issue #191)
 ```
 
@@ -239,10 +239,10 @@ Support mobile onboarding flow:
 
 ### Low Priority (Misc)
 
-> ✅ **2 of 3 endpoints implemented in Issue #205, #206, #209**
+> ✅ **3 of 3 endpoints implemented in Issue #204, #205, #206, #209**
 
 ```
-POST   /api/v1/exchange-rates/refresh   - Refresh exchange rates
+✅ POST   /api/v1/exchange-rates/refresh   - Refresh exchange rates (Issue #204)
 ✅ POST   /api/v1/accounts/[id]/set-balance - Set account balance (Issue #205)
 ✅ PATCH  /api/v1/accounts/[id]/activate   - Switch active account
 ```
@@ -252,25 +252,30 @@ POST   /api/v1/exchange-rates/refresh   - Refresh exchange rates
 **Status**: PARTIALLY RESOLVED (Issue #242)
 
 **Implemented**: Subscription validation middleware now protects transaction request endpoints:
+
 - `POST /api/v1/transactions/requests` - Create transaction request
 - `POST /api/v1/transactions/requests/[id]/approve` - Approve request
 - `POST /api/v1/transactions/requests/[id]/reject` - Reject request
 
 **Implementation Details**:
+
 - `checkSubscription(userId)` helper validates subscription status
 - Returns 402 Payment Required with `SUBSCRIPTION_REQUIRED` code
 - Comprehensive test suite added (498+ lines) with 100% coverage
 
 **Remaining Work**: Other REST endpoints still need subscription validation:
+
 - Transaction CRUD endpoints
 - Budget, category, holdings, recurring endpoints
 - Expense sharing endpoints
 
 Server actions use:
+
 - `requireActiveSubscription()` - Checks subscription is active
 - `ensureAccountAccessWithSubscription()` - Combined access + subscription check
 
 **REST API Pattern**:
+
 ```typescript
 // 1.6 Subscription check
 const subscriptionError = await checkSubscription(user.userId)
@@ -278,6 +283,7 @@ if (subscriptionError) return subscriptionError
 ```
 
 Returns 402 with error response:
+
 ```json
 {
   "error": "Active subscription required",
@@ -290,16 +296,19 @@ Returns 402 with error response:
 ## Summary
 
 ### Current State
+
 - **Web app**: Fully functional with 43 server actions
 - **REST API**: 40+ route handlers covering core CRUD operations and most features
 - **Authentication**: JWT-based for mobile, cookie-based for web
 
 ### Remaining API Gaps
+
 1. **Read Endpoints**: Holdings list, recurring list (#196, #197)
 2. **Onboarding**: Skip endpoint (#199)
 3. **Misc**: Exchange rate refresh, set balance (#204, #205)
 
 ### Notes
+
 - Server actions in `shared.ts` are internal utilities, not user-facing actions
 - No delete action for recurring templates - use `toggleRecurringTemplateAction` to deactivate instead
 - Rate limiting is implemented per action type (see `lib/rate-limit.ts` for specific limits)

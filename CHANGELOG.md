@@ -8,12 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+
 - Pricing: Updated from $5/month to $3/month (#274)
   - Reduced subscription price constant to 300 cents ($3.00)
   - Updated pricing display across all pages
   - Updated legal terms and documentation
 
 ### Added
+
 - API: POST /api/v1/accounts/[id]/set-balance endpoint for setting account balance (#205)
   - Set account balance to a specific target amount for a given month
   - Automatically creates "Balance Adjustment" category if needed
@@ -160,6 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive test suite with 100% coverage for skeleton components
 
 ### Fixed
+
 - Web: E2E test locator fixes and improvements (#263)
   - Fixed 45+ flaky test locators across 8 spec files
   - Settings tests refactored to use account dropdown menu (not /settings page)
@@ -244,13 +247,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Logout integration for state cleanup
   - 641-line comprehensive test suite with 90%+ coverage
 
-
 ### Fixed
+
 - **E2E Tests**: Fixed mobile E2E test failures caused by infinite render loop in `useSubscriptionState` hook (#315)
   - Fixed `useSubscriptionState` to use individual Zustand selectors instead of returning new object
   - Added PaywallScreen and RootLoadingScreen UI contracts for subscription flow testing
   - Updated `performLogin` helper to properly wait for subscription loading state
   - Added subscription API contracts and verification in TestApiClient
   - Created comprehensive `subscription.e2e.ts` test suite with 7 test cases
-  - Adjusted iOS CI timeout to 45 minutes (reasonable safety margin)
+  - Adjusted mobile CI timeout to 45 minutes (reasonable safety margin)
   - Created `mobile/e2e/README.md` with comprehensive E2E testing documentation

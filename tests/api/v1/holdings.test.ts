@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Prisma adapter requires any casts for Holding model */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST as CreateHolding } from '@/app/api/v1/holdings/route'
+import { GET as ListHoldings, POST as CreateHolding } from '@/app/api/v1/holdings/route'
 import { PUT as UpdateHolding, DELETE as DeleteHolding } from '@/app/api/v1/holdings/[id]/route'
 import { POST as RefreshPrices } from '@/app/api/v1/holdings/refresh/route'
 import { generateAccessToken } from '@/lib/jwt'
@@ -241,6 +241,95 @@ describe('Holdings API Routes', () => {
 
       const response = await CreateHolding(request)
       expect(response.status).toBe(400)
+    })
+  })
+
+  describe('GET /api/v1/holdings', () => {
+    it('lists holdings for owned account', async () => {
+      await (prisma as any).holding.createMany({
+        data: [
+          {
+            accountId,
+            categoryId: holdingCategoryId,
+            symbol: 'TSLSTB',
+            quantity: 2,
+            averageCost: 200,
+            currency: 'USD',
+          },
+          {
+            accountId,
+            categoryId: holdingCategoryId,
+            symbol: 'TSLSTA',
+            quantity: 1,
+            averageCost: 100,
+            currency: 'USD',
+          },
+        ],
+      })
+
+      // Soft-deleted holding should not be returned
+      await (prisma as any).holding.create({
+        data: {
+          accountId,
+          categoryId: holdingCategoryId,
+          symbol: 'TSDEL',
+          quantity: 3,
+          averageCost: 300,
+          currency: 'USD',
+          deletedAt: new Date(),
+        },
+      })
+
+      const request = new NextRequest(`http://localhost/api/v1/holdings?accountId=${accountId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await ListHoldings(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.holdings).toHaveLength(2)
+      expect(data.data.holdings[0].symbol).toBe('TSLSTA')
+      expect(data.data.holdings[1].symbol).toBe('TSLSTB')
+      expect(data.data.holdings[0].quantity).toBe('1')
+      expect(data.data.holdings[0].averageCost).toBe('100')
+    })
+
+    it('returns 400 when accountId is missing', async () => {
+      const request = new NextRequest('http://localhost/api/v1/holdings', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await ListHoldings(request)
+      expect(response.status).toBe(400)
+    })
+
+    it('returns 401 when auth token is missing', async () => {
+      const request = new NextRequest(`http://localhost/api/v1/holdings?accountId=${accountId}`, {
+        method: 'GET',
+      })
+
+      const response = await ListHoldings(request)
+      expect(response.status).toBe(401)
+    })
+
+    it('returns 403 for unauthorized account access', async () => {
+      const request = new NextRequest(`http://localhost/api/v1/holdings?accountId=${otherAccountId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+
+      const response = await ListHoldings(request)
+      expect(response.status).toBe(403)
     })
   })
 
