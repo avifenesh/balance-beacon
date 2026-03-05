@@ -4,6 +4,14 @@
 
 Ship a native Android Kotlin app with parity to current mobile behavior, while keeping web/backend unchanged.
 
+## Current Status (2026-03-05)
+
+- Streams 1-5 are delivered and corresponding tracker issues are closed:
+  - #378, #379, #380, #381, #382
+- Native Android is the active mobile path in this repo.
+- Mobile E2E CI workflow was removed (`.github/workflows/e2e-mobile.yml` deleted).
+- Web Playwright E2E remains available for local-only validation.
+
 ## Tracking Issues
 
 - Stream 1: https://github.com/avifenesh/balance-beacon/issues/378
