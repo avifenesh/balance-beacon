@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createTrialSubscription } from '@/lib/subscription'
 import { serverLogger } from '@/lib/server-logger'
+import crypto from 'node:crypto'
 
 const BCRYPT_ROUNDS = 12
 const VERIFICATION_TOKEN_EXPIRY_HOURS = 24
@@ -44,6 +45,9 @@ export async function registerUser({
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
   const shouldAutoVerify = Boolean(autoVerify)
   const verificationToken = shouldAutoVerify ? null : randomBytes(32).toString('hex')
+  const hashedVerificationToken = verificationToken
+    ? crypto.createHash('sha256').update(verificationToken).digest('hex')
+    : null
   const verificationExpires = shouldAutoVerify
     ? null
     : new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
@@ -56,7 +60,7 @@ export async function registerUser({
           displayName: displayName.trim(),
           passwordHash,
           emailVerified: shouldAutoVerify,
-          emailVerificationToken: verificationToken,
+          emailVerificationToken: hashedVerificationToken,
           emailVerificationExpires: verificationExpires,
           accounts: {
             create: {
@@ -84,7 +88,7 @@ export async function registerUser({
       userId: newUser.id,
       email: newUser.email,
       emailVerified: newUser.emailVerified,
-      verificationToken: newUser.emailVerificationToken,
+      verificationToken, // Return the unhashed token for the email
       verificationExpires: newUser.emailVerificationExpires,
     }
   } catch (error) {

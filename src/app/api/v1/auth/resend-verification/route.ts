@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { randomBytes } from 'crypto'
+import crypto from 'node:crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
@@ -58,13 +59,14 @@ export async function POST(request: NextRequest) {
 
     // Generate new verification token
     const verificationToken = randomBytes(32).toString('hex')
+    const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex')
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Update user with new token
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        emailVerificationToken: verificationToken,
+        emailVerificationToken: hashedToken,
         emailVerificationExpires: verificationExpires,
       },
     })

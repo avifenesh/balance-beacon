@@ -247,10 +247,11 @@ export async function verifyEmailAction(input: z.infer<typeof verifyEmailSchema>
   if ('error' in parsed) return parsed
 
   const { token } = parsed.data
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
-  // Find user by unique token
+  // Find user by unique hashed token
   const user = await prisma.user.findUnique({
-    where: { emailVerificationToken: token },
+    where: { emailVerificationToken: hashedToken },
   })
 
   if (!user || !user.emailVerificationExpires || user.emailVerificationExpires < new Date()) {
@@ -312,13 +313,14 @@ export async function resendVerificationEmailAction(input: z.infer<typeof resend
 
   // Generate new token
   const verificationToken = crypto.randomBytes(32).toString('hex')
+  const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex')
   const verificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
 
   try {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        emailVerificationToken: verificationToken,
+        emailVerificationToken: hashedToken,
         emailVerificationExpires: verificationExpires,
       },
     })

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
+import crypto from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { validationError, successResponse, serverError, authError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
@@ -23,9 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { token } = parsed.data
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
     const user = await prisma.user.findUnique({
-      where: { emailVerificationToken: token },
+      where: { emailVerificationToken: hashedToken },
     })
 
     if (!user) {
