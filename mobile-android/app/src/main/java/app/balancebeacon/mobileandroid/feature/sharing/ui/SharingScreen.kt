@@ -35,10 +35,11 @@ import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 @Composable
 fun SharingScreen(
     viewModel: SharingViewModel,
+    initialTransactionId: String = "",
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
-    var createTransactionId by rememberSaveable { mutableStateOf("") }
+    var createTransactionId by rememberSaveable(initialTransactionId) { mutableStateOf(initialTransactionId) }
     var createSplitType by rememberSaveable { mutableStateOf("EQUAL") }
     var createParticipantsInput by rememberSaveable { mutableStateOf("") }
     var createDescription by rememberSaveable { mutableStateOf("") }
@@ -46,6 +47,11 @@ fun SharingScreen(
 
     LaunchedEffect(Unit) {
         viewModel.load()
+    }
+    LaunchedEffect(initialTransactionId) {
+        if (initialTransactionId.isNotBlank()) {
+            createTransactionId = initialTransactionId
+        }
     }
 
     LazyColumn(
@@ -89,6 +95,15 @@ fun SharingScreen(
                 label = { Text("Transaction ID") },
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+        if (initialTransactionId.isNotBlank()) {
+            item {
+                Text(
+                    text = "Transaction ID prefilled from Transactions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         item {
             OutlinedTextField(

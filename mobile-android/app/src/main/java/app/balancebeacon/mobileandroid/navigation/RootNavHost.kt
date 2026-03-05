@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -181,7 +183,7 @@ fun RootNavHost(
                     onOpenBudgets = { navController.navigate(AppDestination.Budgets.route) },
                     onOpenAccounts = { navController.navigate(AppDestination.Accounts.route) },
                     onOpenCategories = { navController.navigate(AppDestination.Categories.route) },
-                    onOpenSharing = { navController.navigate(AppDestination.Sharing.route) },
+                    onOpenSharing = { navController.navigate(AppDestination.Sharing.createRoute()) },
                     onOpenProfile = { navController.navigate(AppDestination.Profile.route) },
                     onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
                     onSignOut = {
@@ -308,7 +310,13 @@ fun RootNavHost(
                     title = "Transactions",
                     onBack = { navController.popBackStack() }
                 ) {
-                    TransactionsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                    TransactionsScreen(
+                        viewModel = vm,
+                        onShareTransaction = { transactionId ->
+                            navController.navigate(AppDestination.Sharing.createRoute(transactionId))
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
 
@@ -359,7 +367,18 @@ fun RootNavHost(
                 }
             }
 
-            composable(AppDestination.Sharing.route) {
+            composable(
+                route = AppDestination.Sharing.routeWithArgs,
+                arguments = listOf(
+                    navArgument(AppDestination.Sharing.transactionIdArg) {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val initialTransactionId = backStackEntry.arguments
+                    ?.getString(AppDestination.Sharing.transactionIdArg)
+                    .orEmpty()
                 val vm: SharingViewModel = viewModel(
                     factory = remember {
                         simpleFactory { SharingViewModel(appContainer.sharingRepository) }
@@ -369,7 +388,11 @@ fun RootNavHost(
                     title = "Sharing",
                     onBack = { navController.popBackStack() }
                 ) {
-                    SharingScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                    SharingScreen(
+                        viewModel = vm,
+                        initialTransactionId = initialTransactionId,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
 

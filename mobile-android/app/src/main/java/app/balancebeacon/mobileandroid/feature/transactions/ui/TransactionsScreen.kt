@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -30,19 +31,55 @@ import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 @Composable
 fun TransactionsScreen(
     viewModel: TransactionsViewModel,
+    onShareTransaction: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
-    var accountId by remember { mutableStateOf("") }
-    var monthKey by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var categoryId by remember { mutableStateOf("") }
+    var accountId by rememberSaveable { mutableStateOf("") }
+    var monthKey by rememberSaveable { mutableStateOf("") }
+    var amount by rememberSaveable { mutableStateOf("") }
+    var type by rememberSaveable { mutableStateOf("") }
+    var date by rememberSaveable { mutableStateOf("") }
+    var description by rememberSaveable { mutableStateOf("") }
+    var categoryId by rememberSaveable { mutableStateOf("") }
     var selectedTransactionId by remember { mutableStateOf<String?>(null) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var listTypeFilter by rememberSaveable { mutableStateOf("ALL") }
+    var listAccountFilter by rememberSaveable { mutableStateOf("") }
 
     val canSubmit = accountId.isNotBlank() && amount.isNotBlank() && type.isNotBlank() && date.isNotBlank()
+    val filteredItems = remember(state.items, searchQuery, listTypeFilter, listAccountFilter) {
+        val normalizedQuery = searchQuery.trim().lowercase()
+        val normalizedTypeFilter = listTypeFilter.trim().uppercase()
+        val normalizedAccountFilter = listAccountFilter.trim().lowercase()
+
+        state.items.filter { tx ->
+            val matchesType = normalizedTypeFilter.isBlank() ||
+                normalizedTypeFilter == "ALL" ||
+                tx.type.equals(normalizedTypeFilter, ignoreCase = true)
+            val matchesAccount = normalizedAccountFilter.isBlank() ||
+                tx.accountId.lowercase().contains(normalizedAccountFilter)
+            val searchableText = buildString {
+                append(tx.type)
+                append(' ')
+                append(tx.amount)
+                append(' ')
+                append(tx.accountId)
+                append(' ')
+                append(tx.date)
+                tx.description?.let {
+                    append(' ')
+                    append(it)
+                }
+                tx.categoryId?.let {
+                    append(' ')
+                    append(it)
+                }
+            }.lowercase()
+            val matchesQuery = normalizedQuery.isBlank() || searchableText.contains(normalizedQuery)
+            matchesType && matchesAccount && matchesQuery
+        }
+    }
 
     Column(
         modifier = modifier
@@ -111,6 +148,24 @@ fun TransactionsScreen(
                     label = { Text("Description (optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search list (amount/desc/date/category)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = listTypeFilter,
+                    onValueChange = { listTypeFilter = it.uppercase() },
+                    label = { Text("List type filter (ALL/INCOME/EXPENSE)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = listAccountFilter,
+                    onValueChange = { listAccountFilter = it },
+                    label = { Text("List account filter (optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
@@ -166,6 +221,10 @@ fun TransactionsScreen(
                     text = "Selected: ${selectedTransactionId ?: "none"}",
                     style = MaterialTheme.typography.bodySmall
                 )
+                Text(
+                    text = "Showing ${filteredItems.size} of ${state.items.size} transactions",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
 
@@ -184,7 +243,7 @@ fun TransactionsScreen(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(state.items, key = { it.id }) { tx ->
+            items(filteredItems, key = { it.id }) { tx ->
                 GlassPanel(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -217,6 +276,13 @@ fun TransactionsScreen(
                                 }
                             ) {
                                 Text("Delete")
+                            }
+                            if (tx.type.equals("EXPENSE", ignoreCase = true) && onShareTransaction != null) {
+                                OutlinedButton(
+                                    onClick = { onShareTransaction(tx.id) }
+                                ) {
+                                    Text("Share")
+                                }
                             }
                         }
                     }

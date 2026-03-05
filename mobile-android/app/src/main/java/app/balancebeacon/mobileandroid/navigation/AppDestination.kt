@@ -1,5 +1,7 @@
 package app.balancebeacon.mobileandroid.navigation
 
+import android.net.Uri
+
 sealed interface AppDestination {
     val route: String
 
@@ -69,6 +71,17 @@ sealed interface AppDestination {
 
     data object Sharing : AppDestination {
         override val route: String = "sharing"
+
+        const val transactionIdArg: String = "transactionId"
+        val routeWithArgs: String = "$route?$transactionIdArg={$transactionIdArg}"
+
+        fun createRoute(transactionId: String? = null): String {
+            return if (transactionId.isNullOrBlank()) {
+                route
+            } else {
+                "$route?$transactionIdArg=${Uri.encode(transactionId)}"
+            }
+        }
     }
 
     data object Profile : AppDestination {
