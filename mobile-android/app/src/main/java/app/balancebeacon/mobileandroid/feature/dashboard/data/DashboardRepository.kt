@@ -8,15 +8,16 @@ class DashboardRepository(
     private val dashboardApi: DashboardApi
 ) {
     suspend fun getDashboard(
-        accountId: String,
+        accountId: String? = null,
         month: String? = null
     ): AppResult<DashboardResponse> {
+        val normalizedAccountId = accountId?.trim()?.ifBlank { null }
         val normalizedMonth = month?.trim()?.ifBlank { null }
         return runAppResult {
             dashboardApi.getDashboard(
-                accountId = accountId.trim(),
+                accountId = normalizedAccountId,
                 month = normalizedMonth
-            )
+            ).data
         }
     }
 }

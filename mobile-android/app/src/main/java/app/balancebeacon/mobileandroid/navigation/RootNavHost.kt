@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -50,6 +52,7 @@ import app.balancebeacon.mobileandroid.feature.budgets.ui.BudgetsScreen
 import app.balancebeacon.mobileandroid.feature.budgets.ui.BudgetsViewModel
 import app.balancebeacon.mobileandroid.feature.categories.ui.CategoriesScreen
 import app.balancebeacon.mobileandroid.feature.categories.ui.CategoriesViewModel
+import app.balancebeacon.mobileandroid.feature.dashboard.ui.DashboardTrendCard
 import app.balancebeacon.mobileandroid.feature.dashboard.ui.DashboardOverviewScreen
 import app.balancebeacon.mobileandroid.feature.dashboard.ui.DashboardViewModel
 import app.balancebeacon.mobileandroid.feature.holdings.ui.HoldingsScreen
@@ -155,7 +158,13 @@ fun RootNavHost(
             }
 
             composable(AppDestination.Dashboard.route) {
+                val dashboardVm: DashboardViewModel = viewModel(
+                    factory = remember {
+                        simpleFactory { DashboardViewModel(appContainer.dashboardRepository) }
+                    }
+                )
                 DashboardScreen(
+                    dashboardViewModel = dashboardVm,
                     onOpenOverview = { navController.navigate(AppDestination.Overview.route) },
                     onOpenAssistant = { navController.navigate(AppDestination.Assistant.route) },
                     onOpenRecurring = { navController.navigate(AppDestination.Recurring.route) },
@@ -406,6 +415,7 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun DashboardScreen(
+    dashboardViewModel: DashboardViewModel,
     onOpenOverview: () -> Unit,
     onOpenAssistant: () -> Unit,
     onOpenRecurring: () -> Unit,
@@ -423,6 +433,12 @@ private fun DashboardScreen(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dashboardState by dashboardViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        dashboardViewModel.loadDashboard()
+    }
+
     val navigationActions = listOf(
         "Overview" to onOpenOverview,
         "Assistant" to onOpenAssistant,
@@ -455,7 +471,42 @@ private fun DashboardScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                dashboardState.data?.summary?.let { summary ->
+                    Text(
+                        text = "Cashflow Snapshot: ${summary.netResult}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                if (dashboardState.isLoading && dashboardState.data == null) {
+                    Text(
+                        text = "Loading trend...",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                dashboardState.error?.let { error ->
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                Button(
+                    onClick = onOpenOverview,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                    )
+                ) {
+                    Text("Open Cashflow Details")
+                }
             }
+        }
+
+        dashboardState.data?.let { dashboard ->
+            DashboardTrendCard(
+                history = dashboard.history,
+                comparison = dashboard.comparison,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         GlassPanel(

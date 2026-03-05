@@ -1,6 +1,7 @@
 package app.balancebeacon.mobileandroid.feature.auth.data
 
 import app.balancebeacon.mobileandroid.core.network.AuthInterceptor
+import app.balancebeacon.mobileandroid.core.network.ApiEnvelope
 import app.balancebeacon.mobileandroid.feature.auth.model.LoginRequest
 import app.balancebeacon.mobileandroid.feature.auth.model.LoginResponse
 import app.balancebeacon.mobileandroid.feature.auth.model.DeleteAccountRequest
@@ -32,7 +33,7 @@ interface AuthApi {
     suspend fun login(
         @Header(AuthInterceptor.NO_AUTH_HEADER) noAuth: String = "true",
         @Body request: LoginRequest
-    ): LoginResponse
+    ): ApiEnvelope<LoginResponse>
 
     @POST("auth/register")
     suspend fun register(
@@ -68,7 +69,7 @@ interface AuthApi {
     suspend fun refresh(
         @Header(AuthInterceptor.NO_AUTH_HEADER) noAuth: String = "true",
         @Body request: RefreshRequest
-    ): LoginResponse
+    ): ApiEnvelope<LoginResponse>
 
     @POST("auth/logout")
     suspend fun logout(

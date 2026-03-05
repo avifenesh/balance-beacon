@@ -39,7 +39,7 @@ class AuthRepository(
 
     suspend fun login(email: String, password: String): AppResult<LoginResponse> {
         val result = runAppResult {
-            authApi.login(request = LoginRequest(email = email.trim(), password = password))
+            authApi.login(request = LoginRequest(email = email.trim(), password = password)).data
         }
         if (result is AppResult.Success) {
             persistTokens(result.value)
@@ -133,7 +133,7 @@ class AuthRepository(
 
     suspend fun refreshSession(refreshToken: String): AppResult<LoginResponse> {
         val result = runAppResult {
-            authApi.refresh(request = RefreshRequest(refreshToken = refreshToken))
+            authApi.refresh(request = RefreshRequest(refreshToken = refreshToken)).data
         }
         if (result is AppResult.Success) {
             persistTokens(result.value)

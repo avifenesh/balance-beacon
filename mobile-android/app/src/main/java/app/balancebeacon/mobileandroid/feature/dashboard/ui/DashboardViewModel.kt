@@ -40,10 +40,6 @@ class DashboardViewModel(
         val accountId = (accountIdOverride ?: _uiState.value.accountId).trim()
         val monthKey = (monthKeyOverride ?: _uiState.value.monthKey).trim().ifBlank { null }
 
-        if (accountId.isBlank()) {
-            _uiState.update { it.copy(error = "Account ID is required") }
-            return
-        }
         if (monthKey != null && !MONTH_KEY_REGEX.matches(monthKey)) {
             _uiState.update { it.copy(error = "Month key must use YYYY-MM format") }
             return
@@ -51,7 +47,12 @@ class DashboardViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            when (val result = dashboardRepository.getDashboard(accountId = accountId, month = monthKey)) {
+            when (
+                val result = dashboardRepository.getDashboard(
+                    accountId = accountId.ifBlank { null },
+                    month = monthKey
+                )
+            ) {
                 is AppResult.Success -> _uiState.update {
                     it.copy(
                         isLoading = false,

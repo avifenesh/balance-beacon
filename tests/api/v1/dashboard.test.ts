@@ -65,6 +65,11 @@ describe('Dashboard API Routes', () => {
     otherAccountId = otherAccount.id
     categoryId = category.id
 
+    await prisma.user.update({
+      where: { id: testUser.id },
+      data: { activeAccountId: accountId },
+    })
+
     // Create sample transaction
     await prisma.transaction.create({
       data: {
@@ -95,10 +100,7 @@ describe('Dashboard API Routes', () => {
     // Clean up test data (including bulk transactions from limit test)
     await prisma.transaction.deleteMany({
       where: {
-        OR: [
-          { description: 'Test transaction' },
-          { description: { startsWith: 'Bulk test transaction' } },
-        ],
+        OR: [{ description: 'Test transaction' }, { description: { startsWith: 'Bulk test transaction' } }],
       },
     })
     await prisma.budget.deleteMany({
@@ -114,13 +116,10 @@ describe('Dashboard API Routes', () => {
 
   describe('GET /api/v1/dashboard', () => {
     it('returns dashboard data with valid JWT and accountId', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -135,6 +134,18 @@ describe('Dashboard API Routes', () => {
       expect(data.data.budgetProgress).toBeInstanceOf(Array)
       expect(data.data.recentTransactions).toBeInstanceOf(Array)
       expect(typeof data.data.pendingSharedExpenses).toBe('number')
+      expect(data.data.history).toBeInstanceOf(Array)
+      expect(data.data.comparison).toBeDefined()
+      expect(typeof data.data.comparison.previousMonth).toBe('string')
+      expect(typeof data.data.comparison.previousNet).toBe('number')
+      expect(typeof data.data.comparison.change).toBe('number')
+      if (data.data.history.length > 0) {
+        const point = data.data.history[0]
+        expect(typeof point.month).toBe('string')
+        expect(typeof point.income).toBe('number')
+        expect(typeof point.expense).toBe('number')
+        expect(typeof point.net).toBe('number')
+      }
     })
 
     it('returns dashboard data for specific month', async () => {
@@ -143,7 +154,7 @@ describe('Dashboard API Routes', () => {
         {
           method: 'GET',
           headers: { Authorization: `Bearer ${validToken}` },
-        }
+        },
       )
 
       const response = await GetDashboard(request)
@@ -155,10 +166,7 @@ describe('Dashboard API Routes', () => {
     })
 
     it('returns 401 with missing token', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        { method: 'GET' }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, { method: 'GET' })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -168,13 +176,10 @@ describe('Dashboard API Routes', () => {
     })
 
     it('returns 401 with invalid token', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: 'Bearer invalid-token' },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: 'Bearer invalid-token' },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -183,7 +188,7 @@ describe('Dashboard API Routes', () => {
       expect(data.error).toBeDefined()
     })
 
-    it('returns 400 with missing accountId', async () => {
+    it('returns dashboard data when accountId is omitted', async () => {
       const request = new NextRequest('http://localhost/api/v1/dashboard', {
         method: 'GET',
         headers: { Authorization: `Bearer ${validToken}` },
@@ -192,18 +197,16 @@ describe('Dashboard API Routes', () => {
       const response = await GetDashboard(request)
       const data = await response.json()
 
-      expect(response.status).toBe(400)
-      expect(data.fields?.accountId).toBeDefined()
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.month).toBe(testMonthKey)
     })
 
     it('returns 400 with invalid month format', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}&month=invalid`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}&month=invalid`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -213,13 +216,10 @@ describe('Dashboard API Routes', () => {
     })
 
     it('returns 403 when accessing another user account', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${otherAccountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${otherAccountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -229,13 +229,10 @@ describe('Dashboard API Routes', () => {
     })
 
     it('includes budget progress in response', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -253,13 +250,10 @@ describe('Dashboard API Routes', () => {
     })
 
     it('includes recent transactions in response', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -291,13 +285,10 @@ describe('Dashboard API Routes', () => {
         })
       }
 
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -308,13 +299,10 @@ describe('Dashboard API Routes', () => {
     })
 
     it('returns pendingSharedExpenses count', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -326,13 +314,10 @@ describe('Dashboard API Routes', () => {
 
     it('defaults to current month when month not specified', async () => {
       const currentMonth = getMonthKey(new Date())
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()
@@ -342,13 +327,10 @@ describe('Dashboard API Routes', () => {
     })
 
     it('returns valid summary amounts as strings', async () => {
-      const request = new NextRequest(
-        `http://localhost/api/v1/dashboard?accountId=${accountId}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${validToken}` },
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/dashboard?accountId=${accountId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${validToken}` },
+      })
 
       const response = await GetDashboard(request)
       const data = await response.json()

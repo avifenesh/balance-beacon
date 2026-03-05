@@ -1,6 +1,7 @@
 package app.balancebeacon.mobileandroid.feature.dashboard.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class DashboardSummaryDto(
@@ -59,11 +60,28 @@ data class DashboardTransactionRequestDto(
 )
 
 @Serializable
+data class DashboardComparisonDto(
+    val previousMonth: String = "",
+    val previousNet: JsonElement? = null,
+    val change: JsonElement? = null
+)
+
+@Serializable
+data class DashboardHistoryPointDto(
+    val month: String,
+    val income: JsonElement? = null,
+    val expense: JsonElement? = null,
+    val net: JsonElement? = null
+)
+
+@Serializable
 data class DashboardResponse(
     val month: String,
     val summary: DashboardSummaryDto = DashboardSummaryDto(),
     val budgetProgress: List<DashboardBudgetProgressDto> = emptyList(),
     val recentTransactions: List<DashboardRecentTransactionDto> = emptyList(),
     val pendingSharedExpenses: Int = 0,
-    val transactionRequests: List<DashboardTransactionRequestDto> = emptyList()
+    val transactionRequests: List<DashboardTransactionRequestDto> = emptyList(),
+    val comparison: DashboardComparisonDto? = null,
+    val history: List<DashboardHistoryPointDto> = emptyList()
 )

@@ -15,18 +15,20 @@ import { getMonthKey, getMonthStartFromKey, formatDateForApi } from '@/utils/dat
 import { serverLogger } from '@/lib/server-logger'
 import { getBudgetProgress } from '@/lib/dashboard-ux'
 import { prisma } from '@/lib/prisma'
+import { getAccounts } from '@/lib/finance/accounts'
+import type { Currency } from '@prisma/client'
 
 /**
  * GET /api/v1/dashboard
  *
  * Retrieves dashboard summary data for the mobile app.
  *
- * @query accountId - Required. The account to fetch dashboard data for.
+ * @query accountId - Optional. The account to fetch dashboard data for.
  * @query month - Optional. Month in YYYY-MM format (defaults to current month).
  *
  * @returns {Object} Dashboard summary with month, summary, budgetProgress, recentTransactions,
- * pendingSharedExpenses, transactionRequests, and paymentHistory
- * @throws {400} Validation error - Missing accountId or invalid month format
+ * pendingSharedExpenses, transactionRequests, paymentHistory, history, and comparison
+ * @throws {400} Validation error - Invalid month format
  * @throws {401} Unauthorized - Invalid or missing auth token
  * @throws {403} Forbidden - User doesn't own the account
  * @throws {429} Rate limited - Too many requests
@@ -47,12 +49,8 @@ export async function GET(request: NextRequest) {
   incrementRateLimit(user.userId)
 
   const { searchParams } = new URL(request.url)
-  const accountId = searchParams.get('accountId')
+  const accountIdParam = searchParams.get('accountId')?.trim() || null
   const monthParam = searchParams.get('month')
-
-  if (accountId === null || accountId === '') {
-    return validationError({ accountId: ['accountId is required'] })
-  }
 
   let monthKey: string
   if (monthParam !== null && monthParam !== '') {
@@ -70,16 +68,42 @@ export async function GET(request: NextRequest) {
     monthKey = getMonthKey(new Date())
   }
 
-  const accountCheck = await ensureResourceOwnership(
-    () =>
-      prisma.account.findFirst({
-        where: { id: accountId, userId: user.userId, deletedAt: null },
-        select: { id: true, preferredCurrency: true },
+  let accountId: string
+  let preferredCurrency: Currency | undefined
+
+  if (accountIdParam) {
+    const accountCheck = await ensureResourceOwnership(
+      () =>
+        prisma.account.findFirst({
+          where: { id: accountIdParam, userId: user.userId, deletedAt: null },
+          select: { id: true, preferredCurrency: true },
+        }),
+      'Account',
+    )
+    if (!accountCheck.allowed) {
+      return forbiddenError('Access denied')
+    }
+    accountId = accountCheck.resource.id
+    preferredCurrency = accountCheck.resource.preferredCurrency ?? undefined
+  } else {
+    const [accounts, userRecord] = await Promise.all([
+      getAccounts(user.userId),
+      prisma.user.findFirst({
+        where: { id: user.userId, deletedAt: null },
+        select: { activeAccountId: true },
       }),
-    'Account',
-  )
-  if (!accountCheck.allowed) {
-    return forbiddenError('Access denied')
+    ])
+
+    const activeAccountId = userRecord?.activeAccountId ?? null
+    const resolvedAccount =
+      (activeAccountId ? accounts.find((a) => a.id === activeAccountId) : undefined) ?? accounts[0]
+
+    if (!resolvedAccount) {
+      return forbiddenError('Access denied')
+    }
+
+    accountId = resolvedAccount.id
+    preferredCurrency = resolvedAccount.preferredCurrency ?? undefined
   }
 
   try {
@@ -87,7 +111,7 @@ export async function GET(request: NextRequest) {
       monthKey,
       accountId,
       userId: user.userId,
-      preferredCurrency: accountCheck.resource.preferredCurrency ?? undefined,
+      preferredCurrency,
     })
 
     const netStat = dashboardData.stats.find((s) => s.breakdown?.type === 'net-this-month')
@@ -180,6 +204,19 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    const history = dashboardData.history.map((point) => ({
+      month: point.month,
+      income: point.income,
+      expense: point.expense,
+      net: point.net,
+    }))
+
+    const comparison = {
+      previousMonth: dashboardData.comparison.previousMonth,
+      previousNet: dashboardData.comparison.previousNet,
+      change: dashboardData.comparison.change,
+    }
+
     return successResponse({
       month: monthKey,
       summary,
@@ -188,6 +225,8 @@ export async function GET(request: NextRequest) {
       pendingSharedExpenses,
       transactionRequests,
       paymentHistory,
+      history,
+      comparison,
     })
   } catch (error) {
     serverLogger.error('Failed to fetch dashboard data', { action: 'GET /api/v1/dashboard' }, error)
