@@ -14,6 +14,7 @@ data class RecurringCategoryDto(
 data class RecurringTemplateDto(
     val id: String,
     val accountId: String,
+    val accountName: String? = null,
     val categoryId: String,
     val type: String,
     val amount: String,

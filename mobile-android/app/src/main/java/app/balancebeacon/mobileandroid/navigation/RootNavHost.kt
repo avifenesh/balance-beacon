@@ -230,7 +230,13 @@ fun RootNavHost(
             composable(AppDestination.Recurring.route) {
                 val vm: RecurringViewModel = viewModel(
                     factory = remember {
-                        simpleFactory { RecurringViewModel(appContainer.recurringRepository) }
+                        simpleFactory {
+                            RecurringViewModel(
+                                recurringRepository = appContainer.recurringRepository,
+                                accountsRepository = appContainer.accountsRepository,
+                                categoriesRepository = appContainer.categoriesRepository
+                            )
+                        }
                     }
                 )
                 FeatureShell(
