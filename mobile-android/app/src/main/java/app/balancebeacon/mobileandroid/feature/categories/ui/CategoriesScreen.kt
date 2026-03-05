@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -18,6 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -30,9 +35,32 @@ fun CategoriesScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var visibleCount by rememberSaveable { mutableStateOf(DEFAULT_VISIBLE_COUNT) }
+    val filteredItems = remember(state.items, searchQuery) {
+        val normalizedQuery = searchQuery.trim().lowercase()
+        if (normalizedQuery.isBlank()) {
+            state.items
+        } else {
+            state.items.filter { category ->
+                val haystack = buildString {
+                    append(category.name)
+                    append(' ')
+                    append(category.type)
+                    append(' ')
+                    append(category.color.orEmpty())
+                }.lowercase()
+                haystack.contains(normalizedQuery)
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.load()
+    }
+
+    LaunchedEffect(state.items.size) {
+        visibleCount = DEFAULT_VISIBLE_COUNT
     }
 
     if (state.isLoading && state.items.isEmpty()) {
@@ -72,12 +100,27 @@ fun CategoriesScreen(
                         enabled = !state.isMutating
                     )
                     Button(
-                        onClick = viewModel::applyFilters,
+                        onClick = {
+                            visibleCount = DEFAULT_VISIBLE_COUNT
+                            viewModel.applyFilters()
+                        },
                         enabled = !state.isMutating
                     ) {
                         Text("Apply")
                     }
                 }
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = {
+                        searchQuery = it
+                        visibleCount = DEFAULT_VISIBLE_COUNT
+                    },
+                    label = { Text("Search loaded categories") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.isMutating
+                )
 
                 TextButton(
                     onClick = {
@@ -243,13 +286,38 @@ fun CategoriesScreen(
                 .weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(items = state.items, key = { it.id }) { category ->
+            if (filteredItems.isEmpty()) {
+                item {
+                    Text(
+                        text = if (state.items.isEmpty()) {
+                            "No categories loaded"
+                        } else {
+                            "No categories match your search"
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            items(items = filteredItems.take(visibleCount), key = { it.id }) { category ->
                 CategoryItem(
                     category = category,
                     isMutating = state.isMutating,
                     onEdit = viewModel::startEditing,
                     onSetArchived = viewModel::setArchived
                 )
+            }
+
+            if (filteredItems.size > visibleCount) {
+                item {
+                    OutlinedButton(
+                        onClick = { visibleCount += DEFAULT_VISIBLE_COUNT },
+                        enabled = !state.isMutating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Load more (${filteredItems.size - visibleCount} remaining)")
+                    }
+                }
             }
         }
     }
@@ -296,3 +364,5 @@ private fun CategoryItem(
         }
     }
 }
+
+private const val DEFAULT_VISIBLE_COUNT = 12
