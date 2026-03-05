@@ -1,0 +1,3 @@
+## 2024-03-05 - Add aria-controls to Stat Breakdown Buttons
+**Learning:** Found a missing `aria-controls` attribute linking the stat buttons to their respective breakdown panels in `dashboard-page.tsx`. This violates the standard accessibility pattern for disclosure widgets. The buttons previously only used `aria-expanded`.
+**Action:** Always ensure that when `aria-expanded` is used on a toggle button for a collapsible element, it is paired with `aria-controls` pointing to the `id` of the collapsible element.

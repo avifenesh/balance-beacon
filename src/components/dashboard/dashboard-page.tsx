@@ -638,6 +638,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                 onClick={() => setExpandedStat(isExpanded ? null : stat.label)}
                 className={cn(cardClassName, 'cursor-pointer hover:bg-white/10 text-left')}
                 aria-expanded={isExpanded}
+                aria-controls="stat-breakdown-panel"
                 aria-label={`View ${stat.label} breakdown`}
                 data-testid="stat-card"
               >
@@ -658,7 +659,10 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
             if (!stat?.breakdown) return null
 
             return (
-              <div className="relative z-10 mt-2 rounded-xl border border-white/15 bg-white/5 p-4 backdrop-blur">
+              <div
+                id="stat-breakdown-panel"
+                className="relative z-10 mt-2 rounded-xl border border-white/15 bg-white/5 p-4 backdrop-blur"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-300">{expandedStat} breakdown</p>
                   <button
