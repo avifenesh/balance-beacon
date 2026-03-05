@@ -22,3 +22,26 @@ data class AssistantChatResponse(
     val text: String? = null,
     val response: String? = null
 )
+
+@Serializable
+data class AssistantSessionMessage(
+    val id: String,
+    val role: String,
+    val text: String
+)
+
+@Serializable
+data class AssistantChatSession(
+    val id: String,
+    val title: String,
+    val messages: List<AssistantSessionMessage> = emptyList(),
+    val createdAt: String,
+    val updatedAt: String,
+    val isCustomTitle: Boolean = false
+)
+
+@Serializable
+data class AssistantSessionSnapshot(
+    val sessions: List<AssistantChatSession> = emptyList(),
+    val activeSessionId: String? = null
+)

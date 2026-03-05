@@ -7,6 +7,7 @@ import app.balancebeacon.mobileandroid.core.session.SessionManager
 import app.balancebeacon.mobileandroid.core.storage.SessionStore
 import app.balancebeacon.mobileandroid.feature.accounts.data.AccountsRepository
 import app.balancebeacon.mobileandroid.feature.assistant.data.AssistantRepository
+import app.balancebeacon.mobileandroid.feature.assistant.data.DataStoreAssistantSessionStore
 import app.balancebeacon.mobileandroid.feature.auth.data.AuthRepository
 import app.balancebeacon.mobileandroid.feature.budgets.data.BudgetsRepository
 import app.balancebeacon.mobileandroid.feature.categories.data.CategoriesRepository
@@ -87,6 +88,10 @@ class AppContainer(context: Context) {
 
     val assistantRepository: AssistantRepository by lazy {
         AssistantRepository(assistantApi = apiClient.assistantApi)
+    }
+
+    val assistantSessionStore: DataStoreAssistantSessionStore by lazy {
+        DataStoreAssistantSessionStore(appContext)
     }
 
     val recurringRepository: RecurringRepository by lazy {

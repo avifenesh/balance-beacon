@@ -216,7 +216,13 @@ fun RootNavHost(
             composable(AppDestination.Assistant.route) {
                 val vm: AssistantViewModel = viewModel(
                     factory = remember {
-                        simpleFactory { AssistantViewModel(appContainer.assistantRepository) }
+                        simpleFactory {
+                            AssistantViewModel(
+                                assistantRepository = appContainer.assistantRepository,
+                                accountsRepository = appContainer.accountsRepository,
+                                assistantSessionStore = appContainer.assistantSessionStore
+                            )
+                        }
                     }
                 )
                 FeatureShell(
