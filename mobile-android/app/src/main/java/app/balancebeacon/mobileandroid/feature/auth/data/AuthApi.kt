@@ -35,6 +35,11 @@ interface AuthApi {
         @Body request: LoginRequest
     ): ApiEnvelope<LoginResponse>
 
+    @POST("auth/debug-login")
+    suspend fun debugLogin(
+        @Header(AuthInterceptor.NO_AUTH_HEADER) noAuth: String = "true"
+    ): ApiEnvelope<LoginResponse>
+
     @POST("auth/register")
     suspend fun register(
         @Header(AuthInterceptor.NO_AUTH_HEADER) noAuth: String = "true",

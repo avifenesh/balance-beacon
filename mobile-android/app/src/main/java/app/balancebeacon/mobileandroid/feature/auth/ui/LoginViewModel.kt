@@ -61,8 +61,20 @@ class LoginViewModel(
     fun demoSignIn() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            authRepository.debugSignIn()
-            _uiState.update { it.copy(isLoading = false, error = null) }
+            when (val result = authRepository.debugSignIn()) {
+                is AppResult.Success -> {
+                    _uiState.update { it.copy(isLoading = false, error = null) }
+                }
+
+                is AppResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = result.error.message
+                        )
+                    }
+                }
+            }
         }
     }
 }

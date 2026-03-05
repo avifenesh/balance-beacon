@@ -3,7 +3,6 @@ package app.balancebeacon.mobileandroid.feature.auth.data
 import app.balancebeacon.mobileandroid.core.result.AppResult
 import app.balancebeacon.mobileandroid.core.result.runAppResult
 import app.balancebeacon.mobileandroid.core.session.SessionManager
-import app.balancebeacon.mobileandroid.core.storage.AuthTokens
 import app.balancebeacon.mobileandroid.feature.auth.model.DeleteAccountRequest
 import app.balancebeacon.mobileandroid.feature.auth.model.ExportUserDataResponse
 import app.balancebeacon.mobileandroid.feature.auth.model.LoginRequest
@@ -28,13 +27,12 @@ class AuthRepository(
     private val authApi: AuthApi,
     private val sessionManager: SessionManager
 ) {
-    suspend fun debugSignIn() {
-        sessionManager.persistTokens(
-            AuthTokens(
-                accessToken = "debug-access-token",
-                refreshToken = "debug-refresh-token"
-            )
-        )
+    suspend fun debugSignIn(): AppResult<LoginResponse> {
+        val result = runAppResult { authApi.debugLogin().data }
+        if (result is AppResult.Success) {
+            persistTokens(result.value)
+        }
+        return result
     }
 
     suspend fun login(email: String, password: String): AppResult<LoginResponse> {
@@ -157,7 +155,7 @@ class AuthRepository(
         if (accessToken.isBlank()) return
 
         sessionManager.persistTokens(
-            AuthTokens(
+            app.balancebeacon.mobileandroid.core.storage.AuthTokens(
                 accessToken = accessToken,
                 refreshToken = response.refreshToken
             )
