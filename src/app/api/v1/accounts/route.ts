@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
     if (existingAccount) {
       return validationError({ name: ['An account with this name already exists'] })
     }
+
     const account = await prisma.account.create({
       data: {
         userId: user.userId,

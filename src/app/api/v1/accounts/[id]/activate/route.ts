@@ -46,6 +46,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!account) {
       return notFoundError('Account not found')
     }
+
     await prisma.user.update({
       where: { id: user.userId },
       data: { activeAccountId: accountId },

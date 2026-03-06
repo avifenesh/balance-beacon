@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     if (!fromAccount) {
       return serverError('Unable to identify your primary account')
     }
+
     const transactionRequest = await createTransactionRequest({
       fromId: fromAccount.id,
       toId: data.toId,

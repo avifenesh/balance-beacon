@@ -352,6 +352,41 @@ describe('POST /api/v1/budgets/quick', () => {
     expect(data.error).toContain('Category not found or access denied')
   })
 
+  it('returns 403 for archived category', async () => {
+    // Archive the category
+    await prisma.category.update({
+      where: { id: categoryId },
+      data: { isArchived: true },
+    })
+
+    const request = new NextRequest('http://localhost/api/v1/budgets/quick', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        accountId,
+        categoryId,
+        monthKey: testMonthKey,
+        planned: 500,
+        currency: 'USD',
+      }),
+    })
+
+    const response = await QuickBudget(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(data.error).toContain('Category not found or access denied')
+
+    // Restore for other tests
+    await prisma.category.update({
+      where: { id: categoryId },
+      data: { isArchived: false },
+    })
+  })
+
   it('returns 402 when user has no subscription', async () => {
     await prisma.subscription.update({
       where: { userId: TEST_USER_ID },
