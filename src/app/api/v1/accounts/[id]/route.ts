@@ -201,27 +201,33 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return validationError({ id: ['Cannot delete the active account. Switch to another account first.'] })
     }
 
-    const accountCount = await prisma.account.count({
-      where: {
-        userId: user.userId,
-        deletedAt: null,
-      },
-    })
+    // Use transaction to prevent TOCTOU race between count and delete
+    await prisma.$transaction(async (tx) => {
+      const accountCount = await tx.account.count({
+        where: {
+          userId: user.userId,
+          deletedAt: null,
+        },
+      })
 
-    if (accountCount <= 1) {
-      return validationError({ id: ['Cannot delete your only account.'] })
-    }
+      if (accountCount <= 1) {
+        throw new Error('LAST_ACCOUNT')
+      }
 
-    await prisma.account.update({
-      where: { id: accountId },
-      data: {
-        deletedAt: new Date(),
-        deletedBy: user.userId,
-      },
+      await tx.account.update({
+        where: { id: accountId },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: user.userId,
+        },
+      })
     })
 
     return successResponse({ deleted: true })
   } catch (error) {
+    if (error instanceof Error && error.message === 'LAST_ACCOUNT') {
+      return validationError({ id: ['Cannot delete your only account.'] })
+    }
     serverLogger.error(
       'Failed to delete account',
       {

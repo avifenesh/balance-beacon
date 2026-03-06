@@ -11,22 +11,32 @@ vi.mock('@/lib/api-auth', () => ({
   requireJwtAuth: vi.fn(),
 }))
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
+vi.mock('@/lib/prisma', () => {
+  const txClient = {
     account: {
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      update: vi.fn(),
       count: vi.fn(),
+      update: vi.fn(),
     },
-    transaction: {
-      groupBy: vi.fn(),
+  }
+  return {
+    prisma: {
+      account: {
+        findMany: vi.fn(),
+        findFirst: vi.fn(),
+        update: vi.fn(),
+        count: vi.fn(),
+      },
+      transaction: {
+        groupBy: vi.fn(),
+      },
+      user: {
+        findUnique: vi.fn(),
+      },
+      $transaction: vi.fn(async (cb: (tx: typeof txClient) => Promise<unknown>) => cb(txClient)),
+      _txClient: txClient,
     },
-    user: {
-      findUnique: vi.fn(),
-    },
-  },
-}))
+  }
+})
 
 vi.mock('@/lib/server-logger', () => ({
   serverLogger: {
@@ -395,6 +405,13 @@ describe('DELETE /api/v1/accounts/[id]', () => {
     mockUserFindUnique.mockResolvedValue({ activeAccountId: 'acc-2' } as any)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountUpdate.mockResolvedValue({ ...mockAccount, deletedAt: new Date() } as any)
+
+    // Set up transaction client defaults for DELETE handler
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tx = (prisma as any)._txClient
+    vi.mocked(tx.account.count).mockResolvedValue(2)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(tx.account.update).mockResolvedValue({ ...mockAccount, deletedAt: new Date() } as any)
   })
 
   afterEach(() => {
@@ -446,7 +463,9 @@ describe('DELETE /api/v1/accounts/[id]', () => {
     })
 
     it('returns 400 when trying to delete the only account', async () => {
-      mockAccountCount.mockResolvedValue(1)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tx = (prisma as any)._txClient
+      vi.mocked(tx.account.count).mockResolvedValue(1)
 
       const response = await DELETE(createRequest(), {
         params: Promise.resolve({ id: 'acc-1' }),
@@ -460,6 +479,12 @@ describe('DELETE /api/v1/accounts/[id]', () => {
 
   describe('Success', () => {
     it('soft deletes account successfully', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tx = (prisma as any)._txClient
+      vi.mocked(tx.account.count).mockResolvedValue(2)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(tx.account.update).mockResolvedValue({ ...mockAccount, deletedAt: new Date() } as any)
+
       const response = await DELETE(createRequest(), {
         params: Promise.resolve({ id: 'acc-1' }),
       })
@@ -468,7 +493,7 @@ describe('DELETE /api/v1/accounts/[id]', () => {
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
       expect(data.data.deleted).toBe(true)
-      expect(mockAccountUpdate).toHaveBeenCalledWith({
+      expect(tx.account.update).toHaveBeenCalledWith({
         where: { id: 'acc-1' },
         data: {
           deletedAt: expect.any(Date),

@@ -429,8 +429,8 @@ export async function updateTransactionAction(input: TransactionUpdateInput) {
 
       // Check access to the existing account using tx to maintain transaction integrity
       // (subscription already verified in pre-flight checks above)
-      const existingAccount = await tx.account.findUnique({
-        where: { id: existing.accountId },
+      const existingAccount = await tx.account.findFirst({
+        where: { id: existing.accountId, deletedAt: null },
         select: { userId: true },
       })
       if (!existingAccount || existingAccount.userId !== authUser.id) {
