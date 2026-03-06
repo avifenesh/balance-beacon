@@ -136,13 +136,13 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                       </span>
                       {participant.status === PaymentStatus.PAID && (
                         <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
-                          <Check className="h-3 w-3" />
+                          <Check className="h-3 w-3" aria-hidden="true" />
                           Paid
                         </span>
                       )}
                       {participant.status === PaymentStatus.DECLINED && (
                         <span className="flex items-center gap-1 rounded-full bg-rose-500/20 px-2 py-0.5 text-xs text-rose-300">
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" aria-hidden="true" />
                           Declined
                         </span>
                       )}

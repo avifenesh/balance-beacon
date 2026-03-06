@@ -16,7 +16,11 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, Omit<InputProps,
           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:text-slate-300"
           aria-label={showPassword ? 'Hide password' : 'Show password'}
         >
-          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {showPassword ? (
+            <EyeOff className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          )}
         </button>
       </div>
     )

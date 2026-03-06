@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useTransition, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { TransactionType, Currency } from '@prisma/client'
 import { Target } from 'lucide-react'
@@ -64,6 +64,11 @@ export function BudgetsTab({
   const [editingBudget, setEditingBudget] = useState<DashboardBudget | null>(null)
   const isEditingBudget = Boolean(editingBudget)
   const budgetFormRef = useRef<HTMLFormElement>(null)
+
+  // Sync checkbox state when props change (e.g., month/account switch)
+  useEffect(() => {
+    setIsDefaultIncomeGoal(monthlyIncomeGoal?.isDefault ?? false)
+  }, [monthlyIncomeGoal?.isDefault])
 
   // Derived options
   const accountsOptions = useMemo(() => createAccountOptions(accounts), [accounts])
@@ -486,17 +491,15 @@ export function BudgetsTab({
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <label htmlFor="setAsDefault" className="flex cursor-pointer items-center gap-2">
                 <Checkbox
                   id="setAsDefault"
                   name="setAsDefault"
                   checked={isDefaultIncomeGoal}
                   onChange={(e) => setIsDefaultIncomeGoal(e.target.checked)}
                 />
-                <label htmlFor="setAsDefault" className="text-xs text-slate-300">
-                  Use as default for future months
-                </label>
-              </div>
+                <span className="text-xs text-slate-300">Use as default for future months</span>
+              </label>
               <Button type="submit" loading={isPendingIncomeGoal} className="w-full" variant="outline">
                 Save income goal
               </Button>
