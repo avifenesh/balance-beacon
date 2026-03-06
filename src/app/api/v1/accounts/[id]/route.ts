@@ -17,7 +17,11 @@ import { serverLogger } from '@/lib/server-logger'
 const updateAccountSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be 50 characters or less'),
   type: z.enum(['SELF', 'PARTNER', 'OTHER']).optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color').optional().nullable(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color')
+    .optional()
+    .nullable(),
   preferredCurrency: z.enum(['USD', 'EUR', 'ILS']).optional().nullable(),
 })
 
@@ -65,32 +69,34 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return validationError(parsed.error.flatten().fieldErrors as Record<string, string[]>)
   }
 
-  const account = await prisma.account.findFirst({
-    where: {
-      id: accountId,
-      userId: user.userId,
-      deletedAt: null,
-    },
-  })
-
-  if (!account) {
-    return notFoundError('Account not found')
-  }
-
-  const existingWithName = await prisma.account.findFirst({
-    where: {
-      userId: user.userId,
-      name: parsed.data.name,
-      deletedAt: null,
-      id: { not: accountId },
-    },
-  })
-
-  if (existingWithName) {
-    return validationError({ name: ['An account with this name already exists'] })
-  }
-
   try {
+    const account = await prisma.account.findFirst({
+      where: {
+        id: accountId,
+        userId: user.userId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    })
+
+    if (!account) {
+      return notFoundError('Account not found')
+    }
+
+    const existingWithName = await prisma.account.findFirst({
+      where: {
+        userId: user.userId,
+        name: parsed.data.name,
+        deletedAt: null,
+        id: { not: accountId },
+      },
+      select: { id: true },
+    })
+
+    if (existingWithName) {
+      return validationError({ name: ['An account with this name already exists'] })
+    }
+
     const updateData: {
       name: string
       type?: 'SELF' | 'PARTNER' | 'OTHER'
@@ -128,11 +134,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       return validationError({ name: ['An account with this name already exists'] })
     }
-    serverLogger.error('Failed to update account', {
-      action: 'PUT /api/v1/accounts/[id]',
-      userId: user.userId,
-      accountId,
-    }, error)
+    serverLogger.error(
+      'Failed to update account',
+      {
+        action: 'PUT /api/v1/accounts/[id]',
+        userId: user.userId,
+        accountId,
+      },
+      error,
+    )
     return serverError('Unable to update account')
   }
 }
@@ -168,39 +178,40 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const subscriptionError = await checkSubscription(user.userId)
   if (subscriptionError) return subscriptionError
 
-  const account = await prisma.account.findFirst({
-    where: {
-      id: accountId,
-      userId: user.userId,
-      deletedAt: null,
-    },
-  })
-
-  if (!account) {
-    return notFoundError('Account not found')
-  }
-
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.userId },
-    select: { activeAccountId: true },
-  })
-
-  if (dbUser?.activeAccountId === accountId) {
-    return validationError({ id: ['Cannot delete the active account. Switch to another account first.'] })
-  }
-
-  const accountCount = await prisma.account.count({
-    where: {
-      userId: user.userId,
-      deletedAt: null,
-    },
-  })
-
-  if (accountCount <= 1) {
-    return validationError({ id: ['Cannot delete your only account.'] })
-  }
-
   try {
+    const account = await prisma.account.findFirst({
+      where: {
+        id: accountId,
+        userId: user.userId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    })
+
+    if (!account) {
+      return notFoundError('Account not found')
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { activeAccountId: true },
+    })
+
+    if (dbUser?.activeAccountId === accountId) {
+      return validationError({ id: ['Cannot delete the active account. Switch to another account first.'] })
+    }
+
+    const accountCount = await prisma.account.count({
+      where: {
+        userId: user.userId,
+        deletedAt: null,
+      },
+    })
+
+    if (accountCount <= 1) {
+      return validationError({ id: ['Cannot delete your only account.'] })
+    }
+
     await prisma.account.update({
       where: { id: accountId },
       data: {
@@ -211,11 +222,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     return successResponse({ deleted: true })
   } catch (error) {
-    serverLogger.error('Failed to delete account', {
-      action: 'DELETE /api/v1/accounts/[id]',
-      userId: user.userId,
-      accountId,
-    }, error)
+    serverLogger.error(
+      'Failed to delete account',
+      {
+        action: 'DELETE /api/v1/accounts/[id]',
+        userId: user.userId,
+        accountId,
+      },
+      error,
+    )
     return serverError('Unable to delete account')
   }
 }

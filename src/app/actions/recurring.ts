@@ -149,52 +149,52 @@ export async function applyRecurringTemplatesAction(input: z.infer<typeof applyR
     where.id = { in: templateIds }
   }
 
-  const templates = await prisma.recurringTemplate.findMany({ where })
+  try {
+    const templates = await prisma.recurringTemplate.findMany({ where })
 
-  if (templates.length === 0) {
-    return success({ created: 0 })
-  }
+    if (templates.length === 0) {
+      return success({ created: 0 })
+    }
 
-  const existing = await prisma.transaction.findMany({
-    where: {
-      month: monthStart,
-      recurringTemplateId: { in: templates.map((t) => t.id) },
-      deletedAt: null,
-    },
-    select: {
-      recurringTemplateId: true,
-    },
-  })
-
-  const existingSet = new Set(existing.map((item) => item.recurringTemplateId))
-
-  const transactionsToCreate = templates
-    .filter((template) => !existingSet.has(template.id))
-    .map((template) => {
-      const daysInMonth = getDaysInMonth(monthStart)
-      const day = Math.min(template.dayOfMonth, daysInMonth)
-      const date = new Date(monthStart)
-      date.setDate(day)
-
-      return {
-        accountId: template.accountId,
-        categoryId: template.categoryId,
-        type: template.type,
-        amount: new Prisma.Decimal(toDecimalString(template.amount.toNumber())),
-        currency: template.currency,
-        date,
+    const existing = await prisma.transaction.findMany({
+      where: {
         month: monthStart,
-        description: template.description,
-        isRecurring: true,
-        recurringTemplateId: template.id,
-      }
+        recurringTemplateId: { in: templates.map((t) => t.id) },
+        deletedAt: null,
+      },
+      select: {
+        recurringTemplateId: true,
+      },
     })
 
-  if (transactionsToCreate.length === 0) {
-    return success({ created: 0 })
-  }
+    const existingSet = new Set(existing.map((item) => item.recurringTemplateId))
 
-  try {
+    const transactionsToCreate = templates
+      .filter((template) => !existingSet.has(template.id))
+      .map((template) => {
+        const daysInMonth = getDaysInMonth(monthStart)
+        const day = Math.min(template.dayOfMonth, daysInMonth)
+        const date = new Date(monthStart)
+        date.setDate(day)
+
+        return {
+          accountId: template.accountId,
+          categoryId: template.categoryId,
+          type: template.type,
+          amount: new Prisma.Decimal(toDecimalString(template.amount.toNumber())),
+          currency: template.currency,
+          date,
+          month: monthStart,
+          description: template.description,
+          isRecurring: true,
+          recurringTemplateId: template.id,
+        }
+      })
+
+    if (transactionsToCreate.length === 0) {
+      return success({ created: 0 })
+    }
+
     await prisma.transaction.createMany({ data: transactionsToCreate })
 
     // Invalidate dashboard cache for affected month/account
@@ -202,23 +202,21 @@ export async function applyRecurringTemplatesAction(input: z.infer<typeof applyR
       monthKey,
       accountId,
     })
+
+    revalidatePath('/')
+    return success({ created: transactionsToCreate.length })
   } catch (error) {
     return handlePrismaError(error, {
       action: 'applyRecurringTemplates',
       accountId,
       input: { monthKey, templateIds },
       foreignKeyMessage: 'Some templates reference accounts or categories that no longer exist',
-      fallbackMessage: 'Unable to create recurring transactions',
+      fallbackMessage: 'Unable to apply recurring templates',
     })
   }
-
-  revalidatePath('/')
-  return success({ created: transactionsToCreate.length })
 }
 
-export async function deleteRecurringTemplateAction(
-  input: z.infer<typeof deleteRecurringTemplateSchema>,
-) {
+export async function deleteRecurringTemplateAction(input: z.infer<typeof deleteRecurringTemplateSchema>) {
   const parsed = parseInput(deleteRecurringTemplateSchema, input)
   if ('error' in parsed) return parsed
 
