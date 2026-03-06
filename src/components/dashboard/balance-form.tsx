@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/utils/format'
+import { DECIMAL_12_2_MAX } from '@/schemas/shared'
 import { toast } from '@/hooks/useToast'
 import { useCsrfToken } from '@/hooks/useCsrfToken'
 
@@ -93,8 +94,8 @@ export function BalanceForm({ activeAccount, monthKey, preferredCurrency, curren
               id="balanceAmount"
               type="number"
               step="0.01"
-              min="-9999999999.99"
-              max="9999999999.99"
+              min={-DECIMAL_12_2_MAX}
+              max={DECIMAL_12_2_MAX}
               value={balanceAmount}
               onChange={(e) => setBalanceAmount(e.target.value)}
             />

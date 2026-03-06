@@ -286,10 +286,12 @@ export async function settleAllWithUserAction(input: SettleAllWithUserInput) {
       const participantsToSettle = await tx.expenseParticipant.findMany({
         where: {
           status: PaymentStatus.PENDING,
+          deletedAt: null,
           userId: data.targetUserId,
           sharedExpense: {
             ownerId: authUser.id,
             currency: data.currency,
+            deletedAt: null,
           },
         },
         select: { id: true },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { processExpiredSubscriptions } from '@/lib/subscription'
 import { serverLogger } from '@/lib/server-logger'
 import { checkCronRateLimit } from '@/lib/rate-limit'
+import { env } from '@/lib/env-schema'
 
 /**
  * Cron endpoint to expire subscriptions.
@@ -17,7 +18,7 @@ import { checkCronRateLimit } from '@/lib/rate-limit'
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
+  const cronSecret = env.cronSecret
   const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 
   // Verify cron secret - always required for security

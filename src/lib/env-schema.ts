@@ -60,7 +60,10 @@ const envSchema = z.object({
     .transform((v) => v === 'true'),
 
   // Cron (optional)
-  CRON_SECRET: z.string().min(16).optional(),
+  CRON_SECRET: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.length >= 16 ? v : undefined)),
 
   // Performance monitoring (optional)
   SLOW_QUERY_THRESHOLD_MS: z.coerce.number().default(1000),
