@@ -7,6 +7,7 @@ import { loginAction, requestPasswordResetAction } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { cn } from '@/utils/cn'
 
 type FormErrors = Partial<Record<string, string[]>>
@@ -152,10 +153,9 @@ export function LoginCard() {
                   Need a reset?
                 </button>
               </div>
-              <Input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 aria-describedby={
                   errors?.password ? 'password-error' : errors?.credentials ? 'credentials-error' : undefined
                 }

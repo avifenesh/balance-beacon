@@ -60,23 +60,26 @@ export function SettlementSummary({ balances, paymentHistory = [] }: SettlementS
       <CardContent className="space-y-4">
         {totalsByCurrency.map((totals) => (
           <div key={totals.currency} className="space-y-2">
-            {currencies.length > 1 && (
-              <p className="text-xs font-medium text-slate-500">{totals.currency}</p>
-            )}
+            {currencies.length > 1 && <p className="text-xs font-medium text-slate-500">{totals.currency}</p>}
             <div className="grid grid-cols-3 gap-4 rounded-xl bg-white/5 p-4">
               <div className="text-center">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">You owe</p>
                 <p className="text-xl font-bold text-rose-400">{formatCurrency(totals.youOwe, totals.currency)}</p>
               </div>
               <div className="flex items-center justify-center">
-                <ArrowRight className="h-5 w-5 text-slate-500" />
+                <ArrowRight className="h-5 w-5 text-slate-500" aria-hidden="true" />
               </div>
               <div className="text-center">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">They owe</p>
                 <p className="text-xl font-bold text-emerald-400">{formatCurrency(totals.theyOwe, totals.currency)}</p>
               </div>
             </div>
-            <div className={cn('rounded-xl p-3 text-center', totals.netBalance >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10')}>
+            <div
+              className={cn(
+                'rounded-xl p-3 text-center',
+                totals.netBalance >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10',
+              )}
+            >
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Net balance</p>
               <p className={cn('text-xl font-bold', totals.netBalance >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
                 {totals.netBalance >= 0 ? '+' : ''}
@@ -136,6 +139,7 @@ export function SettlementSummary({ balances, paymentHistory = [] }: SettlementS
                       className="h-8 min-h-0 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-500/20"
                       onClick={() => handleSettleAll(balance.userId, balance.currency)}
                       disabled={isPending}
+                      aria-label={`Settle all with ${balance.userDisplayName}`}
                       title="Mark all pending payments from this person as received"
                     >
                       <Check className="mr-1 h-3.5 w-3.5" />
@@ -157,19 +161,21 @@ export function SettlementSummary({ balances, paymentHistory = [] }: SettlementS
         {paymentHistory.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Recent Activity</h3>
-            <div className="space-y-1">
+            <ul className="space-y-1 list-none m-0 p-0" role="list">
               {paymentHistory.map((item) => (
-                <div
+                <li
                   key={item.participantId}
                   className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm"
                 >
                   <div className="flex items-center gap-2">
                     <span
+                      aria-hidden="true"
                       className={cn(
                         'h-2 w-2 rounded-full',
-                        item.direction === 'received' ? 'bg-emerald-400' : 'bg-rose-400'
+                        item.direction === 'received' ? 'bg-emerald-400' : 'bg-rose-400',
                       )}
                     />
+                    <span className="sr-only">{item.direction === 'received' ? 'Received' : 'Sent'}</span>
                     <span className="text-slate-300">
                       {item.direction === 'received' ? (
                         <>
@@ -184,7 +190,10 @@ export function SettlementSummary({ balances, paymentHistory = [] }: SettlementS
                   </div>
                   <div className="text-right">
                     <span
-                      className={cn('font-medium', item.direction === 'received' ? 'text-emerald-400' : 'text-rose-400')}
+                      className={cn(
+                        'font-medium',
+                        item.direction === 'received' ? 'text-emerald-400' : 'text-rose-400',
+                      )}
                     >
                       {item.direction === 'received' ? '+' : '-'}
                       {formatCurrency(item.amount, item.currency)}
@@ -193,9 +202,9 @@ export function SettlementSummary({ balances, paymentHistory = [] }: SettlementS
                       {new Date(item.paidAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </p>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
       </CardContent>

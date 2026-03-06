@@ -12,7 +12,7 @@ interface LogContext {
   action?: string
   userId?: string
   accountId?: string
-  input?: Record<string, unknown>
+  input?: Record<string, unknown> | unknown[]
   [key: string]: unknown
 }
 
@@ -29,8 +29,17 @@ interface LogEntry {
   timestamp: string
 }
 
-function sanitizeInput(input: unknown): Record<string, unknown> | undefined {
+function sanitizeInput(input: unknown): Record<string, unknown> | unknown[] | undefined {
   if (!input || typeof input !== 'object') return undefined
+
+  if (Array.isArray(input)) {
+    return input.map((item) => {
+      if (typeof item === 'object' && item !== null) {
+        return sanitizeInput(item)
+      }
+      return item
+    })
+  }
 
   const sanitized: Record<string, unknown> = {}
   const sensitiveKeys = ['password', 'token', 'secret', 'csrfToken', 'apiKey', 'authorization']
@@ -72,7 +81,7 @@ function log(level: LogLevel, message: string, context: LogContext, error?: unkn
     message,
     context: {
       ...context,
-      input: context.input ? sanitizeInput(context.input) : undefined,
+      input: context.input ? (sanitizeInput(context.input) as typeof context.input) : undefined,
     },
     error: formatError(error),
     timestamp: new Date().toISOString(),

@@ -7,6 +7,7 @@ import { Download, Users, Pencil, Trash2, Receipt } from 'lucide-react'
 import { createTransactionAction, updateTransactionAction, deleteTransactionAction } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -586,8 +587,7 @@ export function TransactionsTab({
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 text-xs text-slate-300">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       name="isRecurring"
                       checked={transactionFormState.isRecurring}
                       onChange={(event) =>
@@ -596,7 +596,6 @@ export function TransactionsTab({
                           isRecurring: event.target.checked,
                         }))
                       }
-                      className="size-4 rounded border-slate-600 bg-slate-700 text-sky-500 focus:ring-sky-500"
                     />
                     Recurring
                   </label>
@@ -759,9 +758,11 @@ export function TransactionsTab({
                             type="button"
                             onClick={() => setSharingTransaction(transaction)}
                             className="p-1.5 rounded-md bg-white/10 hover:bg-sky-500/20 text-slate-300 hover:text-sky-300 transition"
-                            title="Share expense"
+                            aria-label={
+                              transaction.description ? `Share expense: ${transaction.description}` : 'Share expense'
+                            }
                           >
-                            <Users className="h-4 w-4" />
+                            <Users className="h-4 w-4" aria-hidden="true" />
                           </button>
                         )}
                         <button

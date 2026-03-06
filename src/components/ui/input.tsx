@@ -1,7 +1,7 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   error?: boolean
   valid?: boolean
 }

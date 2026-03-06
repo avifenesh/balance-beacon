@@ -161,6 +161,25 @@ describe('serverLogger', () => {
       expect(logData.input.currency).toBe('USD')
     })
 
+    it('handles arrays correctly without converting to objects', () => {
+      serverLogger.error('Test', {
+        action: 'arrayTest',
+        input: {
+          items: ['a', 'b', 'c'],
+          nested: [{ id: 1 }, { id: 2, secret: 'hide' }],
+        },
+      })
+
+      expect(consoleErrorSpy).toHaveBeenCalled()
+      const call = consoleErrorSpy.mock.calls[0]
+      const logData = call[1] as { input: { items: string[]; nested: { id: number; secret?: string }[] } }
+
+      expect(logData.input).toEqual({
+        items: ['a', 'b', 'c'],
+        nested: [{ id: 1 }, { id: 2, secret: '[REDACTED]' }],
+      })
+    })
+
     it('handles null input gracefully', () => {
       serverLogger.error('Test', {
         action: 'testAction',

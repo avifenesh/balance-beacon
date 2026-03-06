@@ -524,10 +524,11 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                 aria-haspopup="menu"
                 aria-expanded={showSettingsMenu}
                 aria-controls="settings-menu"
+                aria-label="Account settings"
               >
-                <Settings className="h-3.5 w-3.5" />
+                <Settings className="h-3.5 w-3.5" aria-hidden="true" />
                 <span className="hidden sm:inline">Account</span>
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3" aria-hidden="true" />
               </Button>
               {showSettingsMenu && (
                 <>
@@ -606,13 +607,13 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                   onClick={() => handleMonthChange(-1)}
                   aria-label="Previous month"
                 >
-                  <ArrowLeft className="h-3 w-3" />
+                  <ArrowLeft className="h-3 w-3" aria-hidden="true" />
                 </Button>
                 <div
                   className="flex items-center gap-1 px-1.5 text-xs font-medium text-white"
                   data-testid="month-label"
                 >
-                  <CalendarRange className="h-3 w-3" />
+                  <CalendarRange className="h-3 w-3" aria-hidden="true" />
                   {formatMonthLabel(monthKey)}
                 </div>
                 <Button
@@ -622,7 +623,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                   onClick={() => handleMonthChange(1)}
                   aria-label="Next month"
                 >
-                  <ArrowRight className="h-3 w-3" />
+                  <ArrowRight className="h-3 w-3" aria-hidden="true" />
                 </Button>
               </div>
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-wide text-slate-200 backdrop-blur">
@@ -728,6 +729,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                 onClick={() => setExpandedStat(isExpanded ? null : stat.label)}
                 className={cn(cardClassName, 'cursor-pointer hover:bg-white/10 text-left')}
                 aria-expanded={isExpanded}
+                aria-controls={`stat-breakdown-${stat.label.replace(/\s+/g, '-').toLowerCase()}`}
                 aria-label={`View ${stat.label} breakdown`}
                 data-testid="stat-card"
               >
@@ -748,7 +750,10 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
             if (!stat?.breakdown) return null
 
             return (
-              <div className="relative z-10 mt-2 rounded-xl border border-white/15 bg-white/5 p-4 backdrop-blur">
+              <div
+                id={`stat-breakdown-${expandedStat.replace(/\s+/g, '-').toLowerCase()}`}
+                className="relative z-10 mt-2 rounded-xl border border-white/15 bg-white/5 p-4 backdrop-blur"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-300">{expandedStat} breakdown</p>
                   <button

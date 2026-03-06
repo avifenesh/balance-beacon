@@ -7,6 +7,7 @@ import { Target } from 'lucide-react'
 import { deleteBudgetAction, upsertBudgetAction, upsertMonthlyIncomeGoalAction } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { filterBudgets, getBudgetProgress, getBudgetTotals } from '@/lib/dashboard-ux'
@@ -59,6 +60,7 @@ export function BudgetsTab({
   const [formErrors, setFormErrors] = useState<FormErrors | null>(null)
   const [incomeGoalErrors, setIncomeGoalErrors] = useState<FormErrors | null>(null)
   const [deletingBudgetKey, setDeletingBudgetKey] = useState<string | null>(null)
+  const [isDefaultIncomeGoal, setIsDefaultIncomeGoal] = useState(monthlyIncomeGoal?.isDefault ?? false)
   const [editingBudget, setEditingBudget] = useState<DashboardBudget | null>(null)
   const isEditingBudget = Boolean(editingBudget)
   const budgetFormRef = useRef<HTMLFormElement>(null)
@@ -207,7 +209,7 @@ export function BudgetsTab({
       monthKey,
       amount,
       currency: (formData.get('incomeGoalCurrency') as Currency) || preferredCurrency,
-      setAsDefault: formData.get('setAsDefault') === 'on',
+      setAsDefault: isDefaultIncomeGoal,
       csrfToken,
     }
 
@@ -485,12 +487,11 @@ export function BudgetsTab({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="setAsDefault"
                   name="setAsDefault"
-                  className="h-4 w-4 rounded border-white/20 bg-white/5 text-emerald-500"
-                  defaultChecked={monthlyIncomeGoal?.isDefault}
+                  checked={isDefaultIncomeGoal}
+                  onChange={(e) => setIsDefaultIncomeGoal(e.target.checked)}
                 />
                 <label htmlFor="setAsDefault" className="text-xs text-slate-300">
                   Use as default for future months
