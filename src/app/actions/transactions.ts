@@ -144,6 +144,7 @@ export async function approveTransactionRequestAction(input: z.infer<typeof idSc
         toId: true,
         status: true,
         categoryId: true,
+        category: { select: { userId: true } },
         amount: true,
         currency: true,
         date: true,
@@ -180,6 +181,11 @@ export async function approveTransactionRequestAction(input: z.infer<typeof idSc
 
   if (!toAccount || toAccount.userId !== authUser.id) {
     return generalError('You do not have access to this transaction request')
+  }
+
+  // Verify the category belongs to the authenticated user (prevents IDOR via categoryId)
+  if (request.category.userId !== authUser.id) {
+    return generalError('The category associated with this request is not accessible')
   }
 
   if (request.status !== RequestStatus.PENDING) {
@@ -273,6 +279,10 @@ export async function rejectTransactionRequestAction(input: z.infer<typeof idSch
 
   if (!toAccount || toAccount.userId !== authUser.id) {
     return generalError('You do not have access to this transaction request')
+  }
+
+  if (request.status !== RequestStatus.PENDING) {
+    return generalError(`Request is already ${request.status.toLowerCase()}`)
   }
 
   try {

@@ -120,7 +120,7 @@ describe('User Isolation: Transaction Requests', () => {
         passwordHash: 'mock-hash',
         preferredCurrency: Currency.USD,
         hasCompletedOnboarding: true,
-    activeAccountId: null,
+        activeAccountId: null,
         accountNames: ['Attacker Account'],
         defaultAccountName: 'Attacker Account',
       })
@@ -133,6 +133,7 @@ describe('User Isolation: Transaction Requests', () => {
         amount: 1000,
         currency: 'USD',
         categoryId: 'cat-id',
+        category: { userId: 'attacker-user-id' },
         description: 'Malicious approval attempt',
         date: new Date(),
         status: 'PENDING',
@@ -169,7 +170,7 @@ describe('User Isolation: Transaction Requests', () => {
         passwordHash: 'mock-hash',
         preferredCurrency: Currency.USD,
         hasCompletedOnboarding: true,
-    activeAccountId: null,
+        activeAccountId: null,
         accountNames: ['Owner Account'],
         defaultAccountName: 'Owner Account',
       })
@@ -181,6 +182,7 @@ describe('User Isolation: Transaction Requests', () => {
         amount: 100,
         currency: 'USD',
         categoryId: 'cat-id',
+        category: { userId: 'owner-user-id' },
         description: 'Legitimate request',
         date: new Date(),
         status: 'PENDING',
@@ -202,6 +204,52 @@ describe('User Isolation: Transaction Requests', () => {
       expect(result).toEqual({ success: true })
       expect(prisma.$transaction).toHaveBeenCalled()
     })
+
+    it('should reject when categoryId belongs to a different user (IDOR)', async () => {
+      const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
+
+      vi.mocked(requireSession).mockResolvedValue({} as any)
+      vi.mocked(getDbUserAsAuthUser).mockResolvedValue({
+        email: 'owner@example.com',
+        id: 'owner-user-id',
+        displayName: 'Owner',
+        passwordHash: 'mock-hash',
+        preferredCurrency: Currency.USD,
+        hasCompletedOnboarding: true,
+        activeAccountId: null,
+        accountNames: ['Owner Account'],
+        defaultAccountName: 'Owner Account',
+      })
+
+      const mockRequest = {
+        id: 'req-id',
+        toId: 'owner-account-id',
+        fromId: 'sender-id',
+        amount: 100,
+        currency: 'USD',
+        categoryId: 'attacker-cat-id',
+        category: { userId: 'attacker-user-id' },
+        description: 'Request with foreign category',
+        date: new Date(),
+        status: 'PENDING',
+      }
+
+      vi.mocked(prisma.transactionRequest.findUnique).mockResolvedValue(mockRequest as any)
+      vi.mocked(prisma.account.findFirst).mockResolvedValue({
+        id: 'owner-account-id',
+        name: 'Owner Account',
+        type: 'SELF',
+        userId: 'owner-user-id',
+      } as any)
+
+      const result = await approveTransactionRequestAction({ id: 'req-id', csrfToken: 'test-token' })
+
+      expect(result).toEqual({
+        success: false,
+        error: { general: ['The category associated with this request is not accessible'] },
+      })
+      expect(prisma.$transaction).not.toHaveBeenCalled()
+    })
   })
 
   describe('rejectTransactionRequestAction', () => {
@@ -217,7 +265,7 @@ describe('User Isolation: Transaction Requests', () => {
         passwordHash: 'mock-hash',
         preferredCurrency: Currency.USD,
         hasCompletedOnboarding: true,
-    activeAccountId: null,
+        activeAccountId: null,
         accountNames: ['Attacker Account'],
         defaultAccountName: 'Attacker Account',
       })
@@ -260,7 +308,7 @@ describe('User Isolation: Transaction Requests', () => {
         passwordHash: 'mock-hash',
         preferredCurrency: Currency.USD,
         hasCompletedOnboarding: true,
-    activeAccountId: null,
+        activeAccountId: null,
         accountNames: ['Owner Account'],
         defaultAccountName: 'Owner Account',
       })
@@ -309,7 +357,7 @@ describe('User Isolation: Holdings Category Validation', () => {
       passwordHash: 'mock-hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['User A Account'],
       defaultAccountName: 'User A Account',
     })
@@ -355,7 +403,7 @@ describe('User Isolation: Holdings Category Validation', () => {
       passwordHash: 'mock-hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Owner Account'],
       defaultAccountName: 'Owner Account',
     })
@@ -402,7 +450,7 @@ describe('User Isolation: Holdings Category Validation', () => {
       passwordHash: 'mock-hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Owner Account'],
       defaultAccountName: 'Owner Account',
     })
@@ -541,7 +589,7 @@ describe('User Isolation: Account Switching Security', () => {
         passwordHash: 'mock-hash',
         preferredCurrency: Currency.USD,
         hasCompletedOnboarding: true,
-    activeAccountId: null,
+        activeAccountId: null,
         accountNames: ['User A Account'],
         defaultAccountName: 'User A Account',
       })
@@ -585,7 +633,7 @@ describe('User Isolation: Account Switching Security', () => {
         passwordHash: 'mock-hash',
         preferredCurrency: Currency.USD,
         hasCompletedOnboarding: true,
-    activeAccountId: null,
+        activeAccountId: null,
         accountNames: ['Attacker Account'],
         defaultAccountName: 'Attacker Account',
       })
@@ -636,7 +684,7 @@ describe('User Isolation: Account Switching Security', () => {
         passwordHash: 'mock-hash',
         preferredCurrency: Currency.USD,
         hasCompletedOnboarding: true,
-    activeAccountId: null,
+        activeAccountId: null,
         accountNames: ['Account 1', 'Account 2'],
         defaultAccountName: 'Account 1',
       })
@@ -674,7 +722,7 @@ describe('User Isolation: Account Switching Security', () => {
         passwordHash: 'mock-hash',
         preferredCurrency: Currency.USD,
         hasCompletedOnboarding: true,
-    activeAccountId: null,
+        activeAccountId: null,
         accountNames: ['User Account'],
         defaultAccountName: 'User Account',
       })

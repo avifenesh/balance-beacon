@@ -211,8 +211,12 @@ export async function markSharePaidAction(input: MarkSharePaidInput) {
 
   let participant
   try {
-    participant = await prisma.expenseParticipant.findUnique({
-      where: { id: data.participantId },
+    participant = await prisma.expenseParticipant.findFirst({
+      where: {
+        id: data.participantId,
+        deletedAt: null,
+        sharedExpense: { deletedAt: null },
+      },
       include: {
         sharedExpense: { select: { ownerId: true } },
       },
@@ -335,8 +339,8 @@ export async function cancelSharedExpenseAction(input: CancelSharedExpenseInput)
 
   let sharedExpense
   try {
-    sharedExpense = await prisma.sharedExpense.findUnique({
-      where: { id: data.sharedExpenseId },
+    sharedExpense = await prisma.sharedExpense.findFirst({
+      where: { id: data.sharedExpenseId, deletedAt: null },
       select: { id: true, ownerId: true },
     })
   } catch (error) {
@@ -388,8 +392,12 @@ export async function declineShareAction(input: DeclineShareInput) {
 
   let participant
   try {
-    participant = await prisma.expenseParticipant.findUnique({
-      where: { id: data.participantId },
+    participant = await prisma.expenseParticipant.findFirst({
+      where: {
+        id: data.participantId,
+        deletedAt: null,
+        sharedExpense: { deletedAt: null },
+      },
       select: { id: true, userId: true, status: true },
     })
   } catch (error) {
@@ -483,6 +491,7 @@ export async function getExpensesSharedWithMeAction() {
     const participations = await prisma.expenseParticipant.findMany({
       where: {
         userId: authUser.id,
+        deletedAt: null,
         sharedExpense: { deletedAt: null },
       },
       include: {
@@ -575,8 +584,12 @@ export async function sendPaymentReminderAction(input: SendPaymentReminderInput)
 
   let participant
   try {
-    participant = await prisma.expenseParticipant.findUnique({
-      where: { id: data.participantId },
+    participant = await prisma.expenseParticipant.findFirst({
+      where: {
+        id: data.participantId,
+        deletedAt: null,
+        sharedExpense: { deletedAt: null },
+      },
       include: {
         participant: {
           select: {
