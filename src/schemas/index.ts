@@ -98,7 +98,7 @@ export const recurringTemplateSchema = z
     currency: z.nativeEnum(Currency).default(Currency.USD),
     dayOfMonth: z.coerce.number().min(1).max(31),
     description: z.string().max(240).optional().nullable(),
-    startMonthKey: monthKey,
+    startMonthKey: z.string().min(1, 'Start month is required').pipe(monthKey),
     endMonthKey: monthKey.optional().nullable(),
     isActive: z.boolean().optional().default(true),
     csrfToken: z.string().min(1, 'Security token required'),
@@ -259,7 +259,7 @@ export const setBalanceSchema = z.object({
   accountId: z.string().min(1, 'Account is required'),
   targetBalance: z.coerce.number().min(-DECIMAL_12_2_MAX, 'Amount too small').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
-  monthKey,
+  monthKey: z.string().min(1, 'Month key is required').pipe(monthKey),
   csrfToken: z.string().min(1, 'Security token required'),
 })
 

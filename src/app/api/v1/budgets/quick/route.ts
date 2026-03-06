@@ -5,12 +5,13 @@ import { prisma } from '@/lib/prisma'
 import { Currency } from '@prisma/client'
 import { getMonthStartFromKey } from '@/utils/date'
 import { z } from 'zod'
+import { DECIMAL_12_2_MAX, monthKey } from '@/schemas/shared'
 
 const quickBudgetSchema = z.object({
   accountId: z.string().min(1, 'Account is required'),
   categoryId: z.string().min(1, 'Category is required'),
-  monthKey: z.string().regex(/^\d{4}-\d{2}$/, 'Invalid month format (expected YYYY-MM)'),
-  planned: z.coerce.number().min(0, 'Budget must be >= 0'),
+  monthKey,
+  planned: z.coerce.number().min(0, 'Budget must be >= 0').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
 })
 

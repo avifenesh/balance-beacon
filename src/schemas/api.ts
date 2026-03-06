@@ -79,7 +79,7 @@ export const recurringTemplateApiSchema = z
     currency: z.nativeEnum(Currency).default(Currency.USD),
     dayOfMonth: z.coerce.number().min(1).max(31),
     description: z.string().max(240).optional().nullable(),
-    startMonthKey: monthKey,
+    startMonthKey: z.string().min(1, 'Start month is required').pipe(monthKey),
     endMonthKey: monthKey.optional().nullable(),
     isActive: z.boolean().optional().default(true),
   })

@@ -234,7 +234,7 @@ export function generateOpenAPIDocument() {
           properties: {
             accountId: { type: 'string', minLength: 1 },
             categoryId: { type: 'string', minLength: 1 },
-            monthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
+            monthKey: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$', example: '2026-01' },
             planned: { type: 'number', minimum: 0, example: 500.0 },
             currency: { $ref: '#/components/schemas/Currency' },
             notes: { type: 'string', maxLength: 240, nullable: true },
@@ -258,7 +258,7 @@ export function generateOpenAPIDocument() {
           type: 'object',
           properties: {
             accountId: { type: 'string', minLength: 1 },
-            monthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
+            monthKey: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$', example: '2026-01' },
             amount: { type: 'number', minimum: 0.01, example: 5000.0 },
             currency: { $ref: '#/components/schemas/Currency' },
             notes: { type: 'string', maxLength: 240, nullable: true },
@@ -378,8 +378,8 @@ export function generateOpenAPIDocument() {
             currency: { $ref: '#/components/schemas/Currency' },
             dayOfMonth: { type: 'integer', minimum: 1, maximum: 31, example: 15 },
             description: { type: 'string', maxLength: 240, nullable: true },
-            startMonthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
-            endMonthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', nullable: true },
+            startMonthKey: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$', example: '2026-01' },
+            endMonthKey: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$', nullable: true },
             isActive: { type: 'boolean', default: true },
           },
           required: ['accountId', 'categoryId', 'type', 'amount', 'dayOfMonth', 'startMonthKey'],
@@ -402,7 +402,7 @@ export function generateOpenAPIDocument() {
         ApplyRecurring: {
           type: 'object',
           properties: {
-            monthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
+            monthKey: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$', example: '2026-01' },
             accountId: { type: 'string', minLength: 1 },
             templateIds: { type: 'array', items: { type: 'string' }, description: 'Optional - defaults to all active' },
           },
