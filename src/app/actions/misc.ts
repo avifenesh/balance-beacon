@@ -57,29 +57,30 @@ export async function setBalanceAction(input: z.infer<typeof setBalanceSchema>) 
 
   const monthStart = getMonthStartFromKey(monthKey)
 
-  // Find or create "Balance Adjustment" category for this user
+  // Atomically find or create "Balance Adjustment" category for this user
   let adjustmentCategory
   try {
-    adjustmentCategory = await prisma.category.findFirst({
-      where: { name: 'Balance Adjustment', userId: authUser.id },
-      select: { id: true },
-    })
-
-    if (!adjustmentCategory) {
-      adjustmentCategory = await prisma.category.create({
-        data: {
+    adjustmentCategory = await prisma.category.upsert({
+      where: {
+        userId_name_type: {
           userId: authUser.id,
           name: 'Balance Adjustment',
           type: TransactionType.INCOME,
         },
-        select: { id: true },
-      })
-    }
+      },
+      create: {
+        userId: authUser.id,
+        name: 'Balance Adjustment',
+        type: TransactionType.INCOME,
+      },
+      update: {},
+      select: { id: true },
+    })
   } catch (error) {
     return handlePrismaError(error, {
-      action: 'setBalance.findOrCreateCategory',
+      action: 'setBalance.upsertCategory',
       userId: authUser.id,
-      fallbackMessage: 'Unable to create balance adjustment',
+      fallbackMessage: 'Unable to load or create Balance Adjustment category',
     })
   }
 
