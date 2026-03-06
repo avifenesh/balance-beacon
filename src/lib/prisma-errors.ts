@@ -189,19 +189,3 @@ export function handlePrismaError(error: unknown, options: ErrorMappingOptions):
   serverLogger.error(`Unknown error type in ${action}`, logContext, error)
   return generalError(fallbackMessage)
 }
-
-/**
- * Wraps an async operation with error handling.
- * Use this for database operations that might fail.
- */
-export async function withErrorHandling<T>(
-  operation: () => Promise<T>,
-  options: ErrorMappingOptions,
-): Promise<{ data: T } | ActionResult<never>> {
-  try {
-    const data = await operation()
-    return { data }
-  } catch (error) {
-    return handlePrismaError(error, options)
-  }
-}
