@@ -139,8 +139,11 @@ fun TransactionsScreen(
             isRefreshing = state.isLoading,
             onRefresh = {
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                val effectiveAccountId = accountId.ifBlank {
+                    state.activeAccountId ?: state.accounts.firstOrNull()?.id
+                }
                 viewModel.load(
-                    accountId = accountId.ifBlank { null },
+                    accountId = effectiveAccountId,
                     month = monthKey.ifBlank { null }
                 )
             },

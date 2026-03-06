@@ -1,9 +1,9 @@
 import { config } from 'dotenv'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Currency, Prisma, PrismaClient, SubscriptionStatus, TransactionType } from '@prisma/client'
+import { Pool } from 'pg'
 
 const Decimal = Prisma.Decimal
-import { Pool } from 'pg'
 
 config()
 
@@ -314,7 +314,7 @@ async function main() {
   console.log(`  Subscription: extended 30 days`)
 
   await prisma.$disconnect()
-  pool.end()
+  await pool.end()
 }
 
 main().catch((e) => {
