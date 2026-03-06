@@ -38,6 +38,9 @@ vi.mock('@/lib/prisma', () => ({
     monthlyIncomeGoal: {
       deleteMany: vi.fn(),
     },
+    sharedExpense: {
+      updateMany: vi.fn(),
+    },
     dashboardCache: {
       deleteMany: vi.fn(),
     },

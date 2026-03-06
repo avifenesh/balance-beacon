@@ -75,6 +75,7 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const [lastFailedInput, setLastFailedInput] = useState<string | null>(null)
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
 
   // Throttled streaming: track pending content and use RAF to batch updates
@@ -282,13 +283,15 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
     event.preventDefault()
     if (!input.trim() || isLoading || !currentSession) return
 
+    const trimmedInput = input.trim()
     const baseMessages = currentSession.messages
     const sessionId = currentSession.id
+    setLastFailedInput(null)
 
     const userMessage: Message = {
       id: generateMessageId(),
       role: 'user',
-      content: input.trim(),
+      content: trimmedInput,
     }
 
     applyMessagesUpdate(sessionId, (existing) => [...existing, userMessage])
@@ -446,6 +449,7 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
           },
         ])
       } else {
+        setLastFailedInput(trimmedInput)
         applyMessagesUpdate(sessionId, (existing) => [
           ...existing,
           {
@@ -690,6 +694,21 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
 
           <div ref={messagesEndRef} />
         </div>
+
+        {lastFailedInput && !isLoading && (
+          <div className="border-t border-white/10 px-5 py-2">
+            <button
+              type="button"
+              onClick={() => {
+                setInput(lastFailedInput)
+                setLastFailedInput(null)
+              }}
+              className="w-full rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs text-sky-300 hover:bg-sky-500/30 transition"
+            >
+              Retry last message
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="border-t border-white/10 bg-slate-950/60 px-5 py-4">
           <div className="flex items-end gap-2">

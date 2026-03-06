@@ -72,6 +72,12 @@ export async function deleteAccountAction(input: z.infer<typeof deleteAccountSch
     })
     const categoryIds = userCategories.map((c) => c.id)
 
+    // 0. Cancel any pending shared expenses owned by this user
+    await prisma.sharedExpense.updateMany({
+      where: { ownerId: authUser.id, deletedAt: null },
+      data: { deletedAt: new Date(), deletedBy: authUser.id },
+    })
+
     // Build deletion operations, skipping empty array conditions to avoid SQL issues
     const deleteOps = []
 

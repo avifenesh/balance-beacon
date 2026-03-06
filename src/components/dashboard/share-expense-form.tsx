@@ -50,6 +50,7 @@ export function ShareExpenseForm({
   const [splitType, setSplitType] = useState<SplitType>(SplitType.EQUAL)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [newEmail, setNewEmail] = useState('')
+  const [emailError, setEmailError] = useState<string | null>(null)
   const [description, setDescription] = useState(transactionDescription || '')
   const [isPending, startTransition] = useTransition()
   const [isLookingUp, startLookup] = useTransition()
@@ -156,11 +157,7 @@ export function ShareExpenseForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop - disable interactions while submitting */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={!isPending ? onClose : undefined}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={!isPending ? onClose : undefined} aria-hidden="true" />
       <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/20 bg-slate-900 p-6 shadow-xl">
         <div className="mb-4 flex items-center gap-3">
           <div className="rounded-full bg-sky-500/20 p-2">
@@ -196,7 +193,17 @@ export function ShareExpenseForm({
                 type="email"
                 placeholder="Enter email address"
                 value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
+                error={!!emailError}
+                aria-describedby={emailError ? 'email-error' : undefined}
+                onChange={(e) => {
+                  setNewEmail(e.target.value)
+                  if (emailError) setEmailError(null)
+                }}
+                onBlur={() => {
+                  if (newEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
+                    setEmailError('Enter a valid email address')
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
@@ -204,6 +211,11 @@ export function ShareExpenseForm({
                   }
                 }}
               />
+              {emailError && (
+                <p id="email-error" className="text-xs text-rose-300">
+                  {emailError}
+                </p>
+              )}
               <Button
                 type="button"
                 variant="secondary"
@@ -314,7 +326,12 @@ export function ShareExpenseForm({
             <Button type="button" variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" loading={isPending} disabled={participants.length === 0 || isPending}>
+            <Button
+              type="submit"
+              className="flex-1"
+              loading={isPending}
+              disabled={participants.length === 0 || isPending}
+            >
               Share expense
             </Button>
           </div>
