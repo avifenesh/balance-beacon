@@ -138,7 +138,10 @@ export const categorySchema = z.object({
     .string()
     .min(2, 'Category name must be at least 2 characters')
     .max(100, 'Category name must be at most 100 characters')
-    .regex(/^[\p{L}\p{N}](?:.*\S.*)?[\p{L}\p{N}]$|^[\p{L}\p{N}]{2}$/u, 'Category name must start and end with alphanumeric characters and contain non-whitespace'),
+    .regex(
+      /^[\p{L}\p{N}](?:.*\S.*)?[\p{L}\p{N}]$|^[\p{L}\p{N}]{2}$/u,
+      'Category name must start and end with alphanumeric characters and contain non-whitespace',
+    ),
   type: z.nativeEnum(TransactionType),
   color: z.string().optional().nullable(),
   csrfToken: z.string().min(1, 'Security token required'),
@@ -154,6 +157,7 @@ export const archiveCategorySchema = z.object({
 export const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
+  csrfToken: z.string().min(1, 'Security token required'),
 })
 
 export const registrationSchema = z.object({
@@ -165,24 +169,28 @@ export const registrationSchema = z.object({
     .regex(/[a-z]/, 'Password must contain a lowercase letter')
     .regex(/[0-9]/, 'Password must contain a number'),
   displayName: z.string().min(2, 'Display name must be at least 2 characters').max(100, 'Display name too long'),
+  csrfToken: z.string().min(1, 'Security token required'),
 })
 
 export type RegistrationInput = z.infer<typeof registrationSchema>
 
 export const verifyEmailSchema = z.object({
   token: z.string().min(1, 'Verification token required'),
+  csrfToken: z.string().min(1, 'Security token required'),
 })
 
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>
 
 export const resendVerificationSchema = z.object({
   email: z.string().email('Enter a valid email address'),
+  csrfToken: z.string().min(1, 'Security token required'),
 })
 
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>
 
 export const recoverySchema = z.object({
   email: z.string().email('Provide a valid email address'),
+  csrfToken: z.string().min(1, 'Security token required'),
 })
 
 export const resetPasswordSchema = z.object({
@@ -193,6 +201,7 @@ export const resetPasswordSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain an uppercase letter')
     .regex(/[a-z]/, 'Password must contain a lowercase letter')
     .regex(/[0-9]/, 'Password must contain a number'),
+  csrfToken: z.string().min(1, 'Security token required'),
 })
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>

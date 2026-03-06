@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { resetPasswordAction } from '@/app/actions'
+import { useCsrfToken } from '@/hooks/useCsrfToken'
 import { PasswordInput } from '@/components/ui/password-input'
 import { cn } from '@/utils/cn'
 
@@ -17,6 +18,7 @@ type ResetPasswordFormProps = {
 type FormErrors = Partial<Record<string, string[]>>
 
 export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
+  const csrfToken = useCsrfToken()
   const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errors, setErrors] = useState<FormErrors | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -31,7 +33,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     setErrors(null)
     setMessage(null)
 
-    const result = await resetPasswordAction({ token, newPassword })
+    const result = await resetPasswordAction({ token, newPassword, csrfToken })
 
     if ('error' in result) {
       setErrors(result.error)

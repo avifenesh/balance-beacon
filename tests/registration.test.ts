@@ -101,6 +101,7 @@ describe('registerAction', () => {
       email: 'new@example.com',
       password: 'Password123a',
       displayName: 'New User',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('success', true)
@@ -134,6 +135,7 @@ describe('registerAction', () => {
       email: '  NEW@EXAMPLE.COM  ',
       password: 'Password123a',
       displayName: 'New User',
+      csrfToken: 'valid-token',
     })
 
     expect(prisma.user.create).toHaveBeenCalledWith(
@@ -161,6 +163,7 @@ describe('registerAction', () => {
       email: 'existing@example.com',
       password: 'Password123a',
       displayName: 'New User',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     // Should return generic success to prevent email enumeration attacks
@@ -177,6 +180,7 @@ describe('registerAction', () => {
       email: 'test@example.com',
       password: 'Pa1a',
       displayName: 'Test User',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('error')
@@ -191,6 +195,7 @@ describe('registerAction', () => {
       email: 'test@example.com',
       password: 'password123', // pragma: allowlist secret
       displayName: 'Test User',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('error')
@@ -205,6 +210,7 @@ describe('registerAction', () => {
       email: 'test@example.com',
       password: 'PASSWORD123',
       displayName: 'Test User',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('error')
@@ -219,6 +225,7 @@ describe('registerAction', () => {
       email: 'test@example.com',
       password: 'PasswordABC',
       displayName: 'Test User',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('error')
@@ -233,6 +240,7 @@ describe('registerAction', () => {
       email: 'test@example.com',
       password: 'Password123a',
       displayName: 'A',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('error')
@@ -246,6 +254,7 @@ describe('registerAction', () => {
       email: 'not-an-email',
       password: 'Password123a',
       displayName: 'Test User',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('error')
@@ -268,6 +277,7 @@ describe('registerAction', () => {
       email: 'test@example.com',
       password: 'Password123a',
       displayName: 'Test User',
+      csrfToken: 'valid-token',
     })
 
     // Verify password was hashed
@@ -291,6 +301,7 @@ describe('registerAction', () => {
       email: 'test@example.com',
       password: 'Password123a',
       displayName: 'Test User',
+      csrfToken: 'valid-token',
     })
 
     expect(prisma.user.create).toHaveBeenCalledWith(
@@ -337,7 +348,7 @@ describe('verifyEmailAction', () => {
       }),
     )
 
-    const result = (await verifyEmailAction({ token: 'valid-token' })) as ActionResult
+    const result = (await verifyEmailAction({ token: 'valid-token', csrfToken: 'valid-csrf' })) as ActionResult
 
     expect(result).toHaveProperty('success', true)
     if ('data' in result) {
@@ -362,7 +373,7 @@ describe('verifyEmailAction', () => {
       }),
     )
 
-    const result = (await verifyEmailAction({ token: 'expired-token' })) as ActionResult
+    const result = (await verifyEmailAction({ token: 'expired-token', csrfToken: 'valid-csrf' })) as ActionResult
 
     expect(result).toHaveProperty('error')
     if ('error' in result) {
@@ -374,7 +385,7 @@ describe('verifyEmailAction', () => {
   it('should reject invalid token', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-    const result = (await verifyEmailAction({ token: 'nonexistent-token' })) as ActionResult
+    const result = (await verifyEmailAction({ token: 'nonexistent-token', csrfToken: 'valid-csrf' })) as ActionResult
 
     expect(result).toHaveProperty('error')
     if ('error' in result) {
@@ -383,7 +394,7 @@ describe('verifyEmailAction', () => {
   })
 
   it('should reject empty token', async () => {
-    const result = (await verifyEmailAction({ token: '' })) as ActionResult
+    const result = (await verifyEmailAction({ token: '', csrfToken: 'valid-csrf' })) as ActionResult
 
     expect(result).toHaveProperty('error')
     if ('error' in result) {
@@ -463,6 +474,7 @@ describe('resendVerificationEmailAction', () => {
 
     const result = (await resendVerificationEmailAction({
       email: 'nonexistent@example.com',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('success', true)
@@ -484,6 +496,7 @@ describe('resendVerificationEmailAction', () => {
 
     const result = (await resendVerificationEmailAction({
       email: 'verified@example.com',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('success', true)
@@ -510,6 +523,7 @@ describe('resendVerificationEmailAction', () => {
 
     const result = (await resendVerificationEmailAction({
       email: 'unverified@example.com',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('success', true)
@@ -527,6 +541,7 @@ describe('resendVerificationEmailAction', () => {
   it('should reject invalid email format', async () => {
     const result = (await resendVerificationEmailAction({
       email: 'not-an-email',
+      csrfToken: 'valid-token',
     })) as ActionResult
 
     expect(result).toHaveProperty('error')

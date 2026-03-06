@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { registerAction } from '@/app/actions'
+import { useCsrfToken } from '@/hooks/useCsrfToken'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,6 +12,7 @@ import { PasswordInput } from '@/components/ui/password-input'
 type FormErrors = Partial<Record<string, string[]>>
 
 export function RegisterCard() {
+  const csrfToken = useCsrfToken()
   const [errors, setErrors] = useState<FormErrors | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -24,6 +26,7 @@ export function RegisterCard() {
       email: String(formData.get('email') ?? ''),
       password: String(formData.get('password') ?? ''),
       displayName: String(formData.get('displayName') ?? ''),
+      csrfToken,
     }
 
     setErrors(null)

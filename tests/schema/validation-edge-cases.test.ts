@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TransactionType, Currency } from '@prisma/client'
-import {
-  recurringTemplateSchema,
-  categorySchema,
-  holdingSchema,
-  resetPasswordSchema,
-} from '@/schemas'
+import { recurringTemplateSchema, categorySchema, holdingSchema, resetPasswordSchema } from '@/schemas'
 
 /**
  * Schema Edge Case Tests - Unique Coverage
@@ -384,6 +379,7 @@ describe('Reset Password Schema Edge Cases', () => {
     const result = resetPasswordSchema.safeParse({
       token: 'valid-reset-token',
       newPassword: 'NewPassword1',
+      csrfToken: 'valid-token',
     })
     expect(result.success).toBe(true)
   })
@@ -392,6 +388,7 @@ describe('Reset Password Schema Edge Cases', () => {
     const result = resetPasswordSchema.safeParse({
       token: '',
       newPassword: 'NewPassword1',
+      csrfToken: 'valid-token',
     })
     expect(result.success).toBe(false)
   })
@@ -400,6 +397,7 @@ describe('Reset Password Schema Edge Cases', () => {
     const result = resetPasswordSchema.safeParse({
       token: 'valid-reset-token',
       newPassword: 'weak',
+      csrfToken: 'valid-token',
     })
     expect(result.success).toBe(false)
   })
