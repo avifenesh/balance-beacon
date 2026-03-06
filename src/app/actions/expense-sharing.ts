@@ -43,13 +43,23 @@ export async function shareExpenseAction(input: ShareExpenseInput) {
   if ('error' in subscriptionCheck) return subscriptionCheck
   const { authUser } = subscriptionCheck
 
-  const transaction = await prisma.transaction.findFirst({
-    where: { id: data.transactionId, deletedAt: null },
-    include: {
-      account: true,
-      sharedExpense: true,
-    },
-  })
+  let transaction
+  try {
+    transaction = await prisma.transaction.findFirst({
+      where: { id: data.transactionId, deletedAt: null },
+      include: {
+        account: { select: { userId: true } },
+        sharedExpense: { select: { id: true } },
+      },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'shareExpense.findTransaction',
+      userId: authUser.id,
+      input: { transactionId: data.transactionId },
+      fallbackMessage: 'Unable to load transaction',
+    })
+  }
 
   if (!transaction) {
     return generalError('Transaction not found')
@@ -70,16 +80,26 @@ export async function shareExpenseAction(input: ShareExpenseInput) {
     return generalError('Expenses can only be shared with others.')
   }
 
-  const participantUsers = await prisma.user.findMany({
-    where: {
-      email: { in: participantEmails },
-    },
-    select: {
-      id: true,
-      email: true,
-      displayName: true,
-    },
-  })
+  let participantUsers
+  try {
+    participantUsers = await prisma.user.findMany({
+      where: {
+        email: { in: participantEmails },
+      },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+      },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'shareExpense.findParticipants',
+      userId: authUser.id,
+      input: { emails: participantEmails },
+      fallbackMessage: 'Unable to look up participants',
+    })
+  }
 
   const foundEmails = new Set(participantUsers.map((u) => u.email.toLowerCase()))
   const missingEmails = participantEmails.filter((email) => !foundEmails.has(email))
@@ -189,12 +209,22 @@ export async function markSharePaidAction(input: MarkSharePaidInput) {
   if ('error' in subscriptionCheck) return subscriptionCheck
   const { authUser } = subscriptionCheck
 
-  const participant = await prisma.expenseParticipant.findUnique({
-    where: { id: data.participantId },
-    include: {
-      sharedExpense: true,
-    },
-  })
+  let participant
+  try {
+    participant = await prisma.expenseParticipant.findUnique({
+      where: { id: data.participantId },
+      include: {
+        sharedExpense: { select: { ownerId: true } },
+      },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'markSharePaid.findParticipant',
+      userId: authUser.id,
+      input: data,
+      fallbackMessage: 'Unable to load participant record',
+    })
+  }
 
   if (!participant) {
     return generalError('Participant record not found')
@@ -303,9 +333,20 @@ export async function cancelSharedExpenseAction(input: CancelSharedExpenseInput)
   if ('error' in subscriptionCheck) return subscriptionCheck
   const { authUser } = subscriptionCheck
 
-  const sharedExpense = await prisma.sharedExpense.findUnique({
-    where: { id: data.sharedExpenseId },
-  })
+  let sharedExpense
+  try {
+    sharedExpense = await prisma.sharedExpense.findUnique({
+      where: { id: data.sharedExpenseId },
+      select: { id: true, ownerId: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'cancelSharedExpense.findExpense',
+      userId: authUser.id,
+      input: data,
+      fallbackMessage: 'Unable to load shared expense',
+    })
+  }
 
   if (!sharedExpense) {
     return generalError('Shared expense not found')
@@ -345,9 +386,20 @@ export async function declineShareAction(input: DeclineShareInput) {
   if ('error' in subscriptionCheck) return subscriptionCheck
   const { authUser } = subscriptionCheck
 
-  const participant = await prisma.expenseParticipant.findUnique({
-    where: { id: data.participantId },
-  })
+  let participant
+  try {
+    participant = await prisma.expenseParticipant.findUnique({
+      where: { id: data.participantId },
+      select: { id: true, userId: true, status: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'declineShare.findParticipant',
+      userId: authUser.id,
+      input: data,
+      fallbackMessage: 'Unable to load participant record',
+    })
+  }
 
   if (!participant) {
     return generalError('Participant record not found')
@@ -389,7 +441,7 @@ export async function getMySharedExpensesAction() {
 
   try {
     const sharedExpenses = await prisma.sharedExpense.findMany({
-      where: { ownerId: authUser.id },
+      where: { ownerId: authUser.id, deletedAt: null },
       include: {
         transaction: {
           include: {
@@ -429,7 +481,10 @@ export async function getExpensesSharedWithMeAction() {
 
   try {
     const participations = await prisma.expenseParticipant.findMany({
-      where: { userId: authUser.id },
+      where: {
+        userId: authUser.id,
+        sharedExpense: { deletedAt: null },
+      },
       include: {
         sharedExpense: {
           include: {
@@ -518,22 +573,32 @@ export async function sendPaymentReminderAction(input: SendPaymentReminderInput)
   if ('error' in subscriptionCheck) return subscriptionCheck
   const { authUser } = subscriptionCheck
 
-  const participant = await prisma.expenseParticipant.findUnique({
-    where: { id: data.participantId },
-    include: {
-      participant: {
-        select: {
-          email: true,
-          displayName: true,
+  let participant
+  try {
+    participant = await prisma.expenseParticipant.findUnique({
+      where: { id: data.participantId },
+      include: {
+        participant: {
+          select: {
+            email: true,
+            displayName: true,
+          },
+        },
+        sharedExpense: {
+          include: {
+            transaction: true,
+          },
         },
       },
-      sharedExpense: {
-        include: {
-          transaction: true,
-        },
-      },
-    },
-  })
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'sendPaymentReminder.findParticipant',
+      userId: authUser.id,
+      input: data,
+      fallbackMessage: 'Unable to load participant record',
+    })
+  }
 
   if (!participant) {
     return generalError('Participant record not found')

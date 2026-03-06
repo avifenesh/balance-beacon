@@ -170,6 +170,7 @@ model Category {
 
   @@unique([userId, name, type])
   @@index([userId])
+  @@index([userId, isArchived])
 }
 
 model DashboardCache {
@@ -290,6 +291,7 @@ model Transaction {
   sharedExpense       SharedExpense?
 
   @@index([accountId, month])
+  @@index([accountId, month, deletedAt])
   @@index([month])
   @@index([date])
   @@index([deletedAt])
@@ -372,6 +374,8 @@ model TransactionRequest {
   to          Account       @relation("ReceivedRequests", fields: [toId], references: [id], onDelete: Cascade)
 
   @@index([toId])
+  @@index([fromId])
+  @@index([status])
 }
 
 model RefreshToken {
