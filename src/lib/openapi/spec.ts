@@ -1,3 +1,7 @@
+import { DECIMAL_12_2_MAX } from '@/schemas/shared'
+
+const MONTH_KEY_PATTERN = '^\\d{4}-(0[1-9]|1[0-2])$'
+
 export function generateOpenAPIDocument() {
   return {
     openapi: '3.1.0',
@@ -145,7 +149,7 @@ export function generateOpenAPIDocument() {
             accountId: { type: 'string', minLength: 1, example: 'clx1234567890abcdef' },
             categoryId: { type: 'string', minLength: 1, example: 'clx1234567890abcdef' },
             type: { $ref: '#/components/schemas/TransactionType' },
-            amount: { type: 'number', minimum: 0.01, example: 99.99 },
+            amount: { type: 'number', minimum: 0.01, maximum: DECIMAL_12_2_MAX, example: 99.99 },
             currency: { $ref: '#/components/schemas/Currency' },
             date: { type: 'string', format: 'date-time', example: '2026-01-15T00:00:00.000Z' },
             description: { type: 'string', maxLength: 240, nullable: true },
@@ -204,7 +208,7 @@ export function generateOpenAPIDocument() {
           properties: {
             toId: { type: 'string', minLength: 1, description: 'Target account ID' },
             categoryId: { type: 'string', minLength: 1 },
-            amount: { type: 'number', minimum: 0.01, example: 50.0 },
+            amount: { type: 'number', minimum: 0.01, maximum: DECIMAL_12_2_MAX, example: 50.0 },
             currency: { $ref: '#/components/schemas/Currency' },
             date: { type: 'string', format: 'date-time' },
             description: { type: 'string', maxLength: 240, nullable: true },
@@ -234,8 +238,8 @@ export function generateOpenAPIDocument() {
           properties: {
             accountId: { type: 'string', minLength: 1 },
             categoryId: { type: 'string', minLength: 1 },
-            monthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
-            planned: { type: 'number', minimum: 0, example: 500.0 },
+            monthKey: { type: 'string', pattern: MONTH_KEY_PATTERN, example: '2026-01' },
+            planned: { type: 'number', minimum: 0, maximum: DECIMAL_12_2_MAX, example: 500.0 },
             currency: { $ref: '#/components/schemas/Currency' },
             notes: { type: 'string', maxLength: 240, nullable: true },
           },
@@ -258,8 +262,8 @@ export function generateOpenAPIDocument() {
           type: 'object',
           properties: {
             accountId: { type: 'string', minLength: 1 },
-            monthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
-            amount: { type: 'number', minimum: 0.01, example: 5000.0 },
+            monthKey: { type: 'string', pattern: MONTH_KEY_PATTERN, example: '2026-01' },
+            amount: { type: 'number', minimum: 0.01, maximum: DECIMAL_12_2_MAX, example: 5000.0 },
             currency: { $ref: '#/components/schemas/Currency' },
             notes: { type: 'string', maxLength: 240, nullable: true },
             setAsDefault: { type: 'boolean', default: false },
@@ -327,7 +331,7 @@ export function generateOpenAPIDocument() {
             categoryId: { type: 'string', minLength: 1 },
             symbol: { type: 'string', minLength: 1, maxLength: 5, pattern: '^[A-Z]+$', example: 'AAPL' },
             quantity: { type: 'number', minimum: 0.000001, example: 10.5 },
-            averageCost: { type: 'number', minimum: 0, example: 150.0 },
+            averageCost: { type: 'number', minimum: 0, maximum: DECIMAL_12_2_MAX, example: 150.0 },
             currency: { $ref: '#/components/schemas/Currency' },
             notes: { type: 'string', maxLength: 240, nullable: true },
           },
@@ -337,7 +341,7 @@ export function generateOpenAPIDocument() {
           type: 'object',
           properties: {
             quantity: { type: 'number', minimum: 0.000001 },
-            averageCost: { type: 'number', minimum: 0 },
+            averageCost: { type: 'number', minimum: 0, maximum: DECIMAL_12_2_MAX },
             notes: { type: 'string', maxLength: 240, nullable: true },
           },
           required: ['quantity', 'averageCost'],
@@ -374,12 +378,12 @@ export function generateOpenAPIDocument() {
             accountId: { type: 'string', minLength: 1 },
             categoryId: { type: 'string', minLength: 1 },
             type: { $ref: '#/components/schemas/TransactionType' },
-            amount: { type: 'number', minimum: 0.01, example: 100.0 },
+            amount: { type: 'number', minimum: 0.01, maximum: DECIMAL_12_2_MAX, example: 100.0 },
             currency: { $ref: '#/components/schemas/Currency' },
             dayOfMonth: { type: 'integer', minimum: 1, maximum: 31, example: 15 },
             description: { type: 'string', maxLength: 240, nullable: true },
-            startMonthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
-            endMonthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', nullable: true },
+            startMonthKey: { type: 'string', pattern: MONTH_KEY_PATTERN, example: '2026-01' },
+            endMonthKey: { type: 'string', pattern: MONTH_KEY_PATTERN, nullable: true },
             isActive: { type: 'boolean', default: true },
           },
           required: ['accountId', 'categoryId', 'type', 'amount', 'dayOfMonth', 'startMonthKey'],
@@ -402,7 +406,7 @@ export function generateOpenAPIDocument() {
         ApplyRecurring: {
           type: 'object',
           properties: {
-            monthKey: { type: 'string', pattern: '^\\d{4}-\\d{2}$', example: '2026-01' },
+            monthKey: { type: 'string', pattern: MONTH_KEY_PATTERN, example: '2026-01' },
             accountId: { type: 'string', minLength: 1 },
             templateIds: { type: 'array', items: { type: 'string' }, description: 'Optional - defaults to all active' },
           },
@@ -682,7 +686,7 @@ export function generateOpenAPIDocument() {
           parameters: [
             { name: 'accountId', in: 'query', required: true, schema: { type: 'string' } },
             { name: 'categoryId', in: 'query', required: true, schema: { type: 'string' } },
-            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string', pattern: MONTH_KEY_PATTERN } },
           ],
           responses: {
             '200': {
@@ -754,7 +758,7 @@ export function generateOpenAPIDocument() {
           summary: 'Delete month-specific income goal',
           parameters: [
             { name: 'accountId', in: 'query', required: true, schema: { type: 'string' } },
-            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string', pattern: MONTH_KEY_PATTERN } },
           ],
           responses: {
             '200': {
