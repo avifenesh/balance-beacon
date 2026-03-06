@@ -118,7 +118,7 @@ describe('createTransactionRequestAction', () => {
       passwordHash: 'mock-hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['TestAccount', 'OtherAccount'],
       defaultAccountName: 'TestAccount',
     })
@@ -169,7 +169,7 @@ describe('approveTransactionRequestAction', () => {
       accountNames: ['OtherAccount'],
       defaultAccountName: 'OtherAccount',
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
     })
 
     vi.mocked(prisma.transactionRequest.findUnique).mockResolvedValue(null)
@@ -191,7 +191,7 @@ describe('approveTransactionRequestAction', () => {
       accountNames: ['OtherAccount'],
       defaultAccountName: 'OtherAccount',
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
     })
 
     const mockRequest = {
@@ -201,6 +201,7 @@ describe('approveTransactionRequestAction', () => {
       amount: 100,
       currency: 'EUR',
       categoryId: 'cat-id',
+      category: { userId: 'other-user' },
       description: 'Dinner',
       date: new Date(),
       status: 'PENDING',
@@ -244,7 +245,7 @@ describe('rejectTransactionRequestAction', () => {
       accountNames: ['OtherAccount'],
       defaultAccountName: 'OtherAccount',
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
     })
 
     const mockRequest = {

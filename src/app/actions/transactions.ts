@@ -77,9 +77,19 @@ export async function createTransactionRequestAction(input: TransactionRequestIn
   const { authUser } = subscriptionCheck
 
   // Determine current user's account ID (the 'from' account)
-  const fromAccount = await prisma.account.findFirst({
-    where: { userId: authUser.id, type: 'SELF', deletedAt: null },
-  })
+  let fromAccount
+  try {
+    fromAccount = await prisma.account.findFirst({
+      where: { userId: authUser.id, type: 'SELF', deletedAt: null },
+      select: { id: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'createTransactionRequest.findAccount',
+      userId: authUser.id,
+      fallbackMessage: 'Unable to identify your primary account',
+    })
+  }
 
   if (!fromAccount) {
     return generalError('Unable to identify your primary account')
@@ -124,21 +134,58 @@ export async function approveTransactionRequestAction(input: z.infer<typeof idSc
   if ('error' in auth) return auth
   const { authUser } = auth
 
-  const request = await prisma.transactionRequest.findUnique({
-    where: { id: parsed.data.id },
-  })
+  let request
+  let toAccount
+  try {
+    request = await prisma.transactionRequest.findUnique({
+      where: { id: parsed.data.id },
+      select: {
+        id: true,
+        toId: true,
+        status: true,
+        categoryId: true,
+        category: { select: { userId: true } },
+        amount: true,
+        currency: true,
+        date: true,
+        description: true,
+      },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'approveTransactionRequest.findRequest',
+      userId: authUser.id,
+      input: { requestId: parsed.data.id },
+      fallbackMessage: 'Unable to load transaction request',
+    })
+  }
 
   if (!request) {
     return generalError('Transaction request not found')
   }
 
   // Ensure the user has access to the 'to' account
-  const toAccount = await prisma.account.findFirst({
-    where: { id: request.toId, deletedAt: null },
-  })
+  try {
+    toAccount = await prisma.account.findFirst({
+      where: { id: request.toId, deletedAt: null },
+      select: { id: true, userId: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'approveTransactionRequest.findAccount',
+      userId: authUser.id,
+      input: { accountId: request.toId },
+      fallbackMessage: 'Unable to verify account access',
+    })
+  }
 
   if (!toAccount || toAccount.userId !== authUser.id) {
     return generalError('You do not have access to this transaction request')
+  }
+
+  // Verify the category belongs to the authenticated user (prevents IDOR via categoryId)
+  if (request.category.userId !== authUser.id) {
+    return generalError('The category associated with this request is not accessible')
   }
 
   if (request.status !== RequestStatus.PENDING) {
@@ -196,20 +243,46 @@ export async function rejectTransactionRequestAction(input: z.infer<typeof idSch
   if ('error' in auth) return auth
   const { authUser } = auth
 
-  const request = await prisma.transactionRequest.findUnique({
-    where: { id: parsed.data.id },
-  })
+  let request
+  try {
+    request = await prisma.transactionRequest.findUnique({
+      where: { id: parsed.data.id },
+      select: { id: true, toId: true, status: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'rejectTransactionRequest.findRequest',
+      userId: authUser.id,
+      input: { requestId: parsed.data.id },
+      fallbackMessage: 'Unable to load transaction request',
+    })
+  }
 
   if (!request) {
     return generalError('Transaction request not found')
   }
 
-  const toAccount = await prisma.account.findFirst({
-    where: { id: request.toId, deletedAt: null },
-  })
+  let toAccount
+  try {
+    toAccount = await prisma.account.findFirst({
+      where: { id: request.toId, deletedAt: null },
+      select: { userId: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'rejectTransactionRequest.findAccount',
+      userId: authUser.id,
+      input: { accountId: request.toId },
+      fallbackMessage: 'Unable to verify account access',
+    })
+  }
 
   if (!toAccount || toAccount.userId !== authUser.id) {
     return generalError('You do not have access to this transaction request')
+  }
+
+  if (request.status !== RequestStatus.PENDING) {
+    return generalError(`Request is already ${request.status.toLowerCase()}`)
   }
 
   try {

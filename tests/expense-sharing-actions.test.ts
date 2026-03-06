@@ -107,7 +107,7 @@ const mockAuthUser = {
   passwordHash: 'hash',
   preferredCurrency: Currency.USD,
   hasCompletedOnboarding: true,
-    activeAccountId: null,
+  activeAccountId: null,
   accountNames: ['Account1'],
   defaultAccountName: 'Account1',
 }
@@ -257,7 +257,7 @@ describe('markSharePaidAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue(null)
 
     const result = await markSharePaidAction({
       participantId: 'part-nonexistent',
@@ -274,7 +274,7 @@ describe('markSharePaidAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       sharedExpense: { ownerId: 'other-user' },
       status: PaymentStatus.PENDING,
@@ -295,7 +295,7 @@ describe('markSharePaidAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       sharedExpense: { ownerId: 'user-owner' },
       status: PaymentStatus.PAID,
@@ -316,7 +316,7 @@ describe('markSharePaidAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       sharedExpense: { ownerId: 'user-owner' },
       status: PaymentStatus.PENDING,
@@ -341,7 +341,7 @@ describe('cancelSharedExpenseAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.sharedExpense.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.sharedExpense.findFirst).mockResolvedValue(null)
 
     const result = await cancelSharedExpenseAction({
       sharedExpenseId: 'shared-nonexistent',
@@ -358,7 +358,7 @@ describe('cancelSharedExpenseAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.sharedExpense.findUnique).mockResolvedValue({
+    vi.mocked(prisma.sharedExpense.findFirst).mockResolvedValue({
       id: 'shared-1',
       ownerId: 'other-user',
     } as any)
@@ -378,7 +378,7 @@ describe('cancelSharedExpenseAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.sharedExpense.findUnique).mockResolvedValue({
+    vi.mocked(prisma.sharedExpense.findFirst).mockResolvedValue({
       id: 'shared-1',
       ownerId: 'user-owner',
     } as any)
@@ -402,7 +402,7 @@ describe('declineShareAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue(null)
 
     const result = await declineShareAction({
       participantId: 'part-nonexistent',
@@ -419,7 +419,7 @@ describe('declineShareAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       userId: 'other-user',
       status: PaymentStatus.PENDING,
@@ -440,7 +440,7 @@ describe('declineShareAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       userId: 'user-owner',
       status: PaymentStatus.PAID,
@@ -475,9 +475,9 @@ describe('lookupUserForSharingAction', () => {
 
     expect('error' in result).toBe(true)
     if ('error' in result) {
-      expect(result.error.general?.some((msg: string) => msg.includes('Expenses can only be shared with others.'))).toBe(
-        true,
-      )
+      expect(
+        result.error.general?.some((msg: string) => msg.includes('Expenses can only be shared with others.')),
+      ).toBe(true)
     }
   })
 
@@ -530,7 +530,7 @@ describe('sendPaymentReminderAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue(null)
 
     const result = await sendPaymentReminderAction({
       participantId: 'part-nonexistent',
@@ -547,7 +547,7 @@ describe('sendPaymentReminderAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       participant: { email: 'friend@example.com', displayName: 'Friend' },
       sharedExpense: {
@@ -576,7 +576,7 @@ describe('sendPaymentReminderAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       participant: { email: 'friend@example.com', displayName: 'Friend' },
       sharedExpense: {
@@ -605,7 +605,7 @@ describe('sendPaymentReminderAction', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       participant: { email: 'friend@example.com', displayName: 'Friend' },
       sharedExpense: {
@@ -635,7 +635,7 @@ describe('sendPaymentReminderAction', () => {
     const { sendPaymentReminderEmail } = await import('@/lib/email')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       participant: { email: 'friend@example.com', displayName: 'Friend' },
       sharedExpense: {
@@ -673,7 +673,7 @@ describe('declineShareAction - success path', () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue(mockAuthUser)
-    vi.mocked(prisma.expenseParticipant.findUnique).mockResolvedValue({
+    vi.mocked(prisma.expenseParticipant.findFirst).mockResolvedValue({
       id: 'part-1',
       userId: 'user-owner',
       status: PaymentStatus.PENDING,
@@ -711,7 +711,7 @@ describe('SQL injection protection', () => {
       "'; DELETE FROM users WHERE '1'='1",
       "test@example.com'; UPDATE users SET password='hacked' WHERE email='",
       "' UNION SELECT * FROM users --",
-      "1; SELECT * FROM users",
+      '1; SELECT * FROM users',
       "test@test.com' AND 1=1--",
     ]
 
