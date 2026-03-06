@@ -25,6 +25,7 @@ export {
   upsertRecurringTemplateAction,
   toggleRecurringTemplateAction,
   applyRecurringTemplatesAction,
+  deleteRecurringTemplateAction,
 } from './actions/recurring'
 
 // Category actions
@@ -42,11 +43,7 @@ export {
 } from './actions/auth'
 
 // User account actions (GDPR)
-export {
-  persistActiveAccountAction,
-  deleteAccountAction,
-  exportUserDataAction,
-} from './actions/account'
+export { persistActiveAccountAction, deleteAccountAction, exportUserDataAction } from './actions/account'
 
 // Financial account actions
 export { deleteFinancialAccountAction } from './actions/accounts'

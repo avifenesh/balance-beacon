@@ -44,6 +44,7 @@ import { formatMonthLabel, shiftMonth } from '@/utils/date'
 import { cn } from '@/utils/cn'
 import { useCsrfTokenWithState } from '@/hooks/useCsrfToken'
 import { ChatWidget } from '@/components/ai/chat-widget'
+import { ErrorBoundary } from '@/components/error-boundary'
 import {
   BudgetsTab,
   CategoriesTab,
@@ -944,7 +945,9 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
 
       {/* AI Chat Widget */}
       {process.env.NEXT_PUBLIC_AI_ENABLED !== 'false' && (
-        <ChatWidget accountId={accountId} monthKey={monthKey} preferredCurrency={preferredCurrency} />
+        <ErrorBoundary fallback={() => null}>
+          <ChatWidget accountId={accountId} monthKey={monthKey} preferredCurrency={preferredCurrency} />
+        </ErrorBoundary>
       )}
 
       {/* Floating scroll-to-top button */}

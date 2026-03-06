@@ -281,36 +281,41 @@ export async function settleAllWithUserAction(input: SettleAllWithUserInput) {
   const { authUser } = subscriptionCheck
 
   try {
-    // Only settle expenses where the caller is the owner (they can mark payments as received)
-    // The caller cannot mark their own payments to others as "paid" - that's the other party's job
-    const participantsToSettle = await prisma.expenseParticipant.findMany({
-      where: {
-        status: PaymentStatus.PENDING,
-        userId: data.targetUserId,
-        sharedExpense: {
-          ownerId: authUser.id,
-          currency: data.currency,
+    // Atomic: find + update in transaction to prevent race conditions
+    const updateResult = await prisma.$transaction(async (tx) => {
+      const participantsToSettle = await tx.expenseParticipant.findMany({
+        where: {
+          status: PaymentStatus.PENDING,
+          userId: data.targetUserId,
+          sharedExpense: {
+            ownerId: authUser.id,
+            currency: data.currency,
+          },
         },
-      },
-      select: { id: true },
+        select: { id: true },
+      })
+
+      const allParticipantIds = participantsToSettle.map((p) => p.id)
+
+      if (allParticipantIds.length === 0) {
+        return null
+      }
+
+      return tx.expenseParticipant.updateMany({
+        where: {
+          id: { in: allParticipantIds },
+          status: PaymentStatus.PENDING,
+        },
+        data: {
+          status: PaymentStatus.PAID,
+          paidAt: new Date(),
+        },
+      })
     })
 
-    const allParticipantIds = participantsToSettle.map((p) => p.id)
-
-    if (allParticipantIds.length === 0) {
+    if (!updateResult) {
       return generalError('No pending payments to receive from this user')
     }
-
-    const updateResult = await prisma.expenseParticipant.updateMany({
-      where: {
-        id: { in: allParticipantIds },
-        status: PaymentStatus.PENDING,
-      },
-      data: {
-        status: PaymentStatus.PAID,
-        paidAt: new Date(),
-      },
-    })
 
     revalidatePath('/')
     return success({ settledCount: updateResult.count })

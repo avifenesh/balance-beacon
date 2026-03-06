@@ -48,14 +48,26 @@ const envSchema = z.object({
   // Sentry monitoring (optional)
   SENTRY_DSN: z.string().optional(),
   SENTRY_ENVIRONMENT: z.string().optional(),
-  SENTRY_ENABLED: z.string().optional().transform((v) => v === 'true'),
+  SENTRY_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().default('development'),
-  NEXT_PUBLIC_SENTRY_ENABLED: z.string().optional().transform((v) => v === 'true'),
+  NEXT_PUBLIC_SENTRY_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
+
+  // Cron (optional)
+  CRON_SECRET: z.string().min(16).optional(),
 
   // Performance monitoring (optional)
   SLOW_QUERY_THRESHOLD_MS: z.coerce.number().default(1000),
-  QUERY_MONITORING_ENABLED: z.string().optional().transform((v) => v !== 'false'),
+  QUERY_MONITORING_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false'),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -184,5 +196,10 @@ export const env = {
   },
   get queryMonitoringEnabled() {
     return getEnv().QUERY_MONITORING_ENABLED
+  },
+
+  // Cron
+  get cronSecret() {
+    return getEnv().CRON_SECRET
   },
 }

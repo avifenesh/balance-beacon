@@ -93,6 +93,8 @@ export function BalanceForm({ activeAccount, monthKey, preferredCurrency, curren
               id="balanceAmount"
               type="number"
               step="0.01"
+              min="-9999999999.99"
+              max="9999999999.99"
               value={balanceAmount}
               onChange={(e) => setBalanceAmount(e.target.value)}
             />

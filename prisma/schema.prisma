@@ -292,6 +292,7 @@ model Transaction {
 
   @@index([accountId, month])
   @@index([accountId, month, deletedAt])
+  @@index([accountId, categoryId, month, deletedAt])
   @@index([month])
   @@index([date])
   @@index([deletedAt])
@@ -343,6 +344,7 @@ model ExpenseParticipant {
   @@index([userId])
   @@index([status])
   @@index([userId, status])
+  @@index([sharedExpenseId, deletedAt])
   @@index([deletedAt])
 }
 
@@ -374,6 +376,7 @@ model TransactionRequest {
   to          Account       @relation("ReceivedRequests", fields: [toId], references: [id], onDelete: Cascade)
 
   @@index([toId])
+  @@index([toId, status])
   @@index([fromId])
   @@index([status])
 }
