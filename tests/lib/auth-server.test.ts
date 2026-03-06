@@ -20,6 +20,14 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/server-logger', () => ({
+  serverLogger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+  },
+}))
+
 // Mock auth module - no longer has AUTH_USERS
 vi.mock('@/lib/auth', () => ({
   SESSION_COOKIE: 'balance_session',
@@ -107,9 +115,7 @@ describe('auth-server.ts', () => {
 
     // Make findFirst delegate to findUnique so both work with same mock setup
     /* eslint-disable @typescript-eslint/no-explicit-any */
-    vi.mocked(prisma.user.findFirst).mockImplementation((...args: any[]) =>
-      (prisma.user.findUnique as any)(...args),
-    )
+    vi.mocked(prisma.user.findFirst).mockImplementation((...args: any[]) => (prisma.user.findUnique as any)(...args))
     /* eslint-enable @typescript-eslint/no-explicit-any */
 
     // Create fresh cookie mock
@@ -456,6 +462,10 @@ describe('auth-server.ts', () => {
         const result = await verifyCredentials({ email: 'user1@test.com', password: 'password123' })
 
         expect(result.valid).toBe(false)
+
+        // Clean up bcrypt mock to prevent leaking into other tests
+        vi.doUnmock('bcryptjs')
+        await vi.resetModules()
       })
 
       it('should prevent timing attacks by executing comparison even for unknown users', async () => {
@@ -477,6 +487,10 @@ describe('auth-server.ts', () => {
 
         expect(result.valid).toBe(false)
         expect(compareSpy).toHaveBeenCalled()
+
+        // Clean up bcrypt mock to prevent leaking into other tests
+        vi.doUnmock('bcryptjs')
+        await vi.resetModules()
       })
     })
   })
