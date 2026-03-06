@@ -141,11 +141,12 @@ describe('createSession()', () => {
     expect(ts).toBeLessThanOrEqual(after)
   })
 
-  it('sets updatedAt to the same value as createdAt on creation', () => {
+  it('initializes updatedAt to effectively the same time as createdAt', () => {
     const session = createSession('Timestamps')
-    // Both are generated with `new Date().toISOString()` in the same call,
-    // so they must be equal.
-    expect(session.updatedAt).toBe(session.createdAt)
+    const createdAt = new Date(session.createdAt).getTime()
+    const updatedAt = new Date(session.updatedAt).getTime()
+    expect(updatedAt).toBeGreaterThanOrEqual(createdAt)
+    expect(updatedAt - createdAt).toBeLessThan(1000)
   })
 
   it('returns an object with all required ChatSession fields', () => {

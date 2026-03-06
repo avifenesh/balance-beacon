@@ -1,5 +1,5 @@
 /**
- * Pure helper functions extracted from dashboard-page.tsx for testability.
+ * Pure helper functions for dashboard-related logic, written for testability.
  * These functions contain no React or Next.js dependencies.
  */
 
@@ -14,15 +14,19 @@
  */
 export type StatIconName = 'Wallet' | 'PiggyBank' | 'Layers' | 'TrendingUp'
 
+const WALLET_KEYWORDS = ['net', 'saved', 'income', 'inflow']
+const PIGGYBANK_KEYWORDS = ['spend', 'expense', 'outflow']
+const LAYERS_KEYWORDS = ['target', 'goal', 'budget', 'track']
+
 export function resolveStatIconName(label: string): StatIconName {
   const normalized = label.toLowerCase()
-  if (['net', 'saved', 'income', 'inflow'].some((kw) => normalized.includes(kw))) {
+  if (WALLET_KEYWORDS.some((kw) => normalized.includes(kw))) {
     return 'Wallet'
   }
-  if (['spend', 'expense', 'outflow'].some((kw) => normalized.includes(kw))) {
+  if (PIGGYBANK_KEYWORDS.some((kw) => normalized.includes(kw))) {
     return 'PiggyBank'
   }
-  if (['target', 'goal', 'budget', 'track'].some((kw) => normalized.includes(kw))) {
+  if (LAYERS_KEYWORDS.some((kw) => normalized.includes(kw))) {
     return 'Layers'
   }
   return 'TrendingUp'
@@ -72,15 +76,18 @@ export type ActivityItem = {
  * - INCOME transactions get a "+" prefix.
  * - EXPENSE (or any non-INCOME) transactions get a "-" prefix.
  * - Falls back to category name, then "Transaction" when description is absent.
- * - Falls back to "#0ea5e9" when no category colour is present.
+ * - Falls back to DEFAULT_ACTIVITY_COLOR when no category colour is present.
  */
+const ACTIVITY_FEED_LIMIT = 5
+const DEFAULT_ACTIVITY_COLOR = '#0ea5e9'
+
 export function buildActivityFeed(transactions: ActivityTransaction[]): ActivityItem[] {
-  return transactions.slice(0, 5).map((tx) => ({
+  return transactions.slice(0, ACTIVITY_FEED_LIMIT).map((tx) => ({
     id: tx.id,
     label: tx.description || tx.category?.name || 'Transaction',
     prefix: tx.type === 'INCOME' ? '+' : '-',
     amount: Math.abs(tx.amount),
-    color: tx.category?.color || '#0ea5e9',
+    color: tx.category?.color || DEFAULT_ACTIVITY_COLOR,
     date: tx.date,
   }))
 }

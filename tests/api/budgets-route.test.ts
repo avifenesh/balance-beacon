@@ -134,7 +134,7 @@ describe('GET /api/v1/budgets', () => {
       expect(data.error).toBe('Invalid token')
     })
 
-    it('returns 401 when Authorization header is missing', async () => {
+    it('returns 401 when auth throws generic Unauthorized error', async () => {
       mockRequireJwtAuth.mockImplementation(() => {
         throw new Error('Unauthorized')
       })
@@ -193,32 +193,15 @@ describe('GET /api/v1/budgets', () => {
       expect(data.fields.accountId).toBeDefined()
     })
 
-    /**
-     * The route catches errors from getMonthStartFromKey to reject invalid months.
-     * Inputs like 'not-a-date' produce NaN-based dates; the route's catch block only
-     * triggers when the function actually throws. Inputs that don't throw pass through.
-     * A truly unparseable string (e.g. no '-' separator yielding split failure) can
-     * produce a NaN Date, which does not throw. The tests below document actual behavior.
-     */
-    it('returns 400 when month is a non-date string that throws during parsing', async () => {
-      // The route wraps getMonthStartFromKey in try/catch; only throwing inputs trigger 400.
-      // We verify the format: a pure garbage value with no numeric parts that the
-      // implementation happens to throw on would return 400. Given the current implementation
-      // does NOT throw for most bad inputs, we test with a value that IS explicitly validated
-      // by the surrounding code: an empty string month param (treated as absent, no filter).
-      // This test documents: missing month returns 200 (optional param treated as absent).
+    it('treats empty month param as absent and returns 200', async () => {
       const response = await GET(createRequest({ accountId: 'acc-1', month: '' }))
-      expect(response.status).toBe(200) // empty string is treated as absent (no filter)
+      expect(response.status).toBe(200)
     })
 
-    it('returns 200 (not 400) when month has no dash separator — getMonthStartFromKey does not throw', async () => {
-      // '202601' splits on '-' giving ['202601', undefined]; monthIndex = NaN - 1 = NaN.
-      // Date.UTC(NaN, NaN, 1) = NaN. new Date(NaN) = Invalid Date.
-      // The route's try/catch only catches thrown errors, so this passes through as
-      // an Invalid Date query param (Prisma will likely return empty results or error).
-      // Document the actual behavior: no 400 is produced by the route handler itself.
+    it('does not reject malformed month without dash separator (no server-side format validation)', async () => {
+      // getMonthStartFromKey returns Invalid Date for bad input but does not throw.
+      // The route passes it through without validating the Date object.
       const response = await GET(createRequest({ accountId: 'acc-1', month: '202601' }))
-      // The route does not validate the resulting Date object, so no 400 is returned here.
       expect(response.status).toBe(200)
     })
 
@@ -573,7 +556,7 @@ describe('POST /api/v1/budgets', () => {
       expect(data.error).toBe('Invalid token')
     })
 
-    it('returns 401 when Authorization header is missing', async () => {
+    it('returns 401 when auth throws generic Unauthorized error', async () => {
       mockRequireJwtAuth.mockImplementation(() => {
         throw new Error('Unauthorized')
       })
@@ -870,7 +853,7 @@ describe('DELETE /api/v1/budgets', () => {
       expect(data.error).toBe('Invalid token')
     })
 
-    it('returns 401 when Authorization header is missing', async () => {
+    it('returns 401 when auth throws generic Unauthorized error', async () => {
       mockRequireJwtAuth.mockImplementation(() => {
         throw new Error('Unauthorized')
       })

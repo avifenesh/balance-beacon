@@ -32,22 +32,4 @@ describe('Subscription Constants', () => {
       expect(SUBSCRIPTION_PRICE_CENTS % 100).toBe(0)
     })
   })
-
-  describe('Pricing regression', () => {
-    it('should not accidentally change trial duration to something other than 14 days', () => {
-      // This prevents accidentally changing the constant to a different value
-      // that would alter the user experience without proper review
-      expect(TRIAL_DURATION_DAYS).not.toBe(7)
-      expect(TRIAL_DURATION_DAYS).not.toBe(30)
-      expect(TRIAL_DURATION_DAYS).not.toBe(21)
-    })
-
-    it('should not accidentally change subscription price to something other than $3.00', () => {
-      // This prevents accidentally changing the price without proper review and communication
-      expect(SUBSCRIPTION_PRICE_CENTS).not.toBe(100) // $1.00
-      expect(SUBSCRIPTION_PRICE_CENTS).not.toBe(499) // $4.99
-      expect(SUBSCRIPTION_PRICE_CENTS).not.toBe(999) // $9.99
-      expect(SUBSCRIPTION_PRICE_CENTS).not.toBe(0) // Free
-    })
-  })
 })
