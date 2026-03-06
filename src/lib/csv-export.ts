@@ -15,7 +15,6 @@ export type TransactionForCsv = {
  *
  * Rules:
  * - EXPENSE amounts are negated; INCOME amounts are positive.
- * - Any `"` character in description is escaped as `""` (RFC 4180).
  * - Date is formatted as YYYY-MM-DD.
  */
 export function buildTransactionCsvRows(transactions: TransactionForCsv[]): (string | number)[][] {
@@ -26,18 +25,26 @@ export function buildTransactionCsvRows(transactions: TransactionForCsv[]): (str
     t.account.name,
     t.type === TransactionType.EXPENSE ? -t.amount : t.amount,
     t.currency,
-    (t.description || '').replace(/"/g, '""'),
+    t.description || '',
   ])
+}
+
+function escapeCsvCell(cell: string | number): string {
+  if (typeof cell !== 'string') return `"${cell}"`
+  // Mitigate spreadsheet formula injection (=, +, -, @)
+  const safe = /^[=+\-@]/.test(cell) ? `'${cell}` : cell
+  // Escape embedded double-quotes per RFC 4180
+  return `"${safe.replace(/"/g, '""')}"`
 }
 
 /**
  * Serialises headers and rows into a CSV string.
  *
- * Every cell is wrapped in double-quotes so that commas, newlines, and
- * already-escaped `""` sequences are handled correctly.
+ * Every string cell is escaped (embedded `"` → `""`) and sanitized
+ * against spreadsheet formula injection before quoting.
  */
 export function formatCsvContent(headers: string[], rows: (string | number)[][]): string {
   const headerLine = headers.join(',')
-  const dataLines = rows.map((row) => row.map((cell) => `"${cell}"`).join(','))
+  const dataLines = rows.map((row) => row.map(escapeCsvCell).join(','))
   return [headerLine, ...dataLines].join('\n')
 }

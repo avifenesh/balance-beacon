@@ -73,15 +73,10 @@ describe('buildTransactionCsvRows()', () => {
     })
   })
 
-  describe('description escaping', () => {
-    it('escapes double-quotes as ""', () => {
+  describe('description handling', () => {
+    it('passes description through without pre-escaping (escaping done by formatCsvContent)', () => {
       const rows = buildTransactionCsvRows([makeTransaction({ description: 'He said "hello"' })])
-      expect(rows[0][6]).toBe('He said ""hello""')
-    })
-
-    it('escapes multiple double-quote pairs', () => {
-      const rows = buildTransactionCsvRows([makeTransaction({ description: '"a" and "b"' })])
-      expect(rows[0][6]).toBe('""a"" and ""b""')
+      expect(rows[0][6]).toBe('He said "hello"')
     })
 
     it('leaves descriptions without quotes unchanged', () => {
@@ -177,6 +172,44 @@ describe('formatCsvContent()', () => {
     })
   })
 
+  describe('quote escaping', () => {
+    it('escapes embedded double-quotes as "" per RFC 4180', () => {
+      const rows = [['He said "hello"']]
+      const csv = formatCsvContent(['Col'], rows)
+      expect(csv.split('\n')[1]).toBe('"He said ""hello"""')
+    })
+
+    it('escapes quotes in all string cells, not just description', () => {
+      const rows = [['Category "A"', 'Account "B"', 100, 'Desc "C"']]
+      const csv = formatCsvContent(['C', 'A', 'Amt', 'D'], rows)
+      const line = csv.split('\n')[1]
+      expect(line).toContain('"Category ""A"""')
+      expect(line).toContain('"Account ""B"""')
+      expect(line).toContain('"Desc ""C"""')
+    })
+  })
+
+  describe('formula injection mitigation', () => {
+    it.each(['=SUM(A1)', '+cmd|', '-1+1', '@import'])('prefixes risky string "%s" with apostrophe', (val) => {
+      const rows = [[val]]
+      const csv = formatCsvContent(['Col'], rows)
+      const cell = csv.split('\n')[1]
+      expect(cell.startsWith(`"'`)).toBe(true)
+    })
+
+    it('does not prefix safe strings', () => {
+      const rows = [['Normal text']]
+      const csv = formatCsvContent(['Col'], rows)
+      expect(csv.split('\n')[1]).toBe('"Normal text"')
+    })
+
+    it('does not prefix numeric cells', () => {
+      const rows = [[-100]]
+      const csv = formatCsvContent(['Col'], rows)
+      expect(csv.split('\n')[1]).toBe('"-100"')
+    })
+  })
+
   describe('integration: buildTransactionCsvRows + formatCsvContent', () => {
     it('produces a valid two-line CSV for a single EXPENSE', () => {
       const transactions = [
@@ -202,8 +235,7 @@ describe('formatCsvContent()', () => {
       const transactions = [makeTransaction({ description: 'Bought "organic" milk' })]
       const rows = buildTransactionCsvRows(transactions)
       const csv = formatCsvContent(headers, rows)
-      // The description cell, after double-quoting by formatCsvContent, becomes:
-      // "Bought ""organic"" milk"
+      // formatCsvContent escapes embedded " as "" per RFC 4180
       expect(csv).toContain('"Bought ""organic"" milk"')
     })
 
