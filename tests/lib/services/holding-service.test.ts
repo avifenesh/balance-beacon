@@ -338,24 +338,38 @@ describe('holding-service.ts', () => {
         updatedAt: new Date(),
       }
 
-      vi.mocked(prisma.holding.findUnique).mockResolvedValue(mockHolding as never)
+      vi.mocked(prisma.holding.findFirst).mockResolvedValue(mockHolding as never)
 
       const result = await getHoldingById('hold-1')
 
       expect(result).toEqual(mockHolding)
+      expect(prisma.holding.findFirst).toHaveBeenCalledWith({
+        where: { id: 'hold-1', deletedAt: null },
+      })
     })
 
     it('should return null when not found', async () => {
-      vi.mocked(prisma.holding.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.holding.findFirst).mockResolvedValue(null)
 
       const result = await getHoldingById('nonexistent')
 
       expect(result).toBeNull()
     })
+
+    it('should filter by userId and deletedAt when userId is provided', async () => {
+      vi.mocked(prisma.holding.findFirst).mockResolvedValue(null)
+
+      await getHoldingById('hold-1', 'user-1')
+
+      expect(prisma.holding.findFirst).toHaveBeenCalledWith({
+        where: { id: 'hold-1', deletedAt: null, account: { userId: 'user-1' } },
+        include: { account: true },
+      })
+    })
   })
 
   describe('Phase 5: getAccountHoldingSymbols()', () => {
-    it('should return unique symbols', async () => {
+    it('should return unique symbols and filter soft-deleted holdings', async () => {
       const mockHoldings = [{ symbol: 'AAPL' }, { symbol: 'MSFT' }, { symbol: 'AAPL' }]
 
       vi.mocked(prisma.holding.findMany).mockResolvedValue(mockHoldings as never)
@@ -363,6 +377,10 @@ describe('holding-service.ts', () => {
       const result = await getAccountHoldingSymbols('acc-1')
 
       expect(result).toEqual(['AAPL', 'MSFT'])
+      expect(prisma.holding.findMany).toHaveBeenCalledWith({
+        where: { accountId: 'acc-1', deletedAt: null },
+        select: { symbol: true },
+      })
     })
 
     it('should return empty array when no holdings', async () => {
@@ -412,7 +430,8 @@ describe('holding-service.ts', () => {
       const result = await validateHoldingCategory('cat-1', 'user-1')
 
       expect(prisma.category.findFirst).toHaveBeenCalledWith({
-        where: { id: 'cat-1', userId: 'user-1' },
+        where: { id: 'cat-1', userId: 'user-1', isArchived: false },
+        select: { id: true, isHolding: true },
       })
       expect(result).toBe(true)
     })
