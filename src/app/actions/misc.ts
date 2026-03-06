@@ -8,6 +8,7 @@ import { getMonthStartFromKey } from '@/utils/date'
 import { refreshExchangeRates } from '@/lib/currency'
 import { success, generalError } from '@/lib/action-result'
 import { handlePrismaError } from '@/lib/prisma-errors'
+import { serverLogger } from '@/lib/server-logger'
 import { requireSession } from '@/lib/auth-server'
 import { parseInput, toDecimalString, ensureAccountAccess, requireCsrfToken } from './shared'
 import { refreshExchangeRatesSchema, setBalanceSchema } from '@/schemas'
@@ -34,7 +35,8 @@ export async function refreshExchangeRatesAction(input: z.infer<typeof refreshEx
 
     revalidatePath('/')
     return success({ updatedAt: result.updatedAt })
-  } catch {
+  } catch (error) {
+    serverLogger.error('Failed to refresh exchange rates', { action: 'refreshExchangeRates' }, error)
     return generalError('Unable to refresh exchange rates')
   }
 }
@@ -56,17 +58,28 @@ export async function setBalanceAction(input: z.infer<typeof setBalanceSchema>) 
   const monthStart = getMonthStartFromKey(monthKey)
 
   // Find or create "Balance Adjustment" category for this user
-  let adjustmentCategory = await prisma.category.findFirst({
-    where: { name: 'Balance Adjustment', userId: authUser.id },
-  })
+  let adjustmentCategory
+  try {
+    adjustmentCategory = await prisma.category.findFirst({
+      where: { name: 'Balance Adjustment', userId: authUser.id },
+      select: { id: true },
+    })
 
-  if (!adjustmentCategory) {
-    adjustmentCategory = await prisma.category.create({
-      data: {
-        userId: authUser.id,
-        name: 'Balance Adjustment',
-        type: TransactionType.INCOME,
-      },
+    if (!adjustmentCategory) {
+      adjustmentCategory = await prisma.category.create({
+        data: {
+          userId: authUser.id,
+          name: 'Balance Adjustment',
+          type: TransactionType.INCOME,
+        },
+        select: { id: true },
+      })
+    }
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'setBalance.findOrCreateCategory',
+      userId: authUser.id,
+      fallbackMessage: 'Unable to create balance adjustment',
     })
   }
 

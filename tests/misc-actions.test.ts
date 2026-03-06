@@ -193,7 +193,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -251,7 +251,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -309,7 +309,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -353,7 +353,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -391,6 +391,7 @@ describe('setBalanceAction', () => {
         name: 'Balance Adjustment',
         type: TransactionType.INCOME,
       },
+      select: { id: true },
     })
   })
 
@@ -404,7 +405,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -467,7 +468,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })

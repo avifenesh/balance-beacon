@@ -4,7 +4,7 @@ import { Currency, Prisma, TransactionType, RequestStatus } from '@prisma/client
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getMonthStart, getMonthKey } from '@/utils/date'
-import { successVoid, generalError } from '@/lib/action-result'
+import { successVoid, failure, generalError } from '@/lib/action-result'
 import { handlePrismaError } from '@/lib/prisma-errors'
 import {
   parseInput,
@@ -322,12 +322,19 @@ export async function updateTransactionAction(input: TransactionUpdateInput) {
   // Verify new account access using authUser from subscription check (avoids duplicate auth)
   let newAccount
   try {
-    newAccount = await prisma.account.findFirst({ where: { id: data.accountId, deletedAt: null } })
-  } catch {
-    return { error: { general: ['Unable to verify the target account. Try again shortly.'] } }
+    newAccount = await prisma.account.findFirst({
+      where: { id: data.accountId, deletedAt: null },
+      select: { userId: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'updateTransaction.verifyAccount',
+      accountId: data.accountId,
+      fallbackMessage: 'Unable to verify the target account. Try again shortly.',
+    })
   }
   if (!newAccount || newAccount.userId !== authUser.id) {
-    return { error: { accountId: ['You do not have access to the target account'] } }
+    return failure({ accountId: ['You do not have access to the target account'] })
   }
 
   try {
@@ -402,7 +409,7 @@ export async function updateTransactionAction(input: TransactionUpdateInput) {
         return generalError('Transaction not found')
       }
       if (result.error === 'access_denied') {
-        return { error: { accountId: ['You do not have access to the original account'] } }
+        return failure({ accountId: ['You do not have access to the original account'] })
       }
       return generalError('Unable to update transaction')
     }
