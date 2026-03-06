@@ -60,6 +60,10 @@ class TransactionsViewModel(
                 else -> emptyList()
             }
             _uiState.update { it.copy(accounts = accounts, categories = categories) }
+            val firstAccountId = accounts.firstOrNull()?.id
+            if (firstAccountId != null) {
+                load(accountId = firstAccountId)
+            }
         }
     }
 

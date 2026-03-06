@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { filterTransactions } from '@/lib/dashboard-ux'
+import { buildTransactionCsvRows, formatCsvContent } from '@/lib/csv-export'
 import { createAccountOptions } from '@/lib/select-options'
 import { formatRelativeAmount } from '@/utils/format'
 import { normalizeDateInput } from '@/utils/date'
@@ -387,17 +388,8 @@ export function TransactionsTab({
 
   const handleExportCSV = useCallback(() => {
     const headers = ['Date', 'Type', 'Category', 'Account', 'Amount', 'Currency', 'Description']
-    const rows = filteredTransactions.map((t) => [
-      new Date(t.date).toISOString().slice(0, 10),
-      t.type,
-      t.category.name,
-      t.account.name,
-      t.type === TransactionType.EXPENSE ? -t.amount : t.amount,
-      t.currency,
-      (t.description || '').replace(/"/g, '""'),
-    ])
-
-    const csvContent = [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n')
+    const rows = buildTransactionCsvRows(filteredTransactions)
+    const csvContent = formatCsvContent(headers, rows)
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
