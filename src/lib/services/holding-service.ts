@@ -113,7 +113,7 @@ export async function refreshHoldingPrices(input: RefreshHoldingPricesInput) {
 }
 
 /**
- * Validate that a category has isHolding = true and belongs to the user
+ * Validate that a category has isHolding = true, is not archived, and belongs to the user
  */
 export async function validateHoldingCategory(categoryId: string, userId?: string): Promise<boolean> {
   const where = userId ? { id: categoryId, userId, isArchived: false } : { id: categoryId, isArchived: false }
