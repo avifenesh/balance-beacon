@@ -62,8 +62,14 @@ describe('withApiAuth', () => {
     const res = await withApiAuth(createRequest(), handler)
 
     expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('Invalid token')
     expect(handler).not.toHaveBeenCalled()
-    expect(serverLogger.warn).toHaveBeenCalled()
+    expect(serverLogger.warn).toHaveBeenCalledWith(
+      'API authentication failed',
+      { path: '/api/v1/test', method: 'GET' },
+      expect.any(Error),
+    )
   })
 
   it('returns 401 with generic message for non-Error throws', async () => {
@@ -73,6 +79,8 @@ describe('withApiAuth', () => {
 
     const res = await withApiAuth(createRequest(), vi.fn())
     expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('Unauthorized')
   })
 
   it('returns 429 when rate limited', async () => {

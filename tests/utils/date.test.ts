@@ -208,13 +208,12 @@ describe('formatDateForApi', () => {
   it('formats date to YYYY-MM-DD', () => {
     const date = new Date(2026, 2, 15) // March 15, 2026
     const result = formatDateForApi(date)
-    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(result).toBe('2026-03-15')
   })
 
   it('pads single-digit month and day', () => {
     const date = new Date(2026, 0, 5) // Jan 5
     const result = formatDateForApi(date)
-    expect(result).toContain('-01-')
-    expect(result).toContain('-05')
+    expect(result).toBe('2026-01-05')
   })
 })
