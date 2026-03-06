@@ -86,6 +86,8 @@ export async function POST(request: NextRequest) {
         update: {
           planned: data.planned,
           currency: data.currency,
+          deletedAt: null,
+          deletedBy: null,
         },
       })
 

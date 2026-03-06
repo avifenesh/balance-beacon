@@ -22,7 +22,7 @@ import { serverLogger } from '@/lib/server-logger'
  *
  * @body accountId - Required. The account to refresh holdings for.
  *
- * @returns {Object} { updated: number, errors: string[] }
+ * @returns {Object} { updated: number, skipped: number, errors: string[] }
  * @throws {400} Validation error - Invalid input data
  * @throws {401} Unauthorized - Invalid or missing auth token
  * @throws {403} Forbidden - User doesn't own the account or subscription expired

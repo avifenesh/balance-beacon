@@ -24,7 +24,7 @@ import { serverLogger } from '@/lib/server-logger'
  * @body monthKey - Required. The target month (YYYY-MM format).
  * @body templateIds - Optional. Specific template IDs to apply (defaults to all active).
  *
- * @returns {Object} { created: number, skipped: number, errors: string[] }
+ * @returns {Object} { created: number }
  * @throws {400} Validation error - Invalid input data
  * @throws {401} Unauthorized - Invalid or missing auth token
  * @throws {403} Forbidden - User doesn't own the account or subscription expired
