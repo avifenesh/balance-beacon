@@ -18,6 +18,8 @@ data class BudgetDto(
     val categoryId: String,
     @SerialName("month") val monthKey: String,
     @SerialName("planned") val amount: String,
+    val spent: String? = null,
+    val percentUsed: Int? = null,
     @SerialName("currency") val currencyCode: String? = null,
     val notes: String? = null,
     val category: BudgetCategoryDto? = null

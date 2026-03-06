@@ -304,6 +304,7 @@ fun RootNavHost(
                         DashboardOverviewScreen(
                             viewModel = vm,
                             navToAccounts = { navController.navigate(AppDestination.Accounts.route) },
+                            navToAssistant = { navController.navigate(AppDestination.Assistant.route) },
                             modifier = Modifier.fillMaxSize()
                         )
                     }

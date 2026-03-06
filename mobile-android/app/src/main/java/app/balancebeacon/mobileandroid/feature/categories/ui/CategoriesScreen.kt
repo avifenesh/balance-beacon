@@ -12,16 +12,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +48,8 @@ import app.balancebeacon.mobileandroid.ui.theme.SkyBlue
 import app.balancebeacon.mobileandroid.ui.components.SkeletonListScreen
 import app.balancebeacon.mobileandroid.ui.util.sanitizeError
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+
+private val Amber = Color(0xFFF59E0B)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -326,18 +335,48 @@ fun CategoriesScreen(
         }
 
         items(items = filteredItems.take(visibleCount), key = { it.id }) { category ->
-            CategoryItem(
-                category = category,
-                isMutating = state.isMutating,
-                onEdit = viewModel::startEditing,
-                onSetArchived = { id, archive ->
-                    if (archive) {
-                        showArchiveConfirmId = id
-                    } else {
-                        viewModel.setArchived(id, false)
-                    }
+            val dismissState = rememberSwipeToDismissBoxState(
+                confirmValueChange = { value ->
+                    if (value == SwipeToDismissBoxValue.EndToStart && !category.isArchived) {
+                        showArchiveConfirmId = category.id
+                        false
+                    } else false
                 }
             )
+
+            SwipeToDismissBox(
+                state = dismissState,
+                backgroundContent = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Amber, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Icon(
+                            Icons.Default.Archive,
+                            contentDescription = "Archive",
+                            tint = Color.White
+                        )
+                    }
+                },
+                enableDismissFromStartToEnd = false,
+                enableDismissFromEndToStart = !category.isArchived
+            ) {
+                CategoryItem(
+                    category = category,
+                    isMutating = state.isMutating,
+                    onEdit = viewModel::startEditing,
+                    onSetArchived = { id, archive ->
+                        if (archive) {
+                            showArchiveConfirmId = id
+                        } else {
+                            viewModel.setArchived(id, false)
+                        }
+                    }
+                )
+            }
         }
 
         if (filteredItems.size > visibleCount) {

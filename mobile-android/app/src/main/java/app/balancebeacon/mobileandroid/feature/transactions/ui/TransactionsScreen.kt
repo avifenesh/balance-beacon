@@ -14,7 +14,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -22,13 +28,20 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +63,7 @@ import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardTransact
 import app.balancebeacon.mobileandroid.feature.transactions.model.CreateTransactionRequest
 import app.balancebeacon.mobileandroid.feature.transactions.model.UpdateTransactionRequest
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+import app.balancebeacon.mobileandroid.ui.theme.Rose400
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -77,8 +91,10 @@ fun TransactionsScreen(
     var listAccountFilter by rememberSaveable { mutableStateOf("") }
     var showDeleteConfirmId by rememberSaveable { mutableStateOf<String?>(null) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var showFormSheet by rememberSaveable { mutableStateOf(false) }
 
     var hasInteracted by rememberSaveable { mutableStateOf(false) }
+    val isEditing = selectedTransactionId != null
     val canSubmit = accountId.isNotBlank() && amount.isNotBlank() && type.isNotBlank() && date.isNotBlank()
     val filteredItems = remember(state.items, searchQuery, listTypeFilter, listAccountFilter) {
         filterTransactions(
@@ -105,6 +121,8 @@ fun TransactionsScreen(
         }
     }
 
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     LaunchedEffect(Unit) {
         viewModel.initialize()
     }
@@ -116,122 +134,303 @@ fun TransactionsScreen(
         }
     }
 
-    PullToRefreshBox(
-        isRefreshing = state.isLoading,
-        onRefresh = {
-            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-            viewModel.initialize()
-        },
-        modifier = modifier.fillMaxSize()
-    ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Section 1: Create Transaction
-        item {
-            GlassPanel(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Create Transaction", style = MaterialTheme.typography.titleMedium)
+    Box(modifier = modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = state.isLoading,
+            onRefresh = {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                viewModel.initialize()
+            },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Section 1: Search
+                item {
+                    GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("Search", style = MaterialTheme.typography.titleMedium)
 
-                    if (state.isLoading) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SkeletonLine(width = 180.dp, height = 14.dp)
-                            SkeletonLine(width = 120.dp, height = 14.dp)
-                        }
-                    }
-                    state.statusMessage?.let {
-                        Text(it, color = MaterialTheme.colorScheme.primary)
-                    }
-                    if (hasInteracted) {
-                        state.error?.let {
-                            Text(it, color = MaterialTheme.colorScheme.error)
-                        }
-                    }
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                label = { Text("Search (amount/desc/date/category)") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text("Type filter", style = MaterialTheme.typography.bodySmall)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf("ALL", "EXPENSE", "INCOME").forEach { filterType ->
+                                    FilterChip(
+                                        selected = listTypeFilter.equals(filterType, ignoreCase = true),
+                                        onClick = { listTypeFilter = filterType },
+                                        label = { Text(filterType) }
+                                    )
+                                }
+                            }
+                            OutlinedTextField(
+                                value = listAccountFilter,
+                                onValueChange = { listAccountFilter = it },
+                                label = { Text("Account filter (optional)") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
-                    Text("Account", style = MaterialTheme.typography.labelLarge)
-                    AccountSelectorRow(
-                        accountNames = state.accounts.map { it.id to it.name },
-                        selectedAccountId = accountId,
-                        onSelect = { accountId = it }
-                    )
+                            Button(
+                                onClick = {
+                                    hasInteracted = true
+                                    viewModel.load(
+                                        accountId = accountId.ifBlank { null },
+                                        month = monthKey.ifBlank { null }
+                                    )
+                                }
+                            ) {
+                                Text("Load Transactions")
+                            }
 
-                    OutlinedTextField(
-                        value = monthKey,
-                        onValueChange = { monthKey = it },
-                        label = { Text("Month Key (YYYY-MM, optional)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { amount = it },
-                        label = { Text("Amount") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text("Type", style = MaterialTheme.typography.bodySmall)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("EXPENSE", "INCOME").forEach { txType ->
-                            FilterChip(
-                                selected = type.equals(txType, ignoreCase = true),
-                                onClick = { type = txType },
-                                label = { Text(txType) }
+                            Text(
+                                text = "Showing ${filteredItems.size} of ${state.items.size} transactions",
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
-                    Text("Date", style = MaterialTheme.typography.labelLarge)
-                    OutlinedButton(
-                        onClick = { showDatePicker = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(date.ifBlank { "Select date" })
-                    }
+                }
 
-                    Text("Category", style = MaterialTheme.typography.labelLarge)
-                    CategorySelector(
-                        selectedCategoryName = if (categoryId.isBlank()) "Select category (optional)" else selectedCategoryName,
-                        categories = categoryOptions,
-                        selectedCategoryId = categoryId,
-                        onSelectCategory = { categoryId = it }
-                    )
-
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description (optional)") },
+                // Pending Requests
+                item {
+                    RequestsSection(
+                        requests = state.requestItems,
+                        requestActionInProgressId = state.requestActionInProgressId,
+                        requestActionMessage = state.requestActionMessage,
+                        requestActionError = state.requestActionError,
+                        isLoading = state.isLoading,
+                        onApprove = viewModel::approveTransactionRequest,
+                        onReject = viewModel::rejectTransactionRequest,
                         modifier = Modifier.fillMaxWidth()
                     )
+                }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            enabled = canSubmit,
-                            onClick = {
-                                hasInteracted = true
-                                viewModel.createTransaction(
-                                    request = CreateTransactionRequest(
-                                        accountId = accountId,
-                                        amount = amount,
-                                        type = type,
-                                        date = date,
-                                        description = description.ifBlank { null },
-                                        categoryId = categoryId.ifBlank { null }
-                                    )
+                // Section 2: Transaction List
+                items(filteredItems, key = { it.id }) { tx ->
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                showDeleteConfirmId = tx.id
+                                false
+                            } else false
+                        }
+                    )
+
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Rose400, RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White
                                 )
                             }
-                        ) {
-                            Text("Create")
+                        },
+                        enableDismissFromStartToEnd = false,
+                        enableDismissFromEndToStart = true
+                    ) {
+                        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text("${tx.type}: ${tx.amount}")
+                                Text("Date: ${tx.date}", style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    "Account: ${accountNames[tx.accountId] ?: tx.accountId}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                tx.categoryId?.let { catId ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(12.dp)
+                                                .background(
+                                                    color = parseHexColor(categoryColors[catId]),
+                                                    shape = CircleShape
+                                                )
+                                        )
+                                        Text(
+                                            "Category: ${categoryNames[catId] ?: catId}",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+                                tx.description?.let { Text("Desc: $it", style = MaterialTheme.typography.bodySmall) }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = {
+                                            selectedTransactionId = tx.id
+                                            accountId = tx.accountId
+                                            amount = tx.amount
+                                            type = tx.type
+                                            date = tx.date
+                                            description = tx.description.orEmpty()
+                                            categoryId = tx.categoryId.orEmpty()
+                                            showFormSheet = true
+                                        }
+                                    ) {
+                                        Text("Edit")
+                                    }
+                                    Button(
+                                        onClick = { showDeleteConfirmId = tx.id }
+                                    ) {
+                                        Text("Delete")
+                                    }
+                                    if (isShareEligible(tx.type, onShareTransaction != null)) {
+                                        OutlinedButton(
+                                            onClick = { onShareTransaction?.invoke(tx.id) }
+                                        ) {
+                                            Text("Share")
+                                        }
+                                    }
+                                }
+                            }
                         }
-                        Button(
-                            enabled = canSubmit && selectedTransactionId != null,
-                            onClick = {
-                                hasInteracted = true
+                    }
+                }
+            }
+        } // PullToRefreshBox
+
+        FloatingActionButton(
+            onClick = {
+                selectedTransactionId = null
+                amount = ""
+                type = ""
+                date = ""
+                description = ""
+                categoryId = ""
+                monthKey = ""
+                showFormSheet = true
+            },
+            containerColor = SkyBlue,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(24.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White)
+        }
+    } // Box
+
+    if (showFormSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFormSheet = false },
+            sheetState = sheetState,
+            containerColor = Color(0xFF1E293B),
+            dragHandle = { BottomSheetDefaults.DragHandle(color = Color.White.copy(alpha = 0.3f)) }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    if (isEditing) "Edit Transaction" else "New Transaction",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White
+                )
+
+                if (state.isLoading) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SkeletonLine(width = 180.dp, height = 14.dp)
+                        SkeletonLine(width = 120.dp, height = 14.dp)
+                    }
+                }
+                state.statusMessage?.let {
+                    Text(it, color = MaterialTheme.colorScheme.primary)
+                }
+                if (hasInteracted) {
+                    state.error?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+
+                Text("Account", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                AccountSelectorRow(
+                    accountNames = state.accounts.map { it.id to it.name },
+                    selectedAccountId = accountId,
+                    onSelect = { accountId = it }
+                )
+
+                OutlinedTextField(
+                    value = monthKey,
+                    onValueChange = { monthKey = it },
+                    label = { Text("Month Key (YYYY-MM, optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("Amount") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("Type", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("EXPENSE", "INCOME").forEach { txType ->
+                        FilterChip(
+                            selected = type.equals(txType, ignoreCase = true),
+                            onClick = { type = txType },
+                            label = { Text(txType) }
+                        )
+                    }
+                }
+                Text("Date", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(date.ifBlank { "Select date" })
+                }
+
+                Text("Category", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                CategorySelector(
+                    selectedCategoryName = if (categoryId.isBlank()) "Select category (optional)" else selectedCategoryName,
+                    categories = categoryOptions,
+                    selectedCategoryId = categoryId,
+                    onSelectCategory = { categoryId = it }
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        enabled = canSubmit,
+                        onClick = {
+                            hasInteracted = true
+                            if (isEditing) {
                                 selectedTransactionId?.let { id ->
                                     viewModel.updateTransaction(
                                         id = id,
@@ -245,154 +444,27 @@ fun TransactionsScreen(
                                         )
                                     )
                                 }
-                            }
-                        ) {
-                            Text("Update")
-                        }
-                    }
-
-                    Text(
-                        text = "Selected: ${selectedTransactionId ?: "none"}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-
-        // Section 2: Search
-        item {
-            GlassPanel(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Search", style = MaterialTheme.typography.titleMedium)
-
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        label = { Text("Search (amount/desc/date/category)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text("Type filter", style = MaterialTheme.typography.bodySmall)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("ALL", "EXPENSE", "INCOME").forEach { filterType ->
-                            FilterChip(
-                                selected = listTypeFilter.equals(filterType, ignoreCase = true),
-                                onClick = { listTypeFilter = filterType },
-                                label = { Text(filterType) }
-                            )
-                        }
-                    }
-                    OutlinedTextField(
-                        value = listAccountFilter,
-                        onValueChange = { listAccountFilter = it },
-                        label = { Text("Account filter (optional)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Button(
-                        onClick = {
-                            hasInteracted = true
-                            viewModel.load(
-                                accountId = accountId.ifBlank { null },
-                                month = monthKey.ifBlank { null }
-                            )
-                        }
-                    ) {
-                        Text("Load Transactions")
-                    }
-
-                    Text(
-                        text = "Showing ${filteredItems.size} of ${state.items.size} transactions",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-
-        // Pending Requests
-        item {
-            RequestsSection(
-                requests = state.requestItems,
-                requestActionInProgressId = state.requestActionInProgressId,
-                requestActionMessage = state.requestActionMessage,
-                requestActionError = state.requestActionError,
-                isLoading = state.isLoading,
-                onApprove = viewModel::approveTransactionRequest,
-                onReject = viewModel::rejectTransactionRequest,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Section 3: Transaction List
-        items(filteredItems, key = { it.id }) { tx ->
-            GlassPanel(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text("${tx.type}: ${tx.amount}")
-                    Text("Date: ${tx.date}", style = MaterialTheme.typography.bodySmall)
-                    Text(
-                        "Account: ${accountNames[tx.accountId] ?: tx.accountId}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    tx.categoryId?.let { catId ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(
-                                        color = parseHexColor(categoryColors[catId]),
-                                        shape = CircleShape
+                            } else {
+                                viewModel.createTransaction(
+                                    request = CreateTransactionRequest(
+                                        accountId = accountId,
+                                        amount = amount,
+                                        type = type,
+                                        date = date,
+                                        description = description.ifBlank { null },
+                                        categoryId = categoryId.ifBlank { null }
                                     )
-                            )
-                            Text(
-                                "Category: ${categoryNames[catId] ?: catId}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    tx.description?.let { Text("Desc: $it", style = MaterialTheme.typography.bodySmall) }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = {
-                                selectedTransactionId = tx.id
-                                accountId = tx.accountId
-                                amount = tx.amount
-                                type = tx.type
-                                date = tx.date
-                                description = tx.description.orEmpty()
-                                categoryId = tx.categoryId.orEmpty()
+                                )
                             }
-                        ) {
-                            Text("Edit")
+                            showFormSheet = false
                         }
-                        Button(
-                            onClick = { showDeleteConfirmId = tx.id }
-                        ) {
-                            Text("Delete")
-                        }
-                        if (isShareEligible(tx.type, onShareTransaction != null)) {
-                            OutlinedButton(
-                                onClick = { onShareTransaction?.invoke(tx.id) }
-                            ) {
-                                Text("Share")
-                            }
-                        }
+                    ) {
+                        Text(if (isEditing) "Update" else "Create")
                     }
                 }
             }
         }
     }
-    } // PullToRefreshBox
 
     showDeleteConfirmId?.let { id ->
         AlertDialog(

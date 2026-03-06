@@ -72,17 +72,46 @@ export async function GET(request: NextRequest) {
       orderBy: [{ month: 'desc' }, { category: { name: 'asc' } }],
     })
 
+    // Compute spent per category/month from transactions
+    const spentByKey = new Map<string, number>()
+    if (budgets.length > 0) {
+      const months = [...new Set(budgets.map((b) => b.month.toISOString()))]
+      const categoryIds = [...new Set(budgets.map((b) => b.categoryId))]
+      const transactions = await prisma.transaction.groupBy({
+        by: ['categoryId', 'month'],
+        where: {
+          accountId,
+          categoryId: { in: categoryIds },
+          month: { in: months.map((m) => new Date(m)) },
+          deletedAt: null,
+        },
+        _sum: { amount: true },
+      })
+      for (const t of transactions) {
+        const key = `${t.categoryId}:${t.month.toISOString()}`
+        spentByKey.set(key, Math.abs(Number(t._sum.amount ?? 0)))
+      }
+    }
+
     return successResponse({
-      budgets: budgets.map((b) => ({
-        id: b.id,
-        accountId: b.accountId,
-        categoryId: b.categoryId,
-        month: formatDateForApi(b.month),
-        planned: b.planned.toString(),
-        currency: b.currency,
-        notes: b.notes,
-        category: b.category,
-      })),
+      budgets: budgets.map((b) => {
+        const key = `${b.categoryId}:${b.month.toISOString()}`
+        const spent = spentByKey.get(key) ?? 0
+        const planned = Number(b.planned)
+        const percentUsed = planned > 0 ? Math.round((spent / planned) * 100) : spent > 0 ? 100 : 0
+        return {
+          id: b.id,
+          accountId: b.accountId,
+          categoryId: b.categoryId,
+          month: formatDateForApi(b.month),
+          planned: b.planned.toString(),
+          spent: spent.toFixed(2),
+          percentUsed,
+          currency: b.currency,
+          notes: b.notes,
+          category: b.category,
+        }
+      }),
     })
   })
 }

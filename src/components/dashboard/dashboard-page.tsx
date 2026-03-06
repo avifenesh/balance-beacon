@@ -17,12 +17,15 @@ import {
   Layers,
   LogOut,
   PiggyBank,
+  Plus,
   RefreshCcw,
+  RefreshCw,
   Repeat,
   Scale,
   Settings,
   Sparkles,
   Tags,
+  Target,
   Trash2,
   TrendingUp,
   Users,
@@ -725,15 +728,77 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
 
       <section className="space-y-6">
         {activeTab === 'overview' && (
-          <OverviewTab
-            history={data.history}
-            comparison={data.comparison}
-            budgets={data.budgets}
-            transactionRequests={data.transactionRequests}
-            activeAccount={activeAccount}
-            preferredCurrency={preferredCurrency}
-            onNavigateToBudgets={() => handleTabChange('budgets')}
-          />
+          <>
+            {/* Quick Actions */}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => handleTabChange('transactions')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Transaction
+              </button>
+              <button
+                onClick={() => handleTabChange('budgets')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition"
+              >
+                <Target className="h-3.5 w-3.5" />
+                Set Budget
+              </button>
+              <button
+                onClick={() => handleTabChange('recurring')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Recurring
+              </button>
+            </div>
+
+            <OverviewTab
+              history={data.history}
+              comparison={data.comparison}
+              budgets={data.budgets}
+              transactionRequests={data.transactionRequests}
+              activeAccount={activeAccount}
+              preferredCurrency={preferredCurrency}
+              onNavigateToBudgets={() => handleTabChange('budgets')}
+            />
+
+            {/* Recent Activity */}
+            <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+              <h3 className="text-sm font-medium text-slate-400 mb-3">Recent Activity</h3>
+              <div className="space-y-2">
+                {data.transactions.slice(0, 5).map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: tx.category?.color || '#0ea5e9' }}
+                      />
+                      <span className="text-sm text-slate-200 truncate max-w-[200px]">
+                        {tx.description || tx.category?.name || 'Transaction'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs text-slate-500">{new Date(tx.date).toLocaleDateString()}</span>
+                      <span
+                        className={cn(
+                          'text-sm font-medium',
+                          tx.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400',
+                        )}
+                      >
+                        {tx.type === 'INCOME' ? '+' : '-'}
+                        {formatCurrency(Math.abs(tx.amount), preferredCurrency)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {data.transactions.length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-4">No recent transactions</p>
+              )}
+            </div>
+          </>
         )}
 
         {activeTab === 'budgets' && (

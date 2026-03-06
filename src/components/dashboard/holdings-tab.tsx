@@ -316,10 +316,26 @@ export default function HoldingsTab({
             </div>
           )}
           {!isLoading && holdings.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-8 text-center text-sm text-slate-400">
-              <TrendingUp className="mx-auto mb-2 h-8 w-8 text-slate-500" />
-              <p>No holdings tracked yet.</p>
-              <p className="mt-1 text-xs">Add your first stock or ETF to start tracking portfolio value.</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="rounded-full bg-white/10 p-4 mb-4">
+                <TrendingUp className="h-8 w-8 text-sky-400" />
+              </div>
+              <h3 className="text-lg font-medium text-white mb-1">No holdings yet</h3>
+              <p className="text-sm text-slate-400 mb-4 max-w-sm">
+                Add your first stock or ETF to start tracking portfolio value.
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById('holdingAccount')
+                    ?.closest('form')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }
+                className="text-sm text-sky-400 hover:text-sky-300 font-medium"
+              >
+                Add your first holding →
+              </button>
             </div>
           )}
           {holdings.map((holding) => {

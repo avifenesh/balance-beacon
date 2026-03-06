@@ -10,14 +10,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
@@ -41,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -84,6 +88,7 @@ import app.balancebeacon.mobileandroid.ui.theme.SkyBlue
 import app.balancebeacon.mobileandroid.ui.theme.Slate200
 import app.balancebeacon.mobileandroid.ui.theme.Slate700
 import java.text.NumberFormat
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -96,6 +101,7 @@ import java.util.Locale
 fun DashboardOverviewScreen(
     viewModel: DashboardViewModel,
     navToAccounts: () -> Unit = {},
+    navToAssistant: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -182,8 +188,18 @@ fun DashboardOverviewScreen(
                     totalExpenses = parseAmount(dashboard.summary.totalExpenses),
                     netResult = parseAmount(dashboard.summary.netResult),
                     netHistory = dashboard.history.map { it.net },
-                    currencyCode = currencyCode
+                    currencyCode = currencyCode,
+                    transactionCount = dashboard.recentTransactions.size,
+                    streakDays = computeStreak(dashboard.recentTransactions)
                 )
+            }
+            state.insightText?.let { insight ->
+                item {
+                    AiInsightCard(
+                        insightText = insight,
+                        onAskAi = navToAssistant
+                    )
+                }
             }
             if (dashboard.stats.isNotEmpty()) {
                 item {
@@ -376,6 +392,59 @@ private fun WelcomeEmptyState(navToAccounts: () -> Unit) {
 }
 
 @Composable
+private fun AiInsightCard(
+    insightText: String,
+    onAskAi: () -> Unit
+) {
+    GlassPanel(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = SkyBlue.copy(alpha = 0.15f),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = SkyBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "AI Insight",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = SkyBlue
+                )
+                Text(
+                    insightText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Slate200
+                )
+                TextButton(onClick = onAskAi) {
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("Ask Balance AI")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FeatureHighlightChip(
     icon: ImageVector,
     label: String,
@@ -483,11 +552,63 @@ private fun SummarySection(
     totalExpenses: Double,
     netResult: Double,
     netHistory: List<Double>,
-    currencyCode: String
+    currencyCode: String,
+    transactionCount: Int = 0,
+    streakDays: Int = 0
 ) {
     GlassPanel(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Cashflow Snapshot", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Cashflow Snapshot", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (streakDays > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = GlassSurface,
+                            border = BorderStroke(1.dp, GlassBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "\uD83D\uDD25",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                                Text(
+                                    text = "$streakDays day streak",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Slate200
+                                )
+                            }
+                        }
+                    }
+                    if (transactionCount > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = GlassSurface,
+                            border = BorderStroke(1.dp, GlassBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "$transactionCount txns",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Slate200
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             MiniSparkline(values = netHistory)
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1206,4 +1327,33 @@ private fun RecentTransactionItem(
             Text(transaction.date, style = MaterialTheme.typography.bodySmall)
         }
     }
+}
+
+/**
+ * Compute consecutive-day streak ending today (or yesterday) from transaction dates.
+ * Parses date strings (ISO format) to LocalDate, deduplicates by day, and counts
+ * how many consecutive days going backwards have at least one transaction.
+ */
+private fun computeStreak(transactions: List<DashboardRecentTransactionDto>): Int {
+    if (transactions.isEmpty()) return 0
+
+    val dates = transactions.mapNotNull { tx ->
+        runCatching {
+            LocalDate.parse(tx.date.take(10))
+        }.getOrNull()
+    }.toSortedSet(compareByDescending { it })
+
+    if (dates.isEmpty()) return 0
+
+    val today = LocalDate.now()
+    // Start from today or yesterday (allow a grace period for timezone differences)
+    val startDate = if (dates.first() == today) today else if (dates.first() == today.minusDays(1)) today.minusDays(1) else return 0
+
+    var streak = 0
+    var current = startDate
+    while (current in dates) {
+        streak++
+        current = current.minusDays(1)
+    }
+    return streak
 }

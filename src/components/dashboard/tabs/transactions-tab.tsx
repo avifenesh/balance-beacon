@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { TransactionType, Currency } from '@prisma/client'
-import { Download, CreditCard, Users } from 'lucide-react'
+import { Download, Users, Pencil, Trash2, Receipt } from 'lucide-react'
 import { createTransactionAction, updateTransactionAction, deleteTransactionAction } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -684,19 +684,32 @@ export function TransactionsTab({
             </div>
             <div className="space-y-2">
               {filteredTransactions.length === 0 && (
-                <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/20 bg-white/5 p-8 text-center">
-                  <div className="rounded-full bg-white/10 p-3">
-                    <CreditCard className="h-6 w-6 text-slate-300" />
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="rounded-full bg-white/10 p-4 mb-4">
+                    <Receipt className="h-8 w-8 text-sky-400" />
                   </div>
                   {optimisticTransactions.length === 0 ? (
                     <>
-                      <p className="text-sm font-medium text-white">No transactions yet</p>
-                      <p className="text-xs text-slate-400">Record your first expense or income on the left panel.</p>
+                      <h3 className="text-lg font-medium text-white mb-1">No transactions yet</h3>
+                      <p className="text-sm text-slate-400 mb-4 max-w-sm">
+                        Record your first expense or income to start tracking your finances.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          document
+                            .getElementById('transaction-form')
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }
+                        className="text-sm text-sky-400 hover:text-sky-300 font-medium"
+                      >
+                        Add your first transaction →
+                      </button>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-medium text-white">No matching transactions</p>
-                      <p className="text-xs text-slate-400">Try adjusting the filters above.</p>
+                      <h3 className="text-lg font-medium text-white mb-1">No matching transactions</h3>
+                      <p className="text-sm text-slate-400">Try adjusting the filters above.</p>
                     </>
                   )}
                 </div>
@@ -707,7 +720,7 @@ export function TransactionsTab({
                   <div
                     key={transaction.id}
                     className={cn(
-                      'flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 shadow-sm sm:flex-row sm:items-center sm:justify-between',
+                      'group relative flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 shadow-sm sm:flex-row sm:items-center sm:justify-between',
                       isOptimistic && 'opacity-60 animate-pulse',
                     )}
                   >
@@ -746,36 +759,37 @@ export function TransactionsTab({
                           preferredCurrency,
                         )}
                       </span>
-                      {transaction.type === TransactionType.EXPENSE && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="text-xs text-sky-300 hover:bg-sky-500/20"
-                          onClick={() => setSharingTransaction(transaction)}
-                          title="Share expense"
-                        >
-                          <Users className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="text-xs text-slate-400 hover:bg-slate-100"
-                        onClick={() => handleTransactionEdit(transaction)}
-                        disabled={isOptimistic}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="text-xs text-rose-200 hover:bg-rose-500/20"
-                        onClick={() => handleTransactionDelete(transaction.id)}
-                        disabled={isOptimistic}
-                      >
-                        Delete
-                      </Button>
                     </div>
+                    {!isOptimistic && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {transaction.type === TransactionType.EXPENSE && (
+                          <button
+                            type="button"
+                            onClick={() => setSharingTransaction(transaction)}
+                            className="p-1.5 rounded-md bg-white/10 hover:bg-sky-500/20 text-slate-300 hover:text-sky-300 transition"
+                            title="Share expense"
+                          >
+                            <Users className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleTransactionEdit(transaction)}
+                          className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition"
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTransactionDelete(transaction.id)}
+                          className="p-1.5 rounded-md bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-400 transition"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               })}

@@ -355,21 +355,32 @@ export function RecurringTab({
 
             <div className="space-y-3">
               {filteredRecurring.length === 0 && (
-                <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/20 bg-white/5 p-8 text-center">
-                  <div className="rounded-full bg-white/10 p-3">
-                    <Repeat className="h-6 w-6 text-slate-300" />
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="rounded-full bg-white/10 p-4 mb-4">
+                    <Repeat className="h-8 w-8 text-sky-400" />
                   </div>
                   {recurringTemplates.length === 0 ? (
                     <>
-                      <p className="text-sm font-medium text-white">No auto-repeat items</p>
-                      <p className="text-xs text-slate-400">
+                      <h3 className="text-lg font-medium text-white mb-1">No recurring templates yet</h3>
+                      <p className="text-sm text-slate-400 mb-4 max-w-sm">
                         Set up recurring income or expenses that repeat each month.
                       </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          document
+                            .getElementById('recurring-form')
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }
+                        className="text-sm text-sky-400 hover:text-sky-300 font-medium"
+                      >
+                        Add your first template →
+                      </button>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-medium text-white">No matching templates</p>
-                      <p className="text-xs text-slate-400">Try adjusting the filters above.</p>
+                      <h3 className="text-lg font-medium text-white mb-1">No matching templates</h3>
+                      <p className="text-sm text-slate-400">Try adjusting the filters above.</p>
                     </>
                   )}
                 </div>

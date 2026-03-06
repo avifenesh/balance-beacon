@@ -13,8 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.Currency
+import java.util.Locale
 
 data class DashboardOverviewUiState(
     val isLoading: Boolean = false,
@@ -24,6 +27,7 @@ data class DashboardOverviewUiState(
     val accountId: String = "",
     val monthKey: String = YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM")),
     val data: DashboardResponse? = null,
+    val insightText: String? = null,
     val statusMessage: String? = null,
     val error: String? = null
 )
@@ -112,6 +116,7 @@ class DashboardViewModel(
                         accountId = accountId,
                         monthKey = result.value.month,
                         data = result.value,
+                        insightText = generateInsight(result.value),
                         statusMessage = null,
                         error = null
                     )
@@ -212,6 +217,26 @@ class DashboardViewModel(
                     )
                 }
             }
+        }
+    }
+
+    private fun generateInsight(data: DashboardResponse): String? {
+        val stats = data.stats
+        if (stats.isEmpty()) return null
+
+        val topExpense = stats.filter { it.variant == "negative" }.maxByOrNull { it.amount }
+        val netResult = data.summary.netResult.toDoubleOrNull() ?: 0.0
+
+        return when {
+            topExpense != null -> {
+                val formatted = NumberFormat.getCurrencyInstance(Locale.US).apply {
+                    currency = Currency.getInstance(data.preferredCurrency?.ifBlank { null } ?: "USD")
+                }.format(topExpense.amount)
+                "Your top expense this month is ${topExpense.label} at $formatted"
+            }
+            netResult > 0 -> "You're in the green this month! Keep it up."
+            netResult < 0 -> "Your expenses are exceeding your income this month."
+            else -> "Start tracking to get personalized insights."
         }
     }
 
