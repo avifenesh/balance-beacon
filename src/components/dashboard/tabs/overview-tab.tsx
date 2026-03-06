@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { TransactionType, Currency } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,7 @@ export type OverviewTabProps = {
   onNavigateToBudgets: () => void
 }
 
-export function OverviewTab({
+export const OverviewTab = memo(function OverviewTab({
   history,
   comparison,
   budgets,
@@ -212,4 +212,4 @@ export function OverviewTab({
       )}
     </div>
   )
-}
+})

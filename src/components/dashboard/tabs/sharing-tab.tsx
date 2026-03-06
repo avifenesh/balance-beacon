@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { SharedExpensesList } from '@/components/dashboard/shared-expenses-list'
 import { ExpensesSharedWithMe } from '@/components/dashboard/expenses-shared-with-me'
 import { SettlementSummary } from '@/components/dashboard/settlement-summary'
@@ -17,7 +18,7 @@ export type SharingTabProps = {
   paymentHistory: PaymentHistoryItem[]
 }
 
-export function SharingTab({
+export const SharingTab = memo(function SharingTab({
   sharedExpenses,
   expensesSharedWithMe,
   settlementBalances,
@@ -33,4 +34,4 @@ export function SharingTab({
       </div>
     </div>
   )
-}
+})

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { memo, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { TransactionType } from '@prisma/client'
 import { Tags } from 'lucide-react'
@@ -20,7 +20,7 @@ export type CategoriesTabProps = {
   categories: DashboardCategory[]
 }
 
-export function CategoriesTab({ categories }: CategoriesTabProps) {
+export const CategoriesTab = memo(function CategoriesTab({ categories }: CategoriesTabProps) {
   const router = useRouter()
   const csrfToken = useCsrfToken()
 
@@ -304,4 +304,4 @@ export function CategoriesTab({ categories }: CategoriesTabProps) {
       </div>
     </div>
   )
-}
+})

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { TransactionType, Currency } from '@prisma/client'
 import { Download, Users, Pencil, Trash2, Receipt } from 'lucide-react'
@@ -45,7 +45,7 @@ export type TransactionsTabProps = {
   preferredCurrency: Currency
 }
 
-export function TransactionsTab({
+export const TransactionsTab = memo(function TransactionsTab({
   transactions,
   transactionRequests,
   accounts,
@@ -804,4 +804,4 @@ export function TransactionsTab({
       )}
     </div>
   )
-}
+})

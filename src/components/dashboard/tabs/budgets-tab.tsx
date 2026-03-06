@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition, useCallback, useRef } from 'react'
+import { memo, useEffect, useMemo, useState, useTransition, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { TransactionType, Currency } from '@prisma/client'
 import { Target } from 'lucide-react'
@@ -33,7 +33,7 @@ export type BudgetsTabProps = {
   actualIncome?: number
 }
 
-export function BudgetsTab({
+export const BudgetsTab = memo(function BudgetsTab({
   budgets,
   accounts,
   categories,
@@ -640,4 +640,4 @@ export function BudgetsTab({
       </Card>
     </div>
   )
-}
+})

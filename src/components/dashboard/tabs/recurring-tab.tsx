@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { memo, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { TransactionType, Currency } from '@prisma/client'
 import { Repeat } from 'lucide-react'
@@ -40,7 +40,7 @@ export type RecurringTabProps = {
   preferredCurrency: Currency
 }
 
-export function RecurringTab({
+export const RecurringTab = memo(function RecurringTab({
   recurringTemplates,
   accounts,
   categories,
@@ -508,4 +508,4 @@ export function RecurringTab({
       </div>
     </div>
   )
-}
+})
