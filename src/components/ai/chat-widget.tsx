@@ -3,10 +3,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { Sparkles, X, Send, Plus, Trash2, Pencil, Check, Copy, ClipboardCheck } from 'lucide-react'
-
-const ChatMarkdown = dynamic(() => import('./chat-markdown').then((m) => ({ default: m.ChatMarkdown })), {
-  loading: () => <div className="animate-pulse text-[13px] text-slate-400">Loading...</div>,
-})
 import { Currency } from '@prisma/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -21,6 +17,10 @@ import {
   generateMessageId,
   quickPrompts,
 } from './chat-utils'
+
+const ChatMarkdown = dynamic(() => import('./chat-markdown').then((m) => ({ default: m.ChatMarkdown })), {
+  loading: () => <div className="animate-pulse text-[13px] text-slate-400">Loading...</div>,
+})
 
 interface ChatWidgetProps {
   accountId: string
