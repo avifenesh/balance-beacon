@@ -505,6 +505,7 @@ describe('XSS Vulnerability Audit - Stored XSS Protection', () => {
           email: 'test-xss@example.com',
           password: 'ValidPassword123',
           displayName: payload,
+          csrfToken: 'valid-token',
         })
 
         // Should successfully create or fail validation for very short payloads
@@ -532,6 +533,7 @@ describe('XSS Vulnerability Audit - Stored XSS Protection', () => {
         email: 'test@example.com',
         password: 'ValidPassword123',
         displayName: '<', // Only 1 char
+        csrfToken: 'valid-token',
       })
 
       expect('error' in result).toBe(true)
@@ -548,6 +550,7 @@ describe('XSS Vulnerability Audit - Stored XSS Protection', () => {
         email: 'test@example.com',
         password: 'ValidPassword123',
         displayName: longPayload,
+        csrfToken: 'valid-token',
       })
 
       expect('error' in result).toBe(true)

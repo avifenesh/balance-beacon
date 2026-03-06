@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { verifyEmailAction } from '@/app/actions'
+import { useCsrfToken } from '@/hooks/useCsrfToken'
 import { cn } from '@/utils/cn'
 
 const buttonBaseClasses =
@@ -17,12 +18,13 @@ type VerifyEmailFormProps = {
 }
 
 export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
+  const csrfToken = useCsrfToken()
   const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
 
   async function handleVerify() {
     setState('loading')
-    const result = await verifyEmailAction({ token })
+    const result = await verifyEmailAction({ token, csrfToken })
 
     if ('error' in result) {
       const errorMessage = result.error.token?.[0] || result.error.general?.[0] || 'Verification failed'

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { loginAction, requestPasswordResetAction } from '@/app/actions'
+import { useCsrfToken } from '@/hooks/useCsrfToken'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,6 +17,7 @@ type Mode = 'login' | 'reset'
 
 export function LoginCard() {
   const router = useRouter()
+  const csrfToken = useCsrfToken()
   const [mode, setMode] = useState<Mode>('login')
   const [errors, setErrors] = useState<FormErrors | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -31,6 +33,7 @@ export function LoginCard() {
     const payload = {
       email: String(formData.get('email') ?? ''),
       password: String(formData.get('password') ?? ''),
+      csrfToken,
     }
 
     setErrors(null)
@@ -56,6 +59,7 @@ export function LoginCard() {
 
     const payload = {
       email: String(formData.get('email') ?? ''),
+      csrfToken,
     }
 
     setErrors(null)
