@@ -21,6 +21,15 @@ vi.mock('@/lib/rate-limit', () => ({
   checkCronRateLimit: vi.fn().mockReturnValue(true),
 }))
 
+// Mock env-schema to use process.env.CRON_SECRET
+vi.mock('@/lib/env-schema', () => ({
+  env: {
+    get cronSecret() {
+      return process.env.CRON_SECRET
+    },
+  },
+}))
+
 import { processExpiredSubscriptions } from '@/lib/subscription'
 import { serverLogger } from '@/lib/server-logger'
 
