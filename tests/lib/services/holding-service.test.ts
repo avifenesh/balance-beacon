@@ -338,15 +338,18 @@ describe('holding-service.ts', () => {
         updatedAt: new Date(),
       }
 
-      vi.mocked(prisma.holding.findUnique).mockResolvedValue(mockHolding as never)
+      vi.mocked(prisma.holding.findFirst).mockResolvedValue(mockHolding as never)
 
       const result = await getHoldingById('hold-1')
 
       expect(result).toEqual(mockHolding)
+      expect(prisma.holding.findFirst).toHaveBeenCalledWith({
+        where: { id: 'hold-1', deletedAt: null },
+      })
     })
 
     it('should return null when not found', async () => {
-      vi.mocked(prisma.holding.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.holding.findFirst).mockResolvedValue(null)
 
       const result = await getHoldingById('nonexistent')
 
@@ -412,7 +415,8 @@ describe('holding-service.ts', () => {
       const result = await validateHoldingCategory('cat-1', 'user-1')
 
       expect(prisma.category.findFirst).toHaveBeenCalledWith({
-        where: { id: 'cat-1', userId: 'user-1' },
+        where: { id: 'cat-1', userId: 'user-1', isArchived: false },
+        select: { id: true, isHolding: true },
       })
       expect(result).toBe(true)
     })

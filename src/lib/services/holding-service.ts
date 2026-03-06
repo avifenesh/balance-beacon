@@ -76,12 +76,12 @@ export async function deleteHolding(id: string, deletedBy?: string) {
 export async function getHoldingById(id: string, userId?: string) {
   if (userId) {
     return await prisma.holding.findFirst({
-      where: { id, account: { userId } },
+      where: { id, deletedAt: null, account: { userId } },
       include: { account: true },
     })
   }
-  return await prisma.holding.findUnique({
-    where: { id },
+  return await prisma.holding.findFirst({
+    where: { id, deletedAt: null },
   })
 }
 
@@ -90,7 +90,7 @@ export async function getHoldingById(id: string, userId?: string) {
  */
 export async function getAccountHoldingSymbols(accountId: string): Promise<string[]> {
   const holdings = await prisma.holding.findMany({
-    where: { accountId },
+    where: { accountId, deletedAt: null },
     select: { symbol: true },
   })
 
@@ -116,9 +116,10 @@ export async function refreshHoldingPrices(input: RefreshHoldingPricesInput) {
  * Validate that a category has isHolding = true and belongs to the user
  */
 export async function validateHoldingCategory(categoryId: string, userId?: string): Promise<boolean> {
-  const where = userId ? { id: categoryId, userId } : { id: categoryId }
+  const where = userId ? { id: categoryId, userId, isArchived: false } : { id: categoryId, isArchived: false }
   const category = await prisma.category.findFirst({
     where,
+    select: { id: true, isHolding: true },
   })
 
   if (!category) {
