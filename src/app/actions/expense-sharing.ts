@@ -112,7 +112,7 @@ export async function shareExpenseAction(input: ShareExpenseInput) {
     }
   }
 
-  const totalAmount = Number(transaction.amount)
+  const totalAmount = transaction.amount.toNumber()
 
   if (data.splitType === SplitType.FIXED) {
     const totalShares = data.participants.reduce((sum, p) => sum + (p.shareAmount ?? 0), 0)
@@ -644,7 +644,7 @@ export async function sendPaymentReminderAction(input: SendPaymentReminderInput)
       to: participant.participant.email,
       participantName: participant.participant.displayName,
       ownerName: authUser.displayName,
-      amount: Number(participant.shareAmount),
+      amount: participant.shareAmount.toNumber(),
       currency: participant.sharedExpense.currency,
       description:
         participant.sharedExpense.description || participant.sharedExpense.transaction.description || 'Shared expense',

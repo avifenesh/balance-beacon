@@ -193,12 +193,18 @@ export async function approveTransactionRequestAction(input: z.infer<typeof idSc
   }
 
   try {
-    await prisma.$transaction([
-      prisma.transactionRequest.update({
-        where: { id: request.id },
+    // Use interactive transaction with atomic status check to prevent TOCTOU race
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.transactionRequest.updateMany({
+        where: { id: request.id, status: RequestStatus.PENDING },
         data: { status: RequestStatus.APPROVED },
-      }),
-      prisma.transaction.create({
+      })
+
+      if (updated.count === 0) {
+        throw new Error('Request already processed')
+      }
+
+      await tx.transaction.create({
         data: {
           accountId: request.toId,
           categoryId: request.categoryId,
@@ -209,8 +215,8 @@ export async function approveTransactionRequestAction(input: z.infer<typeof idSc
           month: getMonthStart(request.date),
           description: request.description,
         },
-      }),
-    ])
+      })
+    })
 
     // Invalidate dashboard cache for affected month/account
     const monthKey = getMonthKey(request.date)
@@ -286,10 +292,15 @@ export async function rejectTransactionRequestAction(input: z.infer<typeof idSch
   }
 
   try {
-    await prisma.transactionRequest.update({
-      where: { id: request.id },
+    // Atomic status check to prevent TOCTOU race
+    const updated = await prisma.transactionRequest.updateMany({
+      where: { id: request.id, status: RequestStatus.PENDING },
       data: { status: RequestStatus.REJECTED },
     })
+
+    if (updated.count === 0) {
+      return generalError('Request has already been processed')
+    }
   } catch (error) {
     return handlePrismaError(error, {
       action: 'rejectTransactionRequest',

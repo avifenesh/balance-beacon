@@ -71,6 +71,7 @@ export async function upsertRecurringTemplateAction(input: RecurringTemplateInpu
   }
 
   revalidatePath('/')
+  await invalidateDashboardCache({ accountId: data.accountId })
   return successVoid()
 }
 
@@ -119,6 +120,7 @@ export async function toggleRecurringTemplateAction(input: z.infer<typeof toggle
   }
 
   revalidatePath('/')
+  await invalidateDashboardCache({ accountId: template.accountId })
   return successVoid()
 }
 
@@ -265,5 +267,6 @@ export async function deleteRecurringTemplateAction(input: z.infer<typeof delete
   }
 
   revalidatePath('/')
+  await invalidateDashboardCache({ accountId: template.accountId })
   return successVoid()
 }
