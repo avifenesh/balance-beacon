@@ -365,6 +365,25 @@ describe('auth-server.ts', () => {
         expect(result.valid).toBe(false)
       })
 
+      it('should return false securely if user has no passwordHash (e.g. OAuth)', async () => {
+        const { verifyCredentials } = await import('@/lib/auth-server')
+
+        // Mock database user lookup with no password hash
+        vi.mocked(prisma.user.findFirst).mockResolvedValue({
+          id: 'oauth-user',
+          passwordHash: null,
+          emailVerified: true
+        } as never)
+
+        // Try to login with the dummy password
+        const result = await verifyCredentials({
+          email: 'oauth@test.com',
+          password: 'dummy-password-for-timing-attack-protection'
+        })
+
+        expect(result.valid).toBe(false)
+      })
+
       it('should return false for unregistered email', async () => {
         const { verifyCredentials } = await import('@/lib/auth-server')
 
@@ -456,6 +475,27 @@ describe('auth-server.ts', () => {
         const result = await verifyCredentials({ email: 'user1@test.com', password: 'password123' })
 
         expect(result.valid).toBe(false)
+      })
+
+      it('should prevent timing attacks by executing comparison even for unknown users', async () => {
+        const compareSpy = vi.fn().mockResolvedValue(false)
+        vi.doMock('bcryptjs', () => ({
+          default: {
+            compare: compareSpy,
+          },
+        }))
+
+        await vi.resetModules()
+        const { verifyCredentials } = await import('@/lib/auth-server')
+
+        // No mockDbUser call - database returns null for unknown email
+        vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
+        vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+        const result = await verifyCredentials({ email: 'unknown@test.com', password: 'password123' })
+
+        expect(result.valid).toBe(false)
+        expect(compareSpy).toHaveBeenCalled()
       })
     })
   })

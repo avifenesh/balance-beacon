@@ -1,0 +1,4 @@
+version: 2
+secret:
+  ignored-matches:
+    - match: \$2b\$10\$AVf1akf8PiAAnRprE3S1fePtIxKX9o.Wf.kXIqvE/FIu/U6hALrvC
