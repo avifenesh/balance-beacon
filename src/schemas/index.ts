@@ -233,7 +233,7 @@ export type HoldingInput = z.infer<typeof holdingSchema>
 export const updateHoldingSchema = z.object({
   id: z.string().min(1),
   quantity: z.coerce.number().min(0.000001).max(999999999),
-  averageCost: z.coerce.number().min(0).max(DECIMAL_12_2_MAX, 'Amount too large'),
+  averageCost: z.coerce.number().min(0, 'Average cost cannot be negative').max(DECIMAL_12_2_MAX, 'Amount too large'),
   notes: z.string().max(240).optional().nullable(),
   csrfToken: z.string().min(1, 'Security token required'),
 })
