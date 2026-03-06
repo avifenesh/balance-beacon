@@ -752,7 +752,7 @@ export function TransactionsTab({
                       </span>
                     </div>
                     {!isOptimistic && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         {transaction.type === TransactionType.EXPENSE && (
                           <button
                             type="button"
