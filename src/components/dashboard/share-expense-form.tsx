@@ -61,6 +61,12 @@ export function ShareExpenseForm({
 
     const email = newEmail.trim().toLowerCase()
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError('Enter a valid email address')
+      return
+    }
+    setEmailError(null)
+
     if (participants.some((p) => p.email.toLowerCase() === email)) {
       toast.error('This person is already added')
       return
@@ -212,7 +218,7 @@ export function ShareExpenseForm({
                 }}
               />
               {emailError && (
-                <p id="email-error" className="text-xs text-rose-300">
+                <p id="email-error" role="alert" className="text-xs text-rose-300">
                   {emailError}
                 </p>
               )}

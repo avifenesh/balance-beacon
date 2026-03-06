@@ -925,8 +925,8 @@ describe('auth actions', () => {
       expect(prisma.$transaction).toHaveBeenCalledTimes(1)
       const transactionArg = vi.mocked(prisma.$transaction).mock.calls[0][0]
       expect(Array.isArray(transactionArg)).toBe(true)
-      // Should have 8 delete operations: transactionRequest, transaction, holding, budget, recurringTemplate, monthlyIncomeGoal, dashboardCache, user
-      expect(transactionArg).toHaveLength(8)
+      // Should have 9 operations: sharedExpense soft-delete, transactionRequest, transaction, holding, budget, recurringTemplate, monthlyIncomeGoal, dashboardCache, user
+      expect(transactionArg).toHaveLength(9)
     })
 
     it('requires valid CSRF token', async () => {
