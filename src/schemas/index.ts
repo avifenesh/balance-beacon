@@ -1,12 +1,16 @@
 import { z } from 'zod'
 import { TransactionType, Currency, SplitType, PaymentStatus } from '@prisma/client'
 
+// Shared validators — DB uses Decimal(12,2), max = 9999999999.99
+const DECIMAL_12_2_MAX = 9999999999.99
+const monthKey = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Invalid month format (expected YYYY-MM)')
+
 // Transaction schemas
 export const transactionSchema = z.object({
   accountId: z.string().min(1, 'Account is required'),
   categoryId: z.string().min(1, 'Category is required'),
   type: z.nativeEnum(TransactionType),
-  amount: z.coerce.number().min(0.01, 'Amount must be positive'),
+  amount: z.coerce.number().min(0.01, 'Amount must be positive').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
   date: z.coerce.date(),
   description: z.string().max(240, 'Keep the description short').optional().nullable(),
@@ -31,7 +35,7 @@ export const deleteTransactionSchema = z.object({
 export const transactionRequestSchema = z.object({
   toId: z.string().min(1, 'Target account is required'),
   categoryId: z.string().min(1, 'Category is required'),
-  amount: z.coerce.number().min(0.01, 'Amount must be positive'),
+  amount: z.coerce.number().min(0.01, 'Amount must be positive').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
   date: z.coerce.date(),
   description: z.string().max(240, 'Keep the description short').optional().nullable(),
@@ -49,8 +53,8 @@ export const idSchema = z.object({
 export const budgetSchema = z.object({
   accountId: z.string().min(1),
   categoryId: z.string().min(1),
-  monthKey: z.string().min(7),
-  planned: z.coerce.number().min(0, 'Budget must be >= 0'),
+  monthKey,
+  planned: z.coerce.number().min(0, 'Budget must be >= 0').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
   notes: z.string().max(240).optional().nullable(),
   csrfToken: z.string().min(1, 'Security token required'),
@@ -61,15 +65,15 @@ export type BudgetInput = z.infer<typeof budgetSchema>
 export const deleteBudgetSchema = z.object({
   accountId: z.string().min(1),
   categoryId: z.string().min(1),
-  monthKey: z.string().min(7),
+  monthKey,
   csrfToken: z.string().min(1, 'Security token required'),
 })
 
 // Monthly income goal schemas
 export const monthlyIncomeGoalSchema = z.object({
   accountId: z.string().min(1),
-  monthKey: z.string().min(7),
-  amount: z.coerce.number().min(0.01, 'Income goal must be greater than 0'),
+  monthKey,
+  amount: z.coerce.number().min(0.01, 'Income goal must be greater than 0').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
   notes: z.string().max(240).optional().nullable(),
   setAsDefault: z.boolean().optional().default(false),
@@ -80,7 +84,7 @@ export type MonthlyIncomeGoalInput = z.infer<typeof monthlyIncomeGoalSchema>
 
 export const deleteMonthlyIncomeGoalSchema = z.object({
   accountId: z.string().min(1),
-  monthKey: z.string().min(7),
+  monthKey,
   csrfToken: z.string().min(1, 'Security token required'),
 })
 
@@ -93,12 +97,16 @@ export const recurringTemplateSchema = z
     accountId: z.string().min(1),
     categoryId: z.string().min(1),
     type: z.nativeEnum(TransactionType),
-    amount: z.coerce.number().min(0.01),
+    amount: z.coerce.number().min(0.01).max(DECIMAL_12_2_MAX, 'Amount too large'),
     currency: z.nativeEnum(Currency).default(Currency.USD),
     dayOfMonth: z.coerce.number().min(1).max(31),
     description: z.string().max(240).optional().nullable(),
-    startMonthKey: z.string().min(7, 'Start month is required'),
-    endMonthKey: z.string().min(7).optional().nullable(),
+    startMonthKey: monthKey,
+    endMonthKey: z
+      .string()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Invalid month format (expected YYYY-MM)')
+      .optional()
+      .nullable(),
     isActive: z.boolean().optional().default(true),
     csrfToken: z.string().min(1, 'Security token required'),
   })
@@ -121,7 +129,7 @@ export const toggleRecurringSchema = z.object({
 })
 
 export const applyRecurringSchema = z.object({
-  monthKey: z.string().min(7),
+  monthKey,
   accountId: z.string().min(1),
   templateIds: z.array(z.string()).optional(),
   csrfToken: z.string().min(1, 'Security token required'),
@@ -221,7 +229,7 @@ export const holdingSchema = z.object({
     .max(5, 'Stock symbols are typically 1-5 characters')
     .regex(/^[A-Z]+$/, 'Symbol must be uppercase letters'),
   quantity: z.coerce.number().min(0.000001).max(999999999, 'Quantity out of range'),
-  averageCost: z.coerce.number().min(0, 'Average cost cannot be negative'),
+  averageCost: z.coerce.number().min(0, 'Average cost cannot be negative').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
   notes: z.string().max(240, 'Keep notes short').optional().nullable(),
   csrfToken: z.string().min(1, 'Security token required'),
@@ -232,7 +240,7 @@ export type HoldingInput = z.infer<typeof holdingSchema>
 export const updateHoldingSchema = z.object({
   id: z.string().min(1),
   quantity: z.coerce.number().min(0.000001).max(999999999),
-  averageCost: z.coerce.number().min(0),
+  averageCost: z.coerce.number().min(0).max(DECIMAL_12_2_MAX, 'Amount too large'),
   notes: z.string().max(240).optional().nullable(),
   csrfToken: z.string().min(1, 'Security token required'),
 })
@@ -256,9 +264,9 @@ export type RefreshExchangeRatesInput = z.infer<typeof refreshExchangeRatesSchem
 
 export const setBalanceSchema = z.object({
   accountId: z.string().min(1, 'Account is required'),
-  targetBalance: z.coerce.number(),
+  targetBalance: z.coerce.number().min(-DECIMAL_12_2_MAX, 'Amount too large').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
-  monthKey: z.string().min(7, 'Month key is required'),
+  monthKey,
   csrfToken: z.string().min(1, 'Security token required'),
 })
 
@@ -285,7 +293,11 @@ export type DeleteAccountInput = DeleteUserAccountInput
 // Expense sharing schemas
 export const participantSchema = z.object({
   email: z.string().email('Invalid email address'),
-  shareAmount: z.coerce.number().min(0.01, 'Share amount must be positive').optional(),
+  shareAmount: z.coerce
+    .number()
+    .min(0.01, 'Share amount must be positive')
+    .max(DECIMAL_12_2_MAX, 'Amount too large')
+    .optional(),
   sharePercentage: z.coerce.number().min(0).max(100, 'Percentage must be between 0 and 100').optional(),
 })
 
