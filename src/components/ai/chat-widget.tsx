@@ -586,7 +586,7 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
                         >
                           {session.title}
                         </button>
-                        <div className="flex items-center gap-1 sm:opacity-0 transition sm:group-hover:opacity-100">
+                        <div className="flex items-center gap-1 sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-focus-within:pointer-events-auto sm:transition-opacity">
                           <button
                             type="button"
                             onClick={() => startRename(session)}
