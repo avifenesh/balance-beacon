@@ -769,6 +769,7 @@ export function TransactionsTab({
                           type="button"
                           onClick={() => handleTransactionEdit(transaction)}
                           className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition"
+                          title="Edit"
                           aria-label={`Edit ${transaction.description || 'transaction'}`}
                         >
                           <Pencil className="h-4 w-4" aria-hidden="true" />
@@ -777,6 +778,7 @@ export function TransactionsTab({
                           type="button"
                           onClick={() => handleTransactionDelete(transaction.id)}
                           className="p-1.5 rounded-md bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-400 transition"
+                          title="Delete"
                           aria-label={`Delete ${transaction.description || 'transaction'}`}
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
