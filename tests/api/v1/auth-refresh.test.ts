@@ -82,10 +82,14 @@ describe('POST /api/v1/auth/refresh', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.success).toBe(true)
-      expect(data.data.accessToken).toBeDefined()
-      expect(data.data.refreshToken).toBeDefined()
-      expect(data.data.expiresIn).toBe(900)
+      expect(data).toEqual({
+        success: true,
+        data: {
+          accessToken: expect.any(String),
+          refreshToken: expect.any(String),
+          expiresIn: 900,
+        },
+      })
     })
 
     it('rotates the jti in the database', async () => {

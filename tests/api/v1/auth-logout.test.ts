@@ -74,8 +74,10 @@ describe('POST /api/v1/auth/logout', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.success).toBe(true)
-      expect(data.data.message).toBe('Logged out successfully')
+      expect(data).toEqual({
+        success: true,
+        data: { message: 'Logged out successfully' },
+      })
     })
 
     it('deletes the refresh token from database by jti', async () => {
