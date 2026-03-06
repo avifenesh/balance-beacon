@@ -13,6 +13,7 @@ import {
   type AuthUser,
 } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { serverLogger } from '@/lib/server-logger'
 
 function getSessionSecret(): string {
   const secret = process.env.AUTH_SESSION_SECRET
@@ -21,6 +22,12 @@ function getSessionSecret(): string {
   }
   return secret
 }
+
+// A pre-computed bcrypt hash for a dummy password.
+// This is used to mitigate timing attacks when a user is not found.
+// Hash of "dummy-password-for-timing-attack-protection" with salt rounds=12
+// Must match BCRYPT_ROUNDS (12) used in registration-service.ts and auth.ts
+const DUMMY_HASH = '$2b$12$.QWeM/zA.xnzAUD2ZX5.k.xO0XCorl0cSQrmcE9erbL60hdtKGjqW'
 
 const SESSION_SECRET = getSessionSecret()
 
@@ -98,17 +105,21 @@ export async function verifyCredentials({
     select: { id: true, passwordHash: true, emailVerified: true },
   })
 
-  if (!dbUser) {
-    return { valid: false }
+  // Prevent timing attacks by always performing comparison
+  // If user not found, compare against a dummy hash
+  const targetHash = dbUser?.passwordHash ?? DUMMY_HASH
+  let match = false
+  try {
+    match = await bcrypt.compare(password, targetHash)
+  } catch (error) {
+    serverLogger.error('Unexpected bcrypt.compare failure in verifyCredentials', {
+      action: 'verifyCredentials',
+      input: { email: normalizedEmail, hasUserRecord: Boolean(dbUser) },
+      error,
+    })
   }
 
-  // Check password first before revealing email verification status
-  try {
-    const match = await bcrypt.compare(password, dbUser.passwordHash)
-    if (!match) {
-      return { valid: false }
-    }
-  } catch {
+  if (!dbUser || !dbUser.passwordHash || !match) {
     return { valid: false }
   }
 
