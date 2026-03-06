@@ -644,7 +644,7 @@ describe('sendPaymentReminderAction', () => {
         description: 'Dinner',
         transaction: { description: 'Restaurant' },
       },
-      shareAmount: 50,
+      shareAmount: { toNumber: () => 50 },
       status: PaymentStatus.PENDING,
       reminderSentAt: new Date(Date.now() - 1000 * 60 * 60 * 25), // 25 hours ago
     } as any)

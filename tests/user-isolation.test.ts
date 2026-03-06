@@ -76,7 +76,11 @@ vi.mock('@/lib/stock-api', () => ({
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    $transaction: vi.fn((calls) => Promise.all(calls)),
+    $transaction: vi.fn((arg: unknown) => {
+      if (typeof arg === 'function')
+        return (arg as (tx: typeof import('@/lib/prisma').prisma) => Promise<unknown>)(prisma)
+      return Promise.all(arg as Promise<unknown>[])
+    }),
     account: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -86,6 +90,7 @@ vi.mock('@/lib/prisma', () => ({
       create: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     transaction: {
       create: vi.fn(),
@@ -196,7 +201,7 @@ describe('User Isolation: Transaction Requests', () => {
         type: 'SELF',
         userId: 'owner-user-id', // Same as logged-in user
       } as any)
-      vi.mocked(prisma.transactionRequest.update).mockResolvedValue({} as any)
+      vi.mocked(prisma.transactionRequest.updateMany).mockResolvedValue({ count: 1 })
       vi.mocked(prisma.transaction.create).mockResolvedValue({} as any)
 
       const result = await approveTransactionRequestAction({ id: 'req-id', csrfToken: 'test-token' })
@@ -327,13 +332,13 @@ describe('User Isolation: Transaction Requests', () => {
         type: 'SELF',
         userId: 'owner-user-id',
       } as any)
-      vi.mocked(prisma.transactionRequest.update).mockResolvedValue({} as any)
+      vi.mocked(prisma.transactionRequest.updateMany).mockResolvedValue({ count: 1 })
 
       const result = await rejectTransactionRequestAction({ id: 'req-id', csrfToken: 'test-token' })
 
       expect(result).toEqual({ success: true })
-      expect(prisma.transactionRequest.update).toHaveBeenCalledWith({
-        where: { id: 'req-id' },
+      expect(prisma.transactionRequest.updateMany).toHaveBeenCalledWith({
+        where: { id: 'req-id', status: 'PENDING' },
         data: { status: 'REJECTED' },
       })
     })

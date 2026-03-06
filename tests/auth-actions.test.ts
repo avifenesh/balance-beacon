@@ -35,6 +35,9 @@ vi.mock('@/lib/prisma', () => ({
     recurringTemplate: {
       deleteMany: vi.fn(),
     },
+    monthlyIncomeGoal: {
+      deleteMany: vi.fn(),
+    },
     dashboardCache: {
       deleteMany: vi.fn(),
     },
@@ -919,8 +922,8 @@ describe('auth actions', () => {
       expect(prisma.$transaction).toHaveBeenCalledTimes(1)
       const transactionArg = vi.mocked(prisma.$transaction).mock.calls[0][0]
       expect(Array.isArray(transactionArg)).toBe(true)
-      // Should have 7 delete operations: transactionRequest, transaction, holding, budget, recurringTemplate, dashboardCache, user
-      expect(transactionArg).toHaveLength(7)
+      // Should have 8 delete operations: transactionRequest, transaction, holding, budget, recurringTemplate, monthlyIncomeGoal, dashboardCache, user
+      expect(transactionArg).toHaveLength(8)
     })
 
     it('requires valid CSRF token', async () => {

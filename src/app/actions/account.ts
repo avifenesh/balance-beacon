@@ -7,11 +7,7 @@ import { success, successVoid, failure, generalError } from '@/lib/action-result
 import { parseInput, ensureAccountAccess, requireCsrfToken, requireAuthUser } from './shared'
 import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
-import {
-  accountSelectionSchema,
-  deleteAccountSchema,
-  exportUserDataSchema,
-} from '@/schemas'
+import { accountSelectionSchema, deleteAccountSchema, exportUserDataSchema } from '@/schemas'
 
 /** Switch active account in session. */
 export async function persistActiveAccountAction(input: z.infer<typeof accountSelectionSchema>) {
@@ -111,7 +107,12 @@ export async function deleteAccountAction(input: z.infer<typeof deleteAccountSch
       )
     }
 
-    // 6. DashboardCache - cleanup cached data for user's accounts
+    // 6. MonthlyIncomeGoal - cleanup income goals for user's accounts
+    if (accountIds.length > 0) {
+      deleteOps.push(prisma.monthlyIncomeGoal.deleteMany({ where: { accountId: { in: accountIds } } }))
+    }
+
+    // 7. DashboardCache - cleanup cached data for user's accounts
     if (accountIds.length > 0) {
       deleteOps.push(prisma.dashboardCache.deleteMany({ where: { accountId: { in: accountIds } } }))
     }
