@@ -492,8 +492,11 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
             <div className="relative">
               <button
                 onClick={() => setShowShortcuts(!showShortcuts)}
-                className="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/10 transition"
+                className="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 title="Keyboard shortcuts (?)"
+                aria-label="Keyboard shortcuts"
+                aria-expanded={showShortcuts}
+                aria-controls="keyboard-shortcuts-menu"
               >
                 <Keyboard className="h-4 w-4" />
               </button>
@@ -501,7 +504,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
               {showShortcuts && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowShortcuts(false)} aria-hidden="true" />
-                  <div className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-white/15 bg-slate-900/95 backdrop-blur-xl p-4 shadow-xl z-50">
+                  <div id="keyboard-shortcuts-menu" className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-white/15 bg-slate-900/95 backdrop-blur-xl p-4 shadow-xl z-50">
                     <h4 className="text-sm font-medium text-white mb-3">Keyboard Shortcuts</h4>
                     <div className="space-y-2 text-xs">
                       <ShortcutRow keys="1-6" desc="Switch tabs" />
