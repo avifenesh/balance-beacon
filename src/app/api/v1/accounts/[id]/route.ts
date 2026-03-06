@@ -192,33 +192,46 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return notFoundError('Account not found')
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { activeAccountId: true },
+    // Use transaction to prevent TOCTOU races between active-account check,
+    // count check, and delete
+    const result = await prisma.$transaction(async (tx) => {
+      const dbUser = await tx.user.findUnique({
+        where: { id: user.userId },
+        select: { activeAccountId: true },
+      })
+
+      if (dbUser?.activeAccountId === accountId) {
+        return 'ACTIVE_ACCOUNT' as const
+      }
+
+      const accountCount = await tx.account.count({
+        where: {
+          userId: user.userId,
+          deletedAt: null,
+        },
+      })
+
+      if (accountCount <= 1) {
+        return 'LAST_ACCOUNT' as const
+      }
+
+      await tx.account.update({
+        where: { id: accountId },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: user.userId,
+        },
+      })
+
+      return 'DELETED' as const
     })
 
-    if (dbUser?.activeAccountId === accountId) {
+    if (result === 'ACTIVE_ACCOUNT') {
       return validationError({ id: ['Cannot delete the active account. Switch to another account first.'] })
     }
-
-    const accountCount = await prisma.account.count({
-      where: {
-        userId: user.userId,
-        deletedAt: null,
-      },
-    })
-
-    if (accountCount <= 1) {
+    if (result === 'LAST_ACCOUNT') {
       return validationError({ id: ['Cannot delete your only account.'] })
     }
-
-    await prisma.account.update({
-      where: { id: accountId },
-      data: {
-        deletedAt: new Date(),
-        deletedBy: user.userId,
-      },
-    })
 
     return successResponse({ deleted: true })
   } catch (error) {

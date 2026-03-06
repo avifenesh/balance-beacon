@@ -59,22 +59,36 @@ vi.mock('@/lib/subscription', () => ({
   }),
 }))
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    account: {
-      findFirst: vi.fn(),
+vi.mock('@/lib/prisma', () => {
+  const txClient = {
+    transaction: {
+      aggregate: vi.fn(),
+      create: vi.fn(),
     },
     category: {
-      findFirst: vi.fn(),
-      create: vi.fn(),
       upsert: vi.fn(),
     },
-    transaction: {
-      findMany: vi.fn(),
-      create: vi.fn(),
+  }
+  return {
+    prisma: {
+      account: {
+        findFirst: vi.fn(),
+      },
+      category: {
+        findFirst: vi.fn(),
+        create: vi.fn(),
+        upsert: vi.fn(),
+      },
+      transaction: {
+        findMany: vi.fn(),
+        aggregate: vi.fn(),
+        create: vi.fn(),
+      },
+      $transaction: vi.fn(async (cb: (tx: typeof txClient) => Promise<unknown>) => cb(txClient)),
+      _txClient: txClient,
     },
-  },
-}))
+  }
+})
 
 vi.mock('@/lib/currency', () => ({
   refreshExchangeRates: vi.fn(),
@@ -206,19 +220,12 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.upsert).mockResolvedValue({
-      id: 'cat-adjust',
-      name: 'Balance Adjustment',
-      type: TransactionType.INCOME,
-    } as any)
-
-    // Current: income 500, expense 200 = net 300
-    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
-      { type: TransactionType.INCOME, amount: 500 },
-      { type: TransactionType.EXPENSE, amount: 200 },
-    ] as any)
-
-    vi.mocked(prisma.transaction.create).mockResolvedValue({} as any)
+    const tx = (prisma as any)._txClient
+    vi.mocked(tx.transaction.aggregate)
+      .mockResolvedValueOnce({ _sum: { amount: 500 } }) // income
+      .mockResolvedValueOnce({ _sum: { amount: 200 } }) // expense
+    vi.mocked(tx.category.upsert).mockResolvedValue({ id: 'cat-adjust' } as any)
+    vi.mocked(tx.transaction.create).mockResolvedValue({} as any)
 
     // Target 1000, current 300, need adjustment of +700
     const result = await setBalanceAction({
@@ -233,7 +240,7 @@ describe('setBalanceAction', () => {
     if ('success' in result && result.success) {
       expect(result.data.adjustment).toBe(700)
     }
-    expect(prisma.transaction.create).toHaveBeenCalledWith(
+    expect(tx.transaction.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           type: TransactionType.INCOME,
@@ -264,19 +271,12 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.upsert).mockResolvedValue({
-      id: 'cat-adjust',
-      name: 'Balance Adjustment',
-      type: TransactionType.INCOME,
-    } as any)
-
-    // Current: income 1000, expense 200 = net 800
-    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
-      { type: TransactionType.INCOME, amount: 1000 },
-      { type: TransactionType.EXPENSE, amount: 200 },
-    ] as any)
-
-    vi.mocked(prisma.transaction.create).mockResolvedValue({} as any)
+    const tx = (prisma as any)._txClient
+    vi.mocked(tx.transaction.aggregate)
+      .mockResolvedValueOnce({ _sum: { amount: 1000 } }) // income
+      .mockResolvedValueOnce({ _sum: { amount: 200 } }) // expense
+    vi.mocked(tx.category.upsert).mockResolvedValue({ id: 'cat-adjust' } as any)
+    vi.mocked(tx.transaction.create).mockResolvedValue({} as any)
 
     // Target 300, current 800, need adjustment of -500
     const result = await setBalanceAction({
@@ -291,7 +291,7 @@ describe('setBalanceAction', () => {
     if ('success' in result && result.success) {
       expect(result.data.adjustment).toBe(-500)
     }
-    expect(prisma.transaction.create).toHaveBeenCalledWith(
+    expect(tx.transaction.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           type: TransactionType.EXPENSE,
@@ -323,10 +323,10 @@ describe('setBalanceAction', () => {
     } as any)
 
     // Current: income 1000, expense 200 = net 800
-    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
-      { type: TransactionType.INCOME, amount: 1000 },
-      { type: TransactionType.EXPENSE, amount: 200 },
-    ] as any)
+    const tx = (prisma as any)._txClient
+    vi.mocked(tx.transaction.aggregate)
+      .mockResolvedValueOnce({ _sum: { amount: 1000 } }) // income
+      .mockResolvedValueOnce({ _sum: { amount: 200 } }) // expense
 
     // Target 800, current 800, no adjustment needed
     const result = await setBalanceAction({
@@ -341,7 +341,7 @@ describe('setBalanceAction', () => {
     if ('success' in result && result.success) {
       expect(result.data.adjustment).toBe(0)
     }
-    expect(prisma.transaction.create).not.toHaveBeenCalled()
+    expect(tx.transaction.create).not.toHaveBeenCalled()
   })
 
   it('should upsert Balance Adjustment category atomically', async () => {
@@ -366,15 +366,12 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.upsert).mockResolvedValue({
-      id: 'cat-new',
-      name: 'Balance Adjustment',
-      type: TransactionType.INCOME,
-    } as any)
-
-    vi.mocked(prisma.transaction.findMany).mockResolvedValue([{ type: TransactionType.INCOME, amount: 500 }] as any)
-
-    vi.mocked(prisma.transaction.create).mockResolvedValue({} as any)
+    const tx = (prisma as any)._txClient
+    vi.mocked(tx.transaction.aggregate)
+      .mockResolvedValueOnce({ _sum: { amount: 500 } }) // income
+      .mockResolvedValueOnce({ _sum: { amount: null } }) // expense (none)
+    vi.mocked(tx.category.upsert).mockResolvedValue({ id: 'cat-new' } as any)
+    vi.mocked(tx.transaction.create).mockResolvedValue({} as any)
 
     const result = await setBalanceAction({
       accountId: 'acc-1',
@@ -385,7 +382,7 @@ describe('setBalanceAction', () => {
     })
 
     expect('success' in result && result.success).toBe(true)
-    expect(prisma.category.upsert).toHaveBeenCalledWith({
+    expect(tx.category.upsert).toHaveBeenCalledWith({
       where: {
         userId_name_type: {
           userId: 'test-user',
@@ -425,32 +422,12 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.upsert).mockResolvedValue({
-      id: 'cat-adjust',
-      name: 'Balance Adjustment',
-      type: TransactionType.INCOME,
-    } as any)
-
-    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
-      {
-        type: TransactionType.INCOME,
-        amount: {
-          toNumber: () => 100.5,
-          valueOf: () => 100.5,
-          toString: () => '100.5',
-        },
-      },
-      {
-        type: TransactionType.EXPENSE,
-        amount: {
-          toNumber: () => 25.25,
-          valueOf: () => 25.25,
-          toString: () => '25.25',
-        },
-      },
-    ] as any)
-
-    vi.mocked(prisma.transaction.create).mockResolvedValue({} as any)
+    const tx = (prisma as any)._txClient
+    vi.mocked(tx.transaction.aggregate)
+      .mockResolvedValueOnce({ _sum: { amount: 100.5 } }) // income
+      .mockResolvedValueOnce({ _sum: { amount: 25.25 } }) // expense
+    vi.mocked(tx.category.upsert).mockResolvedValue({ id: 'cat-adjust' } as any)
+    vi.mocked(tx.transaction.create).mockResolvedValue({} as any)
 
     const result = await setBalanceAction({
       accountId: 'acc-1',
@@ -488,18 +465,12 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.upsert).mockResolvedValue({
-      id: 'cat-adjust',
-      name: 'Balance Adjustment',
-      type: TransactionType.INCOME,
-    } as any)
-
-    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
-      { type: TransactionType.INCOME, amount: 100 },
-      { type: TransactionType.EXPENSE, amount: 200 },
-    ] as any)
-
-    vi.mocked(prisma.transaction.create).mockResolvedValue({} as any)
+    const tx = (prisma as any)._txClient
+    vi.mocked(tx.transaction.aggregate)
+      .mockResolvedValueOnce({ _sum: { amount: 100 } }) // income
+      .mockResolvedValueOnce({ _sum: { amount: 200 } }) // expense
+    vi.mocked(tx.category.upsert).mockResolvedValue({ id: 'cat-adjust' } as any)
+    vi.mocked(tx.transaction.create).mockResolvedValue({} as any)
 
     // Current: -100, target: -200, need expense of 100
     const result = await setBalanceAction({
