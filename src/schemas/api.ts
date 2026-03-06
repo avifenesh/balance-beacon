@@ -1,9 +1,6 @@
 import { z } from 'zod'
 import { TransactionType, Currency, SplitType } from '@prisma/client'
-
-// Shared validators — DB uses Decimal(12,2), max = 9999999999.99
-const DECIMAL_12_2_MAX = 9999999999.99
-const monthKey = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Invalid month format (expected YYYY-MM)')
+import { DECIMAL_12_2_MAX, monthKey } from './shared'
 
 // ============================================
 // Transaction Schemas (API)
@@ -83,11 +80,7 @@ export const recurringTemplateApiSchema = z
     dayOfMonth: z.coerce.number().min(1).max(31),
     description: z.string().max(240).optional().nullable(),
     startMonthKey: monthKey,
-    endMonthKey: z
-      .string()
-      .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Invalid month format (expected YYYY-MM)')
-      .optional()
-      .nullable(),
+    endMonthKey: monthKey.optional().nullable(),
     isActive: z.boolean().optional().default(true),
   })
   .refine(

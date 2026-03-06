@@ -1,9 +1,6 @@
 import { z } from 'zod'
 import { TransactionType, Currency, SplitType, PaymentStatus } from '@prisma/client'
-
-// Shared validators — DB uses Decimal(12,2), max = 9999999999.99
-const DECIMAL_12_2_MAX = 9999999999.99
-const monthKey = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Invalid month format (expected YYYY-MM)')
+import { DECIMAL_12_2_MAX, monthKey } from './shared'
 
 // Transaction schemas
 export const transactionSchema = z.object({
@@ -102,11 +99,7 @@ export const recurringTemplateSchema = z
     dayOfMonth: z.coerce.number().min(1).max(31),
     description: z.string().max(240).optional().nullable(),
     startMonthKey: monthKey,
-    endMonthKey: z
-      .string()
-      .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Invalid month format (expected YYYY-MM)')
-      .optional()
-      .nullable(),
+    endMonthKey: monthKey.optional().nullable(),
     isActive: z.boolean().optional().default(true),
     csrfToken: z.string().min(1, 'Security token required'),
   })
@@ -264,7 +257,7 @@ export type RefreshExchangeRatesInput = z.infer<typeof refreshExchangeRatesSchem
 
 export const setBalanceSchema = z.object({
   accountId: z.string().min(1, 'Account is required'),
-  targetBalance: z.coerce.number().min(-DECIMAL_12_2_MAX, 'Amount too large').max(DECIMAL_12_2_MAX, 'Amount too large'),
+  targetBalance: z.coerce.number().min(-DECIMAL_12_2_MAX, 'Amount too small').max(DECIMAL_12_2_MAX, 'Amount too large'),
   currency: z.nativeEnum(Currency).default(Currency.USD),
   monthKey,
   csrfToken: z.string().min(1, 'Security token required'),
