@@ -51,6 +51,7 @@ export default function HoldingsTab({
   const [error, setError] = useState<string | null>(null)
   const [isPendingAction, startAction] = useTransition()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; symbol: string } | null>(null)
 
   const loadHoldings = useCallback(
     async (accountId: string, signal?: AbortSignal) => {
@@ -137,10 +138,14 @@ export default function HoldingsTab({
     })
   }
 
-  const handleDelete = (holdingId: string, symbol: string) => {
-    if (!window.confirm(`Delete ${symbol} holding?`)) {
-      return
-    }
+  const handleDeleteRequest = (holdingId: string, symbol: string) => {
+    setConfirmDelete({ id: holdingId, symbol })
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!confirmDelete) return
+    const { id: holdingId } = confirmDelete
+    setConfirmDelete(null)
 
     setFeedback(null)
     setDeletingId(holdingId)
@@ -180,7 +185,12 @@ export default function HoldingsTab({
   }
 
   return (
-    <div role="tabpanel" id="panel-holdings" aria-labelledby="tab-holdings" className="grid gap-6 lg:grid-cols-[400px_1fr]">
+    <div
+      role="tabpanel"
+      id="panel-holdings"
+      aria-labelledby="tab-holdings"
+      className="relative grid gap-6 lg:grid-cols-[400px_1fr]"
+    >
       <Card className="border-white/15 bg-white/10 h-fit">
         <CardHeader className="gap-1">
           <CardTitle
@@ -340,7 +350,7 @@ export default function HoldingsTab({
                     {staleBadge}
                   </div>
                   <button
-                    onClick={() => handleDelete(holding.id, holding.symbol)}
+                    onClick={() => handleDeleteRequest(holding.id, holding.symbol)}
                     disabled={isPendingAction || deletingId === holding.id}
                     className={cn(
                       'text-xs text-rose-400 transition hover:text-rose-300',
@@ -406,6 +416,34 @@ export default function HoldingsTab({
           })}
         </CardContent>
       </Card>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <Card className="w-full max-w-sm border-white/15 bg-slate-950/90 backdrop-blur-xl">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-white">Delete holding</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-300">
+                Are you sure you want to delete <strong className="text-white">{confirmDelete.symbol}</strong>? This
+                action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => setConfirmDelete(null)}
+                  className="text-slate-300 hover:text-white"
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleDeleteConfirm} className="bg-rose-600 hover:bg-rose-500 text-white">
+                  Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

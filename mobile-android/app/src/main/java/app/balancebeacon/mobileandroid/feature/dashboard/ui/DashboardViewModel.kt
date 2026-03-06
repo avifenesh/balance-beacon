@@ -3,6 +3,8 @@ package app.balancebeacon.mobileandroid.feature.dashboard.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.balancebeacon.mobileandroid.core.result.AppResult
+import app.balancebeacon.mobileandroid.feature.accounts.data.AccountsRepository
+import app.balancebeacon.mobileandroid.feature.accounts.model.AccountDto
 import app.balancebeacon.mobileandroid.feature.dashboard.data.DashboardRepository
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardResponse
 import app.balancebeacon.mobileandroid.feature.transactions.data.TransactionsRepository
@@ -11,12 +13,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 
 data class DashboardOverviewUiState(
     val isLoading: Boolean = false,
+    val isRefreshingRates: Boolean = false,
     val requestActionInProgressId: String? = null,
+    val accounts: List<AccountDto> = emptyList(),
     val accountId: String = "",
-    val monthKey: String = "",
+    val monthKey: String = YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM")),
     val data: DashboardResponse? = null,
     val statusMessage: String? = null,
     val error: String? = null
@@ -24,10 +30,31 @@ data class DashboardOverviewUiState(
 
 class DashboardViewModel(
     private val dashboardRepository: DashboardRepository,
-    private val transactionsRepository: TransactionsRepository
+    private val transactionsRepository: TransactionsRepository,
+    private val accountsRepository: AccountsRepository? = null
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardOverviewUiState())
     val uiState: StateFlow<DashboardOverviewUiState> = _uiState.asStateFlow()
+
+    private var accountsInitialized = false
+
+    fun initializeAccounts() {
+        if (accountsInitialized) return
+        accountsInitialized = true
+
+        viewModelScope.launch {
+            val accounts = when (val result = accountsRepository?.getAccounts()) {
+                is AppResult.Success -> result.value
+                else -> emptyList()
+            }
+            _uiState.update { it.copy(accounts = accounts) }
+        }
+    }
+
+    fun selectAccount(accountId: String) {
+        _uiState.update { it.copy(accountId = accountId, statusMessage = null, error = null) }
+        loadDashboard(accountIdOverride = accountId)
+    }
 
     fun onAccountIdChanged(value: String) {
         _uiState.update { it.copy(accountId = value, statusMessage = null, error = null) }
@@ -35,6 +62,22 @@ class DashboardViewModel(
 
     fun onMonthKeyChanged(value: String) {
         _uiState.update { it.copy(monthKey = value, statusMessage = null, error = null) }
+    }
+
+    fun previousMonth() {
+        val current = parseMonthKey(_uiState.value.monthKey)
+        val newMonth = current.minusMonths(1)
+        val newKey = newMonth.format(MONTH_KEY_FORMATTER)
+        _uiState.update { it.copy(monthKey = newKey, statusMessage = null, error = null) }
+        loadDashboard(monthKeyOverride = newKey)
+    }
+
+    fun nextMonth() {
+        val current = parseMonthKey(_uiState.value.monthKey)
+        val newMonth = current.plusMonths(1)
+        val newKey = newMonth.format(MONTH_KEY_FORMATTER)
+        _uiState.update { it.copy(monthKey = newKey, statusMessage = null, error = null) }
+        loadDashboard(monthKeyOverride = newKey)
     }
 
     fun loadDashboard(
@@ -76,6 +119,32 @@ class DashboardViewModel(
 
                 is AppResult.Failure -> _uiState.update {
                     it.copy(isLoading = false, statusMessage = null, error = result.error.message)
+                }
+            }
+        }
+    }
+
+    fun refreshExchangeRates() {
+        if (_uiState.value.isRefreshingRates) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshingRates = true, error = null) }
+            when (val result = dashboardRepository.refreshExchangeRates()) {
+                is AppResult.Success -> _uiState.update { state ->
+                    state.copy(
+                        isRefreshingRates = false,
+                        data = state.data?.copy(
+                            exchangeRateLastUpdate = result.value.updatedAt
+                        ),
+                        error = null
+                    )
+                }
+
+                is AppResult.Failure -> _uiState.update {
+                    it.copy(
+                        isRefreshingRates = false,
+                        error = result.error.message
+                    )
                 }
             }
         }
@@ -146,7 +215,17 @@ class DashboardViewModel(
         }
     }
 
+    private fun parseMonthKey(key: String): YearMonth {
+        val trimmed = key.trim()
+        return if (trimmed.isBlank() || !MONTH_KEY_REGEX.matches(trimmed)) {
+            YearMonth.now()
+        } else {
+            YearMonth.parse(trimmed, MONTH_KEY_FORMATTER)
+        }
+    }
+
     private companion object {
         val MONTH_KEY_REGEX = Regex("^\\d{4}-\\d{2}$")
+        val MONTH_KEY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM")
     }
 }

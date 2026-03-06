@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/hooks/useToast'
+import { SUBSCRIPTION_PRICE_CENTS } from '@/lib/subscription-constants'
 
 // Paddle.js type declarations
 declare global {
@@ -173,9 +174,7 @@ export function UpgradeClient({ userId, userEmail, priceId, subscriptionState }:
 
         {subscriptionState.status === 'EXPIRED' && (
           <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-4 text-center">
-            <p className="text-rose-300">
-              Your subscription has expired. Upgrade to continue using Balance Beacon.
-            </p>
+            <p className="text-rose-300">Your subscription has expired. Upgrade to continue using Balance Beacon.</p>
           </div>
         )}
 
@@ -183,7 +182,7 @@ export function UpgradeClient({ userId, userEmail, priceId, subscriptionState }:
           <CardHeader className="text-center">
             <CardTitle className="text-xl text-white">Pro Plan</CardTitle>
             <div className="mt-2">
-              <span className="text-4xl font-bold text-white">$5</span>
+              <span className="text-4xl font-bold text-white">${SUBSCRIPTION_PRICE_CENTS / 100}</span>
               <span className="text-slate-400">/month</span>
             </div>
           </CardHeader>
@@ -223,18 +222,12 @@ export function UpgradeClient({ userId, userEmail, priceId, subscriptionState }:
               {isLoading ? 'Opening checkout...' : isPaddleReady ? 'Subscribe Now' : 'Loading...'}
             </Button>
 
-            <p className="text-center text-xs text-slate-500">
-              Cancel anytime. Secure payment via Paddle.
-            </p>
+            <p className="text-center text-xs text-slate-500">Cancel anytime. Secure payment via Paddle.</p>
           </CardContent>
         </Card>
 
         {subscriptionState.status !== 'EXPIRED' && (
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/')}
-            className="w-full text-slate-400 hover:text-white"
-          >
+          <Button variant="ghost" onClick={() => router.push('/')} className="w-full text-slate-400 hover:text-white">
             Continue with trial
           </Button>
         )}
@@ -245,13 +238,7 @@ export function UpgradeClient({ userId, userEmail, priceId, subscriptionState }:
 
 function CheckIcon() {
   return (
-    <svg
-      className="h-5 w-5 text-emerald-400"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
+    <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
   )

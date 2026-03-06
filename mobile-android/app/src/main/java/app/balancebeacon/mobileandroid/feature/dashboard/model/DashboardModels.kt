@@ -125,6 +125,9 @@ data class DashboardPaymentHistoryItemDto(
 )
 
 @Serializable
+data class ExchangeRateRefreshResponse(val updatedAt: String)
+
+@Serializable
 data class DashboardResponse(
     val month: String,
     val preferredCurrency: String? = null,

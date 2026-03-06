@@ -16,6 +16,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class ParticipantEntry(
+    val email: String,
+    val displayName: String? = null,
+    val shareValue: Double? = null
+)
+
 data class SharingUiState(
     val isLoading: Boolean = false,
     val isActionInProgress: Boolean = false,
@@ -26,7 +32,13 @@ data class SharingUiState(
     val lookedUpUser: ShareUserDto? = null,
     val actionMessage: String? = null,
     val actionMessageIsError: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val createSplitType: String = "EQUAL",
+    val participants: List<ParticipantEntry> = emptyList(),
+    val newParticipantEmail: String = "",
+    val isLookingUpParticipant: Boolean = false,
+    val createTransactionId: String = "",
+    val createDescription: String = ""
 )
 
 class SharingViewModel(
@@ -268,6 +280,100 @@ class SharingViewModel(
                     )
                 }
 
+                is AppResult.Failure -> updateActionError(result.error.message)
+            }
+        }
+    }
+
+    fun onSplitTypeChanged(splitType: String) {
+        _uiState.update { it.copy(createSplitType = splitType, actionMessage = null) }
+    }
+
+    fun onNewParticipantEmailChanged(value: String) {
+        _uiState.update { it.copy(newParticipantEmail = value) }
+    }
+
+    fun onCreateTransactionIdChanged(value: String) {
+        _uiState.update { it.copy(createTransactionId = value) }
+    }
+
+    fun onCreateDescriptionChanged(value: String) {
+        _uiState.update { it.copy(createDescription = value) }
+    }
+
+    fun addParticipant() {
+        val email = _uiState.value.newParticipantEmail.trim().lowercase()
+        if (email.isBlank() || !email.contains("@")) {
+            updateActionError("Enter a valid email")
+            return
+        }
+        if (_uiState.value.participants.any { it.email == email }) {
+            updateActionError("Participant already added")
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLookingUpParticipant = true) }
+            when (val result = sharingRepository.lookupUser(email)) {
+                is AppResult.Success -> _uiState.update {
+                    it.copy(
+                        isLookingUpParticipant = false,
+                        participants = it.participants + ParticipantEntry(email = result.value.email, displayName = result.value.displayName),
+                        newParticipantEmail = "",
+                        actionMessage = null,
+                        actionMessageIsError = false
+                    )
+                }
+                is AppResult.Failure -> _uiState.update {
+                    it.copy(isLookingUpParticipant = false, actionMessage = result.error.message, actionMessageIsError = true)
+                }
+            }
+        }
+    }
+
+    fun removeParticipant(index: Int) {
+        _uiState.update { it.copy(participants = it.participants.filterIndexed { i, _ -> i != index }) }
+    }
+
+    fun updateParticipantValue(index: Int, value: Double?) {
+        _uiState.update {
+            it.copy(participants = it.participants.mapIndexed { i, entry -> if (i == index) entry.copy(shareValue = value) else entry })
+        }
+    }
+
+    fun createStructuredSharedExpense() {
+        val state = _uiState.value
+        val transactionId = state.createTransactionId.trim()
+        if (transactionId.isBlank()) { updateActionError("Transaction ID is required"); return }
+        if (state.participants.isEmpty()) { updateActionError("Add at least one participant"); return }
+
+        val apiParticipants = state.participants.map { entry ->
+            when (state.createSplitType) {
+                "PERCENTAGE" -> CreateSharedExpenseParticipantRequest(email = entry.email, sharePercentage = entry.shareValue)
+                "FIXED" -> CreateSharedExpenseParticipantRequest(email = entry.email, shareAmount = entry.shareValue)
+                else -> CreateSharedExpenseParticipantRequest(email = entry.email)
+            }
+        }
+
+        if (state.createSplitType == "FIXED" && apiParticipants.any { (it.shareAmount ?: 0.0) <= 0.0 }) {
+            updateActionError("Each participant needs a fixed amount"); return
+        }
+        if (state.createSplitType == "PERCENTAGE") {
+            val total = apiParticipants.sumOf { it.sharePercentage ?: 0.0 }
+            if (total > 100.0) { updateActionError("Total percentage cannot exceed 100"); return }
+            if (apiParticipants.any { (it.sharePercentage ?: 0.0) <= 0.0 }) { updateActionError("Each participant needs a percentage"); return }
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionInProgress = true, actionMessage = null, actionMessageIsError = false) }
+            when (val result = sharingRepository.createSharedExpense(
+                transactionId = transactionId, splitType = state.createSplitType,
+                participants = apiParticipants, description = state.createDescription.trim().takeIf { it.isNotBlank() }
+            )) {
+                is AppResult.Success -> _uiState.update {
+                    it.copy(isActionInProgress = false, sharedByMe = listOf(result.value) + it.sharedByMe,
+                        participants = emptyList(), createTransactionId = "", createDescription = "",
+                        actionMessage = "Shared expense created", actionMessageIsError = false)
+                }
                 is AppResult.Failure -> updateActionError(result.error.message)
             }
         }

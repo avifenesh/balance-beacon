@@ -366,9 +366,7 @@ export function TransactionsTab({
       const result = await deleteTransactionAction({ id, csrfToken })
       if ('error' in result) {
         // Check if error is "not found" - transaction already deleted on server
-        const isNotFound = result.error?.general?.some((msg: string) =>
-          msg.toLowerCase().includes('not found')
-        )
+        const isNotFound = result.error?.general?.some((msg: string) => msg.toLowerCase().includes('not found'))
         if (isNotFound) {
           // Transaction doesn't exist on server, keep it removed from UI
           toast.info('Transaction was already removed.')
@@ -432,196 +430,196 @@ export function TransactionsTab({
                 <p className="text-xs text-slate-400">Please create a category before adding a transaction.</p>
               </div>
             ) : (
-            <form id="transaction-form" onSubmit={handleTransactionSubmit} className="grid gap-4" tabIndex={-1}>
-              {formErrors?.general && <p className="text-xs text-rose-300">{formErrors.general[0]}</p>}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-300" htmlFor="transactionType">
-                    Type
-                  </label>
-                  <Select
-                    id="transactionType"
-                    name="type"
-                    value={transactionFormState.type}
-                    onChange={(event) => handleTransactionTypeChange(event.target.value as TransactionType)}
-                    options={transactionTypeOptions}
-                  />
+              <form id="transaction-form" onSubmit={handleTransactionSubmit} className="grid gap-4" tabIndex={-1}>
+                {formErrors?.general && <p className="text-xs text-rose-300">{formErrors.general[0]}</p>}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-300" htmlFor="transactionType">
+                      Type
+                    </label>
+                    <Select
+                      id="transactionType"
+                      name="type"
+                      value={transactionFormState.type}
+                      onChange={(event) => handleTransactionTypeChange(event.target.value as TransactionType)}
+                      options={transactionTypeOptions}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-300" htmlFor="transactionAccount">
+                      Account
+                    </label>
+                    <Select
+                      id="transactionAccount"
+                      name="accountId"
+                      value={transactionFormState.accountId}
+                      onChange={(event) =>
+                        setTransactionFormState((prev) => ({
+                          ...prev,
+                          accountId: event.target.value,
+                        }))
+                      }
+                      options={transactionFormAccountOptions}
+                      disabled={transactionFormAccountOptions.length === 0}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-300" htmlFor="transactionCategory">
+                      Category
+                    </label>
+                    <Select
+                      id="transactionCategory"
+                      name="categoryId"
+                      value={transactionFormState.categoryId}
+                      onChange={(event) => {
+                        setTransactionFormState((prev) => ({
+                          ...prev,
+                          categoryId: event.target.value,
+                        }))
+                        validation.getFieldProps('categoryId').onChange()
+                      }}
+                      onBlur={() => {
+                        validation.validateField('categoryId', transactionFormState.categoryId)
+                      }}
+                      options={transactionCategoryOptions}
+                      required
+                      disabled={transactionCategoryOptions.length === 0}
+                      error={validation.fields.categoryId?.touched && !!validation.fields.categoryId?.error}
+                      valid={validation.fields.categoryId?.touched && validation.fields.categoryId?.valid}
+                      aria-describedby={formErrors?.categoryId ? 'categoryId-error' : undefined}
+                    />
+                    {(formErrors?.categoryId || validation.fields.categoryId?.error) && (
+                      <p id="categoryId-error" className="text-xs text-rose-300" role="alert">
+                        {formErrors?.categoryId?.[0] || validation.fields.categoryId?.error}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-300" htmlFor="transactionAmount">
+                      Amount
+                    </label>
+                    <Input
+                      name="amount"
+                      id="transactionAmount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={transactionFormState.amount}
+                      onChange={(event) => {
+                        setTransactionFormState((prev) => ({
+                          ...prev,
+                          amount: event.target.value,
+                        }))
+                        validation.getFieldProps('amount').onChange()
+                      }}
+                      onBlur={() => {
+                        validation.validateField('amount', transactionFormState.amount)
+                      }}
+                      error={validation.fields.amount?.touched && !!validation.fields.amount?.error}
+                      valid={validation.fields.amount?.touched && validation.fields.amount?.valid}
+                      aria-describedby={formErrors?.amount ? 'amount-error' : undefined}
+                    />
+                    {(formErrors?.amount || validation.fields.amount?.error) && (
+                      <p id="amount-error" className="text-xs text-rose-300" role="alert">
+                        {formErrors?.amount?.[0] || validation.fields.amount?.error}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-300" htmlFor="transactionCurrency">
+                      Currency
+                    </label>
+                    <Select
+                      id="transactionCurrency"
+                      name="currency"
+                      value={transactionFormState.currency}
+                      onChange={(event) =>
+                        setTransactionFormState((prev) => ({
+                          ...prev,
+                          currency: event.target.value as Currency,
+                        }))
+                      }
+                      options={currencyOptions}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-300" htmlFor="transactionDate">
+                      Date
+                    </label>
+                    <Input
+                      name="date"
+                      id="transactionDate"
+                      type="date"
+                      value={transactionFormState.date}
+                      onChange={(event) => {
+                        setTransactionFormState((prev) => ({
+                          ...prev,
+                          date: event.target.value,
+                        }))
+                        validation.getFieldProps('date').onChange()
+                      }}
+                      onBlur={() => {
+                        validation.validateField('date', transactionFormState.date)
+                      }}
+                      required
+                      error={validation.fields.date?.touched && !!validation.fields.date?.error}
+                      valid={validation.fields.date?.touched && validation.fields.date?.valid}
+                      aria-describedby={formErrors?.date ? 'date-error' : undefined}
+                    />
+                    {(formErrors?.date || validation.fields.date?.error) && (
+                      <p id="date-error" className="text-xs text-rose-300" role="alert">
+                        {formErrors?.date?.[0] || validation.fields.date?.error}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-300" htmlFor="transactionAccount">
-                    Account
+                  <label className="text-xs font-medium text-slate-300" htmlFor="transactionDescription">
+                    Description (optional)
                   </label>
-                  <Select
-                    id="transactionAccount"
-                    name="accountId"
-                    value={transactionFormState.accountId}
+                  <Textarea
+                    id="transactionDescription"
+                    name="description"
+                    placeholder="What was this for?"
+                    rows={2}
+                    value={transactionFormState.description}
                     onChange={(event) =>
                       setTransactionFormState((prev) => ({
                         ...prev,
-                        accountId: event.target.value,
+                        description: event.target.value,
                       }))
                     }
-                    options={transactionFormAccountOptions}
-                    disabled={transactionFormAccountOptions.length === 0}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-300" htmlFor="transactionCategory">
-                    Category
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      name="isRecurring"
+                      checked={transactionFormState.isRecurring}
+                      onChange={(event) =>
+                        setTransactionFormState((prev) => ({
+                          ...prev,
+                          isRecurring: event.target.checked,
+                        }))
+                      }
+                      className="size-4 rounded border-slate-600 bg-slate-700 text-sky-500 focus:ring-sky-500"
+                    />
+                    Recurring
                   </label>
-                  <Select
-                    id="transactionCategory"
-                    name="categoryId"
-                    value={transactionFormState.categoryId}
-                    onChange={(event) => {
-                      setTransactionFormState((prev) => ({
-                        ...prev,
-                        categoryId: event.target.value,
-                      }))
-                      validation.getFieldProps('categoryId').onChange()
-                    }}
-                    onBlur={() => {
-                      validation.validateField('categoryId', transactionFormState.categoryId)
-                    }}
-                    options={transactionCategoryOptions}
-                    required
-                    disabled={transactionCategoryOptions.length === 0}
-                    error={validation.fields.categoryId?.touched && !!validation.fields.categoryId?.error}
-                    valid={validation.fields.categoryId?.touched && validation.fields.categoryId?.valid}
-                    aria-describedby={formErrors?.categoryId ? 'categoryId-error' : undefined}
-                  />
-                  {(formErrors?.categoryId || validation.fields.categoryId?.error) && (
-                    <p id="categoryId-error" className="text-xs text-rose-300" role="alert">
-                      {formErrors?.categoryId?.[0] || validation.fields.categoryId?.error}
-                    </p>
-                  )}
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-300" htmlFor="transactionAmount">
-                    Amount
-                  </label>
-                  <Input
-                    name="amount"
-                    id="transactionAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    value={transactionFormState.amount}
-                    onChange={(event) => {
-                      setTransactionFormState((prev) => ({
-                        ...prev,
-                        amount: event.target.value,
-                      }))
-                      validation.getFieldProps('amount').onChange()
-                    }}
-                    onBlur={() => {
-                      validation.validateField('amount', transactionFormState.amount)
-                    }}
-                    error={validation.fields.amount?.touched && !!validation.fields.amount?.error}
-                    valid={validation.fields.amount?.touched && validation.fields.amount?.valid}
-                    aria-describedby={formErrors?.amount ? 'amount-error' : undefined}
-                  />
-                  {(formErrors?.amount || validation.fields.amount?.error) && (
-                    <p id="amount-error" className="text-xs text-rose-300" role="alert">
-                      {formErrors?.amount?.[0] || validation.fields.amount?.error}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-300" htmlFor="transactionCurrency">
-                    Currency
-                  </label>
-                  <Select
-                    id="transactionCurrency"
-                    name="currency"
-                    value={transactionFormState.currency}
-                    onChange={(event) =>
-                      setTransactionFormState((prev) => ({
-                        ...prev,
-                        currency: event.target.value as Currency,
-                      }))
-                    }
-                    options={currencyOptions}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-300" htmlFor="transactionDate">
-                    Date
-                  </label>
-                  <Input
-                    name="date"
-                    id="transactionDate"
-                    type="date"
-                    value={transactionFormState.date}
-                    onChange={(event) => {
-                      setTransactionFormState((prev) => ({
-                        ...prev,
-                        date: event.target.value,
-                      }))
-                      validation.getFieldProps('date').onChange()
-                    }}
-                    onBlur={() => {
-                      validation.validateField('date', transactionFormState.date)
-                    }}
-                    required
-                    error={validation.fields.date?.touched && !!validation.fields.date?.error}
-                    valid={validation.fields.date?.touched && validation.fields.date?.valid}
-                    aria-describedby={formErrors?.date ? 'date-error' : undefined}
-                  />
-                  {(formErrors?.date || validation.fields.date?.error) && (
-                    <p id="date-error" className="text-xs text-rose-300" role="alert">
-                      {formErrors?.date?.[0] || validation.fields.date?.error}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-300" htmlFor="transactionDescription">
-                  Description (optional)
-                </label>
-                <Textarea
-                  id="transactionDescription"
-                  name="description"
-                  placeholder="What was this for?"
-                  rows={2}
-                  value={transactionFormState.description}
-                  onChange={(event) =>
-                    setTransactionFormState((prev) => ({
-                      ...prev,
-                      description: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="flex items-center gap-2 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    name="isRecurring"
-                    checked={transactionFormState.isRecurring}
-                    onChange={(event) =>
-                      setTransactionFormState((prev) => ({
-                        ...prev,
-                        isRecurring: event.target.checked,
-                      }))
-                    }
-                    className="size-4 rounded border-slate-600 bg-slate-700 text-sky-500 focus:ring-sky-500"
-                  />
-                  Recurring
-                </label>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="submit" loading={isPendingTransaction} className="flex-1">
-                  {isEditingTransaction ? 'Update transaction' : 'Save transaction'}
-                </Button>
-                {isEditingTransaction && (
-                  <Button type="button" variant="outline" onClick={handleCancelTransactionEdit}>
-                    Cancel
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="submit" loading={isPendingTransaction} className="flex-1">
+                    {isEditingTransaction ? 'Update transaction' : 'Save transaction'}
                   </Button>
-                )}
-              </div>
-            </form>
+                  {isEditingTransaction && (
+                    <Button type="button" variant="outline" onClick={handleCancelTransactionEdit}>
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </form>
             )}
           </CardContent>
         </Card>
@@ -715,6 +713,10 @@ export function TransactionsTab({
                   >
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2 font-medium text-white">
+                        <span
+                          className="inline-block h-3 w-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: transaction.category.color || '#0ea5e9' }}
+                        />
                         <span>{transaction.category.name}</span>
                         <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-slate-200">
                           {transaction.account.name}

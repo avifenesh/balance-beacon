@@ -29,6 +29,7 @@ data class AssistantUiState(
     val sessions: List<AssistantChatSession> = emptyList(),
     val activeSessionId: String = "",
     val sessionTitleInput: String = "",
+    val renamingSessionId: String? = null,
     val error: String? = null
 )
 
@@ -141,6 +142,20 @@ class AssistantViewModel(
 
     fun onSessionTitleChanged(value: String) {
         _uiState.update { it.copy(sessionTitleInput = value, error = null) }
+    }
+
+    fun startRenamingSession(sessionId: String) {
+        val title = _uiState.value.sessions.firstOrNull { it.id == sessionId }?.title.orEmpty()
+        _uiState.update { it.copy(renamingSessionId = sessionId, sessionTitleInput = title) }
+    }
+
+    fun cancelRenaming() {
+        _uiState.update { it.copy(renamingSessionId = null) }
+    }
+
+    fun confirmRenaming() {
+        renameCurrentSession()
+        _uiState.update { it.copy(renamingSessionId = null) }
     }
 
     fun renameCurrentSession() {

@@ -1,21 +1,47 @@
 package app.balancebeacon.mobileandroid.feature.dashboard.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -23,7 +49,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -31,6 +60,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardBudgetProgressDto
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardComparisonDto
@@ -41,7 +71,18 @@ import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardStatBrea
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardStatCategoryDto
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardStatDto
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardTransactionRequestDto
+import app.balancebeacon.mobileandroid.ui.components.MonthNavigator
+import app.balancebeacon.mobileandroid.ui.components.SkeletonLine
+import app.balancebeacon.mobileandroid.ui.util.sanitizeError
+import app.balancebeacon.mobileandroid.ui.theme.Emerald400
+import app.balancebeacon.mobileandroid.ui.theme.GlassBorder
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+import app.balancebeacon.mobileandroid.ui.theme.GlassSurface
+import app.balancebeacon.mobileandroid.ui.theme.Rose400
+import app.balancebeacon.mobileandroid.ui.theme.Sky300
+import app.balancebeacon.mobileandroid.ui.theme.SkyBlue
+import app.balancebeacon.mobileandroid.ui.theme.Slate200
+import app.balancebeacon.mobileandroid.ui.theme.Slate700
 import java.text.NumberFormat
 import java.time.OffsetDateTime
 import java.time.YearMonth
@@ -50,23 +91,35 @@ import java.time.format.TextStyle
 import java.util.Currency
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardOverviewScreen(
     viewModel: DashboardViewModel,
+    navToAccounts: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val view = LocalView.current
     val data = state.data
     var expandedStatLabel by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
+        viewModel.initializeAccounts()
         if (state.data == null && !state.isLoading) {
             viewModel.loadDashboard()
         }
     }
 
+    PullToRefreshBox(
+        isRefreshing = state.isLoading,
+        onRefresh = {
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            viewModel.loadDashboard()
+        },
+        modifier = modifier.fillMaxSize()
+    ) {
     LazyColumn(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -74,39 +127,26 @@ fun DashboardOverviewScreen(
         item {
             GlassPanel(modifier = Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Overview", style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        "Load dashboard summary, budgets, recent activity, and sharing signals.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    OutlinedTextField(
-                        value = state.accountId,
-                        onValueChange = viewModel::onAccountIdChanged,
-                        label = { Text("Account ID (optional)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = state.monthKey,
-                        onValueChange = viewModel::onMonthKeyChanged,
-                        label = { Text("Month (YYYY-MM, optional)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = { viewModel.loadDashboard() },
-                            enabled = !state.isLoading
-                        ) {
-                            Text(if (state.isLoading) "Loading..." else "Load Overview")
-                        }
+                    if (state.accounts.isNotEmpty()) {
+                        Text("Account", style = MaterialTheme.typography.labelLarge)
+                        AccountSelectorRow(
+                            accountNames = state.accounts.map { it.id to it.name },
+                            selectedAccountId = state.accountId,
+                            onSelect = viewModel::selectAccount
+                        )
                     }
 
+                    MonthNavigator(
+                        monthKey = state.monthKey,
+                        onPreviousMonth = viewModel::previousMonth,
+                        onNextMonth = viewModel::nextMonth,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
                     if (state.isLoading) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            CircularProgressIndicator()
-                            Text("Fetching dashboard data...")
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SkeletonLine(width = 200.dp, height = 14.dp)
+                            SkeletonLine(width = 140.dp, height = 14.dp)
                         }
                     }
                     state.statusMessage?.let { message ->
@@ -118,12 +158,18 @@ fun DashboardOverviewScreen(
                     }
                     state.error?.let { error ->
                         Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
+                            text = sanitizeError(error),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
+            }
+        }
+
+        if (data == null && !state.isLoading && state.accounts.isEmpty()) {
+            item {
+                WelcomeEmptyState(navToAccounts = navToAccounts)
             }
         }
 
@@ -135,6 +181,7 @@ fun DashboardOverviewScreen(
                     totalIncome = parseAmount(dashboard.summary.totalIncome),
                     totalExpenses = parseAmount(dashboard.summary.totalExpenses),
                     netResult = parseAmount(dashboard.summary.netResult),
+                    netHistory = dashboard.history.map { it.net },
                     currencyCode = currencyCode
                 )
             }
@@ -166,7 +213,11 @@ fun DashboardOverviewScreen(
             }
             dashboard.exchangeRateLastUpdate?.let { updatedAt ->
                 item {
-                    ExchangeRateSection(updatedAt = updatedAt)
+                    ExchangeRateSection(
+                        updatedAt = updatedAt,
+                        isRefreshing = state.isRefreshingRates,
+                        onRefresh = viewModel::refreshExchangeRates
+                    )
                 }
             }
             if (dashboard.paymentHistory.isNotEmpty()) {
@@ -249,6 +300,181 @@ fun DashboardOverviewScreen(
             }
         }
     }
+    } // PullToRefreshBox
+}
+
+@Composable
+private fun WelcomeEmptyState(navToAccounts: () -> Unit) {
+    GlassPanel(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = SkyBlue
+            )
+            Text(
+                text = "Welcome to Balance Beacon",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                text = "Track your spending, manage budgets, and understand your finances.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FeatureHighlightChip(
+                    icon = Icons.Default.Receipt,
+                    label = "Track Spending",
+                    modifier = Modifier.weight(1f)
+                )
+                FeatureHighlightChip(
+                    icon = Icons.Default.AccountBalance,
+                    label = "Set Budgets",
+                    modifier = Modifier.weight(1f)
+                )
+                FeatureHighlightChip(
+                    icon = Icons.Default.AutoAwesome,
+                    label = "AI Insights",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+
+    GlassPanel(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Create your first account to begin tracking",
+                style = MaterialTheme.typography.titleSmall
+            )
+            Button(
+                onClick = navToAccounts,
+                colors = ButtonDefaults.buttonColors(containerColor = SkyBlue)
+            ) {
+                Text("Create Account")
+            }
+            Text(
+                text = "Already have an account? Your data will appear here automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeatureHighlightChip(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = GlassSurface,
+        border = BorderStroke(1.dp, GlassBorder)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = Sky300
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Slate200
+            )
+        }
+    }
+}
+
+@Composable
+private fun MiniSparkline(
+    values: List<Double>,
+    modifier: Modifier = Modifier,
+    strokeColor: Color = Color.White,
+    fillAlpha: Float = 0.15f
+) {
+    if (values.size < 2) {
+        Box(modifier = modifier)
+        return
+    }
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(28.dp)
+    ) {
+        val maxValue = values.max()
+        val minValue = values.min()
+        val range = (maxValue - minValue).takeIf { it > 0.0 } ?: 1.0
+        val chartHeight = size.height
+        val chartWidth = size.width
+        val stepX = chartWidth / (values.size - 1).toFloat()
+
+        fun yFor(value: Double): Float {
+            val normalized = ((maxValue - value) / range).toFloat()
+            return normalized * chartHeight
+        }
+
+        val linePath = Path().apply {
+            values.forEachIndexed { index, value ->
+                val x = stepX * index
+                val y = yFor(value)
+                if (index == 0) {
+                    moveTo(x, y)
+                } else {
+                    lineTo(x, y)
+                }
+            }
+        }
+
+        val fillPath = Path().apply {
+            addPath(linePath)
+            lineTo(chartWidth, chartHeight)
+            lineTo(0f, chartHeight)
+            close()
+        }
+
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    strokeColor.copy(alpha = fillAlpha),
+                    strokeColor.copy(alpha = 0.02f)
+                )
+            )
+        )
+
+        drawPath(
+            path = linePath,
+            color = strokeColor,
+            style = Stroke(
+                width = 2f,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+    }
 }
 
 @Composable
@@ -256,11 +482,13 @@ private fun SummarySection(
     totalIncome: Double,
     totalExpenses: Double,
     netResult: Double,
+    netHistory: List<Double>,
     currencyCode: String
 ) {
     GlassPanel(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Cashflow Snapshot", style = MaterialTheme.typography.titleMedium)
+            MiniSparkline(values = netHistory)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -299,6 +527,22 @@ private fun MetricCard(
     }
 }
 
+private fun resolveStatIcon(label: String): ImageVector {
+    val n = label.lowercase()
+    return when {
+        listOf("net", "saved", "income", "inflow").any { n.contains(it) } -> Icons.Default.AccountBalanceWallet
+        listOf("spend", "expense", "outflow").any { n.contains(it) } -> Icons.Default.CreditCard
+        listOf("target", "goal", "budget", "track").any { n.contains(it) } -> Icons.Default.Layers
+        else -> Icons.Default.TrendingUp
+    }
+}
+
+private fun variantChipColor(variant: String?): Color = when (variant) {
+    "positive" -> Emerald400
+    "negative" -> Rose400
+    else -> Slate700
+}
+
 @Composable
 private fun StatsSection(
     stats: List<DashboardStatDto>,
@@ -319,6 +563,12 @@ private fun StatsSection(
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
 
+                val chevronRotation by animateFloatAsState(
+                    targetValue = if (isExpanded) 180f else 0f,
+                    animationSpec = tween(200),
+                    label = "chevron_${stat.label}"
+                )
+
                 GlassPanel(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -333,17 +583,51 @@ private fun StatsSection(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = stat.label,
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            Text(
-                                text = formatCurrency(stat.amount, currencyCode),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = variantColor
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = variantChipColor(stat.variant).copy(alpha = 0.2f)
+                                ) {
+                                    Icon(
+                                        imageVector = resolveStatIcon(stat.label),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .padding(6.dp)
+                                            .size(16.dp),
+                                        tint = variantChipColor(stat.variant)
+                                    )
+                                }
+                                Text(
+                                    text = stat.label,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = formatCurrency(stat.amount, currencyCode),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = variantColor
+                                )
+                                if (hasBreakdown) {
+                                    Icon(
+                                        imageVector = Icons.Default.ExpandMore,
+                                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .rotate(chevronRotation),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                         stat.helper?.takeIf { it.isNotBlank() }?.let { helper ->
                             Text(
@@ -515,20 +799,48 @@ private fun MonthAtGlanceSection(
 }
 
 @Composable
-private fun ExchangeRateSection(updatedAt: String) {
+private fun ExchangeRateSection(
+    updatedAt: String,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit
+) {
     val formatted = runCatching {
         val parsed = OffsetDateTime.parse(updatedAt)
         parsed.format(DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm"))
     }.getOrNull() ?: updatedAt
 
     GlassPanel(modifier = Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Exchange rate data", style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = "Last update: $formatted",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Exchange rate data", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "Last update: $formatted",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onRefresh, enabled = !isRefreshing) {
+                if (isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = SkyBlue
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh exchange rates",
+                        tint = Color.White
+                    )
+                }
+            }
         }
     }
 }
@@ -777,6 +1089,37 @@ private fun RequestsSection(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AccountSelectorRow(
+    accountNames: List<Pair<String, String>>,
+    selectedAccountId: String,
+    onSelect: (String) -> Unit
+) {
+    if (accountNames.isEmpty()) {
+        Text(
+            text = "No accounts available",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        accountNames.forEach { (id, name) ->
+            FilterChip(
+                selected = selectedAccountId == id,
+                onClick = { onSelect(id) },
+                label = { Text(name) }
+            )
         }
     }
 }

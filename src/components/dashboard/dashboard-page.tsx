@@ -161,7 +161,8 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
   const [activeAccount, setActiveAccount] = useState<string>(initialAccountId)
   const [accountFeedback, setAccountFeedback] = useState<Feedback | null>(null)
   const [showBalanceForm, setShowBalanceForm] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabValue>('overview')
+  const tabParam = searchParams.get('tab')
+  const activeTab: TabValue = tabParam && TABS.some((t) => t.value === tabParam) ? (tabParam as TabValue) : 'overview'
   const [expandedStat, setExpandedStat] = useState<string | null>(null)
 
   const [, startPersistAccount] = useTransition()
@@ -320,6 +321,17 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
     router.push(query ? `${pathname}?${query}` : pathname)
   }
 
+  const handleTabChange = (tab: TabValue) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (tab === 'overview') {
+      params.delete('tab')
+    } else {
+      params.set('tab', tab)
+    }
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname)
+  }
+
   const handleMonthChange = (direction: number) => {
     const nextKey = shiftMonth(monthKey, direction)
     const params = new URLSearchParams(searchParams.toString())
@@ -404,7 +416,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                   'h-9 gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition',
                   activeTab === value ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white',
                 )}
-                onClick={() => setActiveTab(value)}
+                onClick={() => handleTabChange(value)}
                 title={label}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -720,7 +732,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
             transactionRequests={data.transactionRequests}
             activeAccount={activeAccount}
             preferredCurrency={preferredCurrency}
-            onNavigateToBudgets={() => setActiveTab('budgets')}
+            onNavigateToBudgets={() => handleTabChange('budgets')}
           />
         )}
 

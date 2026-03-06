@@ -8,46 +8,60 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.accounts.model.AccountDto
+import app.balancebeacon.mobileandroid.ui.components.SkeletonListScreen
+import app.balancebeacon.mobileandroid.ui.util.sanitizeError
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountsScreen(
     viewModel: AccountsViewModel,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val view = LocalView.current
+    var showDeleteConfirmId by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.load()
     }
 
     if (state.isLoading && state.items.isEmpty()) {
-        Column(
-            modifier = modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CircularProgressIndicator()
-        }
+        SkeletonListScreen(modifier = modifier)
         return
     }
 
+    PullToRefreshBox(
+        isRefreshing = state.isLoading,
+        onRefresh = {
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            viewModel.load()
+        },
+        modifier = modifier.fillMaxSize()
+    ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -57,8 +71,6 @@ fun AccountsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Accounts", style = MaterialTheme.typography.headlineSmall)
-
                 OutlinedTextField(
                     value = state.createName,
                     onValueChange = viewModel::onCreateNameChanged,
@@ -68,27 +80,29 @@ fun AccountsScreen(
                     enabled = !state.isMutating
                 )
 
+                Text("Type", style = MaterialTheme.typography.bodySmall)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = state.createType,
-                        onValueChange = viewModel::onCreateTypeChanged,
-                        label = { Text("Type (SELF/PARTNER/OTHER)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        enabled = !state.isMutating
-                    )
-                    OutlinedTextField(
-                        value = state.createPreferredCurrency,
-                        onValueChange = viewModel::onCreatePreferredCurrencyChanged,
-                        label = { Text("Currency (optional)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        enabled = !state.isMutating
-                    )
+                    listOf("SELF", "PARTNER", "OTHER").forEach { accountType ->
+                        FilterChip(
+                            selected = state.createType.equals(accountType, ignoreCase = true),
+                            onClick = { viewModel.onCreateTypeChanged(accountType) },
+                            label = { Text(accountType) },
+                            enabled = !state.isMutating
+                        )
+                    }
                 }
+
+                OutlinedTextField(
+                    value = state.createPreferredCurrency,
+                    onValueChange = viewModel::onCreatePreferredCurrencyChanged,
+                    label = { Text("Currency (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.isMutating
+                )
 
                 OutlinedTextField(
                     value = state.createColor,
@@ -125,27 +139,29 @@ fun AccountsScreen(
                         enabled = !state.isMutating
                     )
 
+                    Text("Type", style = MaterialTheme.typography.bodySmall)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedTextField(
-                            value = state.editType,
-                            onValueChange = viewModel::onEditTypeChanged,
-                            label = { Text("Type") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            enabled = !state.isMutating
-                        )
-                        OutlinedTextField(
-                            value = state.editPreferredCurrency,
-                            onValueChange = viewModel::onEditPreferredCurrencyChanged,
-                            label = { Text("Currency") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            enabled = !state.isMutating
-                        )
+                        listOf("SELF", "PARTNER", "OTHER").forEach { accountType ->
+                            FilterChip(
+                                selected = state.editType.equals(accountType, ignoreCase = true),
+                                onClick = { viewModel.onEditTypeChanged(accountType) },
+                                label = { Text(accountType) },
+                                enabled = !state.isMutating
+                            )
+                        }
                     }
+
+                    OutlinedTextField(
+                        value = state.editPreferredCurrency,
+                        onValueChange = viewModel::onEditPreferredCurrencyChanged,
+                        label = { Text("Currency") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !state.isMutating
+                    )
 
                     OutlinedTextField(
                         value = state.editColor,
@@ -179,7 +195,7 @@ fun AccountsScreen(
         }
 
         state.error?.let {
-            Text(it, color = MaterialTheme.colorScheme.error)
+            Text(sanitizeError(it), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         Text("Existing accounts", style = MaterialTheme.typography.titleMedium)
@@ -196,10 +212,29 @@ fun AccountsScreen(
                     isMutating = state.isMutating,
                     onActivate = viewModel::activateAccount,
                     onEdit = viewModel::startEditing,
-                    onDelete = viewModel::deleteAccount
+                    onDelete = { showDeleteConfirmId = it }
                 )
             }
         }
+    }
+    } // PullToRefreshBox
+
+    showDeleteConfirmId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmId = null },
+            title = { Text("Delete account") },
+            text = { Text("Are you sure you want to delete this account? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    viewModel.deleteAccount(id)
+                    showDeleteConfirmId = null
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmId = null }) { Text("Cancel") }
+            }
+        )
     }
 }
 

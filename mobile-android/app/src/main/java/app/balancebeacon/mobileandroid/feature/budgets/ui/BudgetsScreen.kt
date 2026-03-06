@@ -1,21 +1,34 @@
 package app.balancebeacon.mobileandroid.feature.budgets.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,19 +39,27 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.budgets.model.CreateBudgetRequest
 import app.balancebeacon.mobileandroid.feature.budgets.model.QuickBudgetRequest
+import androidx.compose.ui.graphics.Color
+import app.balancebeacon.mobileandroid.feature.categories.model.CategoryDto
+import app.balancebeacon.mobileandroid.ui.components.MonthNavigator
+import app.balancebeacon.mobileandroid.ui.components.SkeletonLine
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+import app.balancebeacon.mobileandroid.ui.theme.SkyBlue
 import kotlin.math.max
 import kotlin.math.min
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetsScreen(
     viewModel: BudgetsViewModel,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val view = LocalView.current
     var accountId by rememberSaveable { mutableStateOf("") }
     var categoryId by rememberSaveable { mutableStateOf("") }
     var monthKey by rememberSaveable { mutableStateOf("") }
@@ -50,6 +71,9 @@ fun BudgetsScreen(
     var incomeGoalAmount by rememberSaveable { mutableStateOf("") }
     var incomeGoalCurrency by rememberSaveable { mutableStateOf("USD") }
     var setAsDefaultGoal by rememberSaveable { mutableStateOf(false) }
+    var hasInteracted by rememberSaveable { mutableStateOf(false) }
+    var showDeleteBudgetKey by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+    var showDeleteIncomeGoal by rememberSaveable { mutableStateOf(false) }
 
     val canSubmit = accountId.isNotBlank() &&
         categoryId.isNotBlank() &&
@@ -61,6 +85,11 @@ fun BudgetsScreen(
         (incomeGoalAmount.toDoubleOrNull()?.let { it > 0.0 } == true)
     val canDeleteIncomeGoal = (state.incomeGoal?.isDefault == false) &&
         MONTH_KEY_REGEX.matches(monthKey.trim())
+
+    val accountNames = remember(state.accounts) { state.accounts.associate { it.id to it.name } }
+    val categoryNames = remember(state.categories) { state.categories.associate { it.id to it.name } }
+    val selectedAccountName = accountNames[accountId] ?: "Select account"
+    val selectedCategoryName = categoryNames[categoryId] ?: "Select category"
 
     val filteredItems = remember(state.items, searchQuery, typeFilter) {
         val normalizedQuery = searchQuery.trim().lowercase()
@@ -108,10 +137,7 @@ fun BudgetsScreen(
     val incomeRemaining = max(incomeGoalValue - actualIncomeValue, 0.0)
 
     LaunchedEffect(Unit) {
-        viewModel.load(
-            accountId = accountId.ifBlank { null },
-            month = monthKey.ifBlank { null }
-        )
+        viewModel.initialize()
     }
 
     LaunchedEffect(state.selectedAccountId) {
@@ -121,7 +147,7 @@ fun BudgetsScreen(
     }
 
     LaunchedEffect(state.selectedMonthKey) {
-        if (monthKey.isBlank() && state.selectedMonthKey.isNotBlank()) {
+        if (state.selectedMonthKey.isNotBlank()) {
             monthKey = state.selectedMonthKey
         }
     }
@@ -135,50 +161,71 @@ fun BudgetsScreen(
         }
     }
 
+    // Auto-load when account is set via initialize
+    LaunchedEffect(state.accounts) {
+        if (accountId.isBlank() && state.accounts.isNotEmpty()) {
+            accountId = state.accounts.first().id
+        }
+    }
+
+    PullToRefreshBox(
+        isRefreshing = state.isLoading,
+        onRefresh = {
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            viewModel.initialize()
+        },
+        modifier = modifier.fillMaxSize()
+    ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        if (state.isLoading) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SkeletonLine(width = 180.dp, height = 14.dp)
+                SkeletonLine(width = 120.dp, height = 14.dp)
+            }
+        }
+        state.statusMessage?.let {
+            Text(it, color = MaterialTheme.colorScheme.primary)
+        }
+        if (hasInteracted) {
+            state.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
+        }
+
         GlassPanel(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Budgets", style = MaterialTheme.typography.headlineSmall)
-                if (state.isLoading) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CircularProgressIndicator()
-                        Text("Syncing...")
-                    }
-                }
-                state.statusMessage?.let {
-                    Text(it, color = MaterialTheme.colorScheme.primary)
-                }
-                state.error?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error)
-                }
+                Text("Create Budget", style = MaterialTheme.typography.titleMedium)
 
-                OutlinedTextField(
-                    value = accountId,
-                    onValueChange = {
+                Text("Account", style = MaterialTheme.typography.labelLarge)
+                AccountSelectorRow(
+                    accountNames = state.accounts.map { it.id to it.name },
+                    selectedAccountId = accountId,
+                    onSelect = {
                         accountId = it
                         viewModel.onAccountIdChanged(it)
-                    },
-                    label = { Text("Account ID") },
-                    modifier = Modifier.fillMaxWidth()
+                    }
                 )
-                OutlinedTextField(
-                    value = categoryId,
-                    onValueChange = { categoryId = it },
-                    label = { Text("Category ID") },
-                    modifier = Modifier.fillMaxWidth()
+
+                Text("Category", style = MaterialTheme.typography.labelLarge)
+                CategorySelector(
+                    selectedCategoryName = selectedCategoryName,
+                    categories = state.categories,
+                    selectedCategoryId = categoryId,
+                    onSelectCategory = { categoryId = it }
                 )
-                OutlinedTextField(
-                    value = monthKey,
-                    onValueChange = { monthKey = it },
-                    label = { Text("Month Key (YYYY-MM)") },
+
+                MonthNavigator(
+                    monthKey = monthKey.ifBlank { state.selectedMonthKey },
+                    onPreviousMonth = viewModel::previousMonth,
+                    onNextMonth = viewModel::nextMonth,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -199,33 +246,12 @@ fun BudgetsScreen(
                     label = { Text("Notes (optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    label = { Text("Search budgets") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = typeFilter,
-                    onValueChange = { typeFilter = it.uppercase() },
-                    label = { Text("Type filter (ALL/EXPENSE/INCOME)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = {
-                            viewModel.load(
-                                accountId = accountId.ifBlank { null },
-                                month = monthKey.ifBlank { null }
-                            )
-                        }
-                    ) {
-                        Text("Refresh")
-                    }
-                    Button(
                         enabled = canSubmit,
                         onClick = {
+                            hasInteracted = true
                             viewModel.createBudget(
                                 request = CreateBudgetRequest(
                                     accountId = accountId,
@@ -240,9 +266,10 @@ fun BudgetsScreen(
                     ) {
                         Text("Create")
                     }
-                    Button(
+                    OutlinedButton(
                         enabled = canSubmit,
                         onClick = {
+                            hasInteracted = true
                             viewModel.createQuickBudget(
                                 request = QuickBudgetRequest(
                                     accountId = accountId,
@@ -257,6 +284,45 @@ fun BudgetsScreen(
                         Text("Quick")
                     }
                 }
+            }
+        }
+
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("Search", style = MaterialTheme.typography.titleMedium)
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search budgets") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("ALL", "EXPENSE", "INCOME").forEach { option ->
+                        FilterChip(
+                            selected = typeFilter == option,
+                            onClick = { typeFilter = option },
+                            label = { Text(option) }
+                        )
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        hasInteracted = true
+                        viewModel.load(
+                            accountId = accountId.ifBlank { null },
+                            month = monthKey.ifBlank { null }
+                        )
+                    }
+                ) {
+                    Text("Refresh")
+                }
+
                 Text(
                     text = "Expense planned: ${formatAmount(plannedExpenseTotal)} • Income planned: ${formatAmount(plannedIncomeTotal)}",
                     style = MaterialTheme.typography.bodySmall
@@ -311,6 +377,7 @@ fun BudgetsScreen(
                     Button(
                         enabled = canSaveIncomeGoal,
                         onClick = {
+                            hasInteracted = true
                             viewModel.upsertIncomeGoal(
                                 accountId = accountId,
                                 monthKey = monthKey,
@@ -324,12 +391,7 @@ fun BudgetsScreen(
                     }
                     OutlinedButton(
                         enabled = canDeleteIncomeGoal,
-                        onClick = {
-                            viewModel.deleteIncomeGoal(
-                                accountId = accountId,
-                                monthKey = monthKey
-                            )
-                        }
+                        onClick = { showDeleteIncomeGoal = true }
                     ) {
                         Text("Delete Goal")
                     }
@@ -361,24 +423,150 @@ fun BudgetsScreen(
                             text = "${item.monthKey} • ${item.amount} ${item.currencyCode ?: "USD"}",
                             style = MaterialTheme.typography.bodyLarge
                         )
-                        Text("Account: ${item.accountId}", style = MaterialTheme.typography.bodySmall)
-                        Text("Category: $categoryLabel ($categoryType)", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Account: ${accountNames[item.accountId] ?: item.accountId}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        color = parseHexColor(item.category?.color),
+                                        shape = CircleShape
+                                    )
+                            )
+                            Text("Category: $categoryLabel ($categoryType)", style = MaterialTheme.typography.bodySmall)
+                        }
                         item.notes?.let {
                             Text("Notes: $it", style = MaterialTheme.typography.bodySmall)
                         }
-                        Button(
+                        OutlinedButton(
                             onClick = {
-                                viewModel.deleteBudget(
-                                    accountId = item.accountId,
-                                    categoryId = item.categoryId,
-                                    monthKey = item.monthKey
-                                )
+                                showDeleteBudgetKey = Triple(item.accountId, item.categoryId, item.monthKey)
                             }
                         ) {
                             Text("Delete")
                         }
                     }
                 }
+            }
+        }
+
+        showDeleteBudgetKey?.let { (acctId, catId, month) ->
+            AlertDialog(
+                onDismissRequest = { showDeleteBudgetKey = null },
+                title = { Text("Delete budget") },
+                text = { Text("Are you sure you want to delete this budget? This cannot be undone.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        hasInteracted = true
+                        viewModel.deleteBudget(
+                            accountId = acctId,
+                            categoryId = catId,
+                            monthKey = month
+                        )
+                        showDeleteBudgetKey = null
+                    }) { Text("Delete") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteBudgetKey = null }) { Text("Cancel") }
+                }
+            )
+        }
+
+        if (showDeleteIncomeGoal) {
+            AlertDialog(
+                onDismissRequest = { showDeleteIncomeGoal = false },
+                title = { Text("Delete income goal") },
+                text = { Text("Are you sure you want to delete this income goal? This cannot be undone.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        hasInteracted = true
+                        viewModel.deleteIncomeGoal(
+                            accountId = accountId,
+                            monthKey = monthKey
+                        )
+                        showDeleteIncomeGoal = false
+                    }) { Text("Delete") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteIncomeGoal = false }) { Text("Cancel") }
+                }
+            )
+        }
+    }
+    } // PullToRefreshBox
+}
+
+@Composable
+private fun AccountSelectorRow(
+    accountNames: List<Pair<String, String>>,
+    selectedAccountId: String,
+    onSelect: (String) -> Unit
+) {
+    if (accountNames.isEmpty()) {
+        Text(
+            text = "No accounts available",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        accountNames.forEach { (id, name) ->
+            FilterChip(
+                selected = selectedAccountId == id,
+                onClick = { onSelect(id) },
+                label = { Text(name) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategorySelector(
+    selectedCategoryName: String,
+    categories: List<CategoryDto>,
+    selectedCategoryId: String,
+    onSelectCategory: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = categories.isNotEmpty()
+        ) {
+            Text(selectedCategoryName)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            categories.forEach { category ->
+                DropdownMenuItem(
+                    text = {
+                        val suffix = if (selectedCategoryId == category.id) " selected" else ""
+                        Text("${category.name}$suffix")
+                    },
+                    onClick = {
+                        expanded = false
+                        onSelectCategory(category.id)
+                    }
+                )
             }
         }
     }
@@ -389,3 +577,12 @@ private fun formatAmount(value: Double): String {
 }
 
 private val MONTH_KEY_REGEX = Regex("^\\d{4}-\\d{2}$")
+
+private fun parseHexColor(hex: String?, default: Color = SkyBlue): Color {
+    if (hex.isNullOrBlank()) return default
+    return try {
+        Color(android.graphics.Color.parseColor(if (hex.startsWith("#")) hex else "#$hex"))
+    } catch (_: Exception) {
+        default
+    }
+}

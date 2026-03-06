@@ -4,20 +4,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.balancebeacon.mobileandroid.core.result.AppResult
 import app.balancebeacon.mobileandroid.feature.accounts.data.AccountsRepository
+import app.balancebeacon.mobileandroid.feature.accounts.model.AccountDto
 import app.balancebeacon.mobileandroid.feature.budgets.data.BudgetsRepository
 import app.balancebeacon.mobileandroid.feature.budgets.model.BudgetDto
 import app.balancebeacon.mobileandroid.feature.budgets.model.CreateBudgetRequest
 import app.balancebeacon.mobileandroid.feature.budgets.model.MonthlyIncomeGoalDto
 import app.balancebeacon.mobileandroid.feature.budgets.model.QuickBudgetRequest
 import app.balancebeacon.mobileandroid.feature.budgets.model.UpsertMonthlyIncomeGoalRequest
+import app.balancebeacon.mobileandroid.feature.categories.data.CategoriesRepository
+import app.balancebeacon.mobileandroid.feature.categories.model.CategoryDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 
 data class BudgetsUiState(
     val isLoading: Boolean = false,
+    val accounts: List<AccountDto> = emptyList(),
+    val categories: List<CategoryDto> = emptyList(),
     val selectedAccountId: String = "",
     val selectedMonthKey: String = "",
     val items: List<BudgetDto> = emptyList(),
@@ -29,10 +36,39 @@ data class BudgetsUiState(
 
 class BudgetsViewModel(
     private val budgetsRepository: BudgetsRepository,
-    private val accountsRepository: AccountsRepository
+    private val accountsRepository: AccountsRepository,
+    private val categoriesRepository: CategoriesRepository? = null
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(BudgetsUiState())
     val uiState: StateFlow<BudgetsUiState> = _uiState.asStateFlow()
+
+    private var initialized = false
+
+    fun initialize() {
+        if (initialized) return
+        initialized = true
+
+        viewModelScope.launch {
+            val accounts = when (val result = accountsRepository.getAccounts()) {
+                is AppResult.Success -> result.value
+                is AppResult.Failure -> emptyList()
+            }
+            val categories = when (val result = categoriesRepository?.getCategories(includeArchived = false)) {
+                is AppResult.Success -> result.value.filter { !it.isHolding }
+                else -> emptyList()
+            }
+            val resolvedAccountId = _uiState.value.selectedAccountId.ifBlank {
+                accounts.firstOrNull()?.id.orEmpty()
+            }
+            _uiState.update {
+                it.copy(
+                    accounts = accounts,
+                    categories = categories,
+                    selectedAccountId = resolvedAccountId
+                )
+            }
+        }
+    }
 
     fun onAccountIdChanged(value: String) {
         _uiState.update {
@@ -41,6 +77,29 @@ class BudgetsViewModel(
                 statusMessage = null,
                 error = null
             )
+        }
+    }
+
+    fun previousMonth() {
+        val current = parseMonthKey(_uiState.value.selectedMonthKey)
+        val newMonth = current.minusMonths(1)
+        val newKey = newMonth.format(MONTH_KEY_FORMATTER)
+        _uiState.update { it.copy(selectedMonthKey = newKey, statusMessage = null, error = null) }
+    }
+
+    fun nextMonth() {
+        val current = parseMonthKey(_uiState.value.selectedMonthKey)
+        val newMonth = current.plusMonths(1)
+        val newKey = newMonth.format(MONTH_KEY_FORMATTER)
+        _uiState.update { it.copy(selectedMonthKey = newKey, statusMessage = null, error = null) }
+    }
+
+    private fun parseMonthKey(key: String): YearMonth {
+        val trimmed = key.trim()
+        return if (trimmed.isBlank() || !MONTH_KEY_REGEX.matches(trimmed)) {
+            YearMonth.now()
+        } else {
+            YearMonth.parse(trimmed, MONTH_KEY_FORMATTER)
         }
     }
 
@@ -340,5 +399,6 @@ class BudgetsViewModel(
 
     private companion object {
         val MONTH_KEY_REGEX = Regex("^\\d{4}-\\d{2}$")
+        val MONTH_KEY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM")
     }
 }

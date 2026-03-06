@@ -247,6 +247,10 @@ export function CategoriesTab({ categories }: CategoriesTabProps) {
               >
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2 font-medium text-white">
+                    <span
+                      className="inline-block h-3 w-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: category.color || '#0ea5e9' }}
+                    />
                     <span>{category.name}</span>
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
                       {category.type === TransactionType.EXPENSE ? 'Expense' : 'Income'}

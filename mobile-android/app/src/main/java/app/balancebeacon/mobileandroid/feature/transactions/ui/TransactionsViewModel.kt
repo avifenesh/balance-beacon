@@ -3,6 +3,10 @@ package app.balancebeacon.mobileandroid.feature.transactions.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.balancebeacon.mobileandroid.core.result.AppResult
+import app.balancebeacon.mobileandroid.feature.accounts.data.AccountsRepository
+import app.balancebeacon.mobileandroid.feature.accounts.model.AccountDto
+import app.balancebeacon.mobileandroid.feature.categories.data.CategoriesRepository
+import app.balancebeacon.mobileandroid.feature.categories.model.CategoryDto
 import app.balancebeacon.mobileandroid.feature.dashboard.data.DashboardRepository
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardTransactionRequestDto
 import app.balancebeacon.mobileandroid.feature.transactions.data.TransactionsRepository
@@ -19,6 +23,8 @@ import java.io.IOException
 data class TransactionsUiState(
     val isLoading: Boolean = false,
     val items: List<TransactionDto> = emptyList(),
+    val accounts: List<AccountDto> = emptyList(),
+    val categories: List<CategoryDto> = emptyList(),
     val requestItems: List<DashboardTransactionRequestDto> = emptyList(),
     val activeAccountId: String? = null,
     val activeMonth: String? = null,
@@ -31,10 +37,31 @@ data class TransactionsUiState(
 
 class TransactionsViewModel(
     private val transactionsRepository: TransactionsRepository,
-    private val dashboardRepository: DashboardRepository? = null
+    private val dashboardRepository: DashboardRepository? = null,
+    private val accountsRepository: AccountsRepository? = null,
+    private val categoriesRepository: CategoriesRepository? = null
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
+
+    private var initialized = false
+
+    fun initialize() {
+        if (initialized) return
+        initialized = true
+
+        viewModelScope.launch {
+            val accounts = when (val result = accountsRepository?.getAccounts()) {
+                is AppResult.Success -> result.value
+                else -> emptyList()
+            }
+            val categories = when (val result = categoriesRepository?.getCategories(includeArchived = false)) {
+                is AppResult.Success -> result.value
+                else -> emptyList()
+            }
+            _uiState.update { it.copy(accounts = accounts, categories = categories) }
+        }
+    }
 
     fun load(
         accountId: String? = null,

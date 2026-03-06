@@ -1,26 +1,32 @@
 package app.balancebeacon.mobileandroid.feature.profile.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import app.balancebeacon.mobileandroid.ui.components.SkeletonFormScreen
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+import app.balancebeacon.mobileandroid.ui.util.sanitizeError
 
 @Composable
 fun ProfileScreen(
@@ -28,18 +34,15 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val view = LocalView.current
+    var showDeleteAccountConfirm by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
     }
 
     if (state.isLoading) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
+        SkeletonFormScreen(modifier = modifier)
         return
     }
 
@@ -113,7 +116,7 @@ fun ProfileScreen(
                 )
 
                 Button(
-                    onClick = viewModel::deleteAccount,
+                    onClick = { showDeleteAccountConfirm = true },
                     enabled = !state.isDeleting
                 ) {
                     Text(if (state.isDeleting) "Deleting..." else "Delete account")
@@ -130,7 +133,25 @@ fun ProfileScreen(
         }
 
         state.error?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
+            Text(text = sanitizeError(it), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+
+    if (showDeleteAccountConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAccountConfirm = false },
+            title = { Text("Delete account") },
+            text = { Text("This will permanently delete your account and all data. This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    viewModel.deleteAccount()
+                    showDeleteAccountConfirm = false
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAccountConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 }

@@ -3,6 +3,7 @@ package app.balancebeacon.mobileandroid.feature.dashboard.data
 import app.balancebeacon.mobileandroid.core.result.AppResult
 import app.balancebeacon.mobileandroid.core.result.runAppResult
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardResponse
+import app.balancebeacon.mobileandroid.feature.dashboard.model.ExchangeRateRefreshResponse
 
 class DashboardRepository(
     private val dashboardApi: DashboardApi
@@ -19,5 +20,9 @@ class DashboardRepository(
                 month = normalizedMonth
             ).data
         }
+    }
+
+    suspend fun refreshExchangeRates(): AppResult<ExchangeRateRefreshResponse> {
+        return runAppResult { dashboardApi.refreshExchangeRates().data }
     }
 }

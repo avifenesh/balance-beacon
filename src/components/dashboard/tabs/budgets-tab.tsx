@@ -91,9 +91,7 @@ export function BudgetsTab({
     const accountId = editingBudget
       ? editingBudget.accountId
       : (formData.get('budgetAccountId') as string) || defaultAccountId
-    const categoryId = editingBudget
-      ? editingBudget.categoryId
-      : (formData.get('budgetCategoryId') as string)
+    const categoryId = editingBudget ? editingBudget.categoryId : (formData.get('budgetCategoryId') as string)
     const planned = Number(formData.get('planned') || 0)
 
     // Skip categoryId validation in edit mode (field is disabled)
@@ -155,32 +153,35 @@ export function BudgetsTab({
     })
   }
 
-  const handleBudgetEdit = useCallback((budget: DashboardBudget) => {
-    setEditingBudget(budget)
-    setFormErrors(null)
-    validation.resetAll()
+  const handleBudgetEdit = useCallback(
+    (budget: DashboardBudget) => {
+      setEditingBudget(budget)
+      setFormErrors(null)
+      validation.resetAll()
 
-    requestAnimationFrame(() => {
-      const form = budgetFormRef.current
-      if (!form) {
-        toast.error('Unable to load budget editor. Please try again.')
-        setEditingBudget(null)
-        return
-      }
+      requestAnimationFrame(() => {
+        const form = budgetFormRef.current
+        if (!form) {
+          toast.error('Unable to load budget editor. Please try again.')
+          setEditingBudget(null)
+          return
+        }
 
-      const accountSelect = form.elements.namedItem('budgetAccountId') as HTMLSelectElement
-      const categorySelect = form.elements.namedItem('budgetCategoryId') as HTMLSelectElement
-      const plannedInput = form.elements.namedItem('planned') as HTMLInputElement
-      const currencySelect = form.elements.namedItem('budgetCurrency') as HTMLSelectElement
+        const accountSelect = form.elements.namedItem('budgetAccountId') as HTMLSelectElement
+        const categorySelect = form.elements.namedItem('budgetCategoryId') as HTMLSelectElement
+        const plannedInput = form.elements.namedItem('planned') as HTMLInputElement
+        const currencySelect = form.elements.namedItem('budgetCurrency') as HTMLSelectElement
 
-      if (accountSelect) accountSelect.value = budget.accountId
-      if (categorySelect) categorySelect.value = budget.categoryId
-      if (plannedInput) plannedInput.value = String(budget.planned)
-      if (currencySelect) currencySelect.value = preferredCurrency
+        if (accountSelect) accountSelect.value = budget.accountId
+        if (categorySelect) categorySelect.value = budget.categoryId
+        if (plannedInput) plannedInput.value = String(budget.planned)
+        if (currencySelect) currencySelect.value = preferredCurrency
 
-      form.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-  }, [validation, preferredCurrency])
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    },
+    [validation, preferredCurrency],
+  )
 
   const handleCancelBudgetEdit = useCallback(() => {
     setEditingBudget(null)
@@ -330,6 +331,12 @@ export function BudgetsTab({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-white">
+                        <span
+                          className="inline-block h-3 w-3 rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor: categories.find((c) => c.id === budget.categoryId)?.color || '#0ea5e9',
+                          }}
+                        />
                         <span>{budget.categoryName}</span>
                         <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-slate-200">
                           {budget.accountName}
@@ -428,9 +435,7 @@ export function BudgetsTab({
             )}
 
             <form onSubmit={handleIncomeGoalSubmit} className="space-y-4 pt-2 border-t border-white/10">
-              {incomeGoalErrors?.general && (
-                <p className="text-xs text-rose-300">{incomeGoalErrors.general[0]}</p>
-              )}
+              {incomeGoalErrors?.general && <p className="text-xs text-rose-300">{incomeGoalErrors.general[0]}</p>}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-slate-300" htmlFor="incomeGoalAccountId">
@@ -456,9 +461,7 @@ export function BudgetsTab({
                     defaultValue={incomeGoalAmount || ''}
                     placeholder="e.g. 5000"
                   />
-                  {incomeGoalErrors?.amount && (
-                    <p className="text-xs text-rose-300">{incomeGoalErrors.amount[0]}</p>
-                  )}
+                  {incomeGoalErrors?.amount && <p className="text-xs text-rose-300">{incomeGoalErrors.amount[0]}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-slate-300" htmlFor="incomeGoalCurrency">
@@ -496,9 +499,7 @@ export function BudgetsTab({
             onSubmit={handleBudgetSubmit}
             className={cn(
               'space-y-4 rounded-2xl border p-5',
-              isEditingBudget
-                ? 'border-blue-500/30 bg-blue-500/5'
-                : 'border-white/10 bg-white/5',
+              isEditingBudget ? 'border-blue-500/30 bg-blue-500/5' : 'border-white/10 bg-white/5',
             )}
             tabIndex={-1}
           >

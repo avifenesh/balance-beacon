@@ -1,20 +1,42 @@
 package app.balancebeacon.mobileandroid.feature.sharing.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Balance
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,14 +46,22 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.sharing.model.PaymentHistoryItemDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SettlementBalanceDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedExpenseDto
 import app.balancebeacon.mobileandroid.feature.sharing.model.SharedWithMeParticipationDto
+import app.balancebeacon.mobileandroid.ui.components.SkeletonCard
+import app.balancebeacon.mobileandroid.ui.components.StatusBadge
+import app.balancebeacon.mobileandroid.ui.theme.Emerald400
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+import app.balancebeacon.mobileandroid.ui.util.sanitizeError
+import app.balancebeacon.mobileandroid.ui.theme.Rose400
+import app.balancebeacon.mobileandroid.ui.theme.Slate700
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SharingScreen(
     viewModel: SharingViewModel,
@@ -39,149 +69,164 @@ fun SharingScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
-    var createTransactionId by rememberSaveable(initialTransactionId) { mutableStateOf(initialTransactionId) }
-    var createSplitType by rememberSaveable { mutableStateOf("EQUAL") }
-    var createParticipantsInput by rememberSaveable { mutableStateOf("") }
-    var createDescription by rememberSaveable { mutableStateOf("") }
-    var lookupEmail by rememberSaveable { mutableStateOf("") }
+    val view = LocalView.current
+    var showDeleteShareId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showDeclineShareId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showSettleAllKey by rememberSaveable { mutableStateOf<Pair<String, String>?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.load()
     }
     LaunchedEffect(initialTransactionId) {
         if (initialTransactionId.isNotBlank()) {
-            createTransactionId = initialTransactionId
+            viewModel.onCreateTransactionIdChanged(initialTransactionId)
         }
     }
 
+    PullToRefreshBox(
+        isRefreshing = state.isLoading,
+        onRefresh = {
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            viewModel.load()
+        },
+        modifier = modifier.fillMaxSize()
+    ) {
     LazyColumn(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (state.isLoading) {
-            item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator()
-                    Text("Loading sharing data...")
-                }
-            }
+            item { SkeletonCard() }
+            item { SkeletonCard() }
         }
-        state.error?.let { error ->
-            item {
+
+        item {
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(error, color = MaterialTheme.colorScheme.error)
-                    OutlinedButton(onClick = viewModel::load) {
-                        Text("Retry load")
+                    Text("Create Shared Expense", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(
+                        value = state.createTransactionId,
+                        onValueChange = viewModel::onCreateTransactionIdChanged,
+                        label = { Text("Transaction ID") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (initialTransactionId.isNotBlank()) {
+                        Text(
+                            text = "Transaction ID prefilled from Transactions",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = state.createSplitType == "EQUAL",
+                            onClick = { viewModel.onSplitTypeChanged("EQUAL") },
+                            label = { Text("Equal") }
+                        )
+                        FilterChip(
+                            selected = state.createSplitType == "PERCENTAGE",
+                            onClick = { viewModel.onSplitTypeChanged("PERCENTAGE") },
+                            label = { Text("Percentage") }
+                        )
+                        FilterChip(
+                            selected = state.createSplitType == "FIXED",
+                            onClick = { viewModel.onSplitTypeChanged("FIXED") },
+                            label = { Text("Fixed") }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = state.newParticipantEmail,
+                            onValueChange = viewModel::onNewParticipantEmailChanged,
+                            label = { Text("Participant email") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = viewModel::addParticipant,
+                            enabled = !state.isLookingUpParticipant
+                        ) {
+                            if (state.isLookingUpParticipant) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Add, contentDescription = "Add participant")
+                            }
+                        }
                     }
                 }
             }
         }
-
-        item {
-            Text("Create Shared Expense", style = MaterialTheme.typography.titleMedium)
-        }
-        item {
-            OutlinedTextField(
-                value = createTransactionId,
-                onValueChange = { createTransactionId = it },
-                label = { Text("Transaction ID") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        if (initialTransactionId.isNotBlank()) {
-            item {
-                Text(
-                    text = "Transaction ID prefilled from Transactions",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+        if (state.participants.isNotEmpty()) {
+            itemsIndexed(state.participants) { index, participant ->
+                GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = participant.displayName ?: participant.email,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            if (participant.displayName != null) {
+                                Text(
+                                    text = participant.email,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        if (state.createSplitType == "PERCENTAGE") {
+                            OutlinedTextField(
+                                value = participant.shareValue?.toString() ?: "",
+                                onValueChange = { viewModel.updateParticipantValue(index, it.toDoubleOrNull()) },
+                                label = { Text("%") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.width(90.dp)
+                            )
+                        } else if (state.createSplitType == "FIXED") {
+                            OutlinedTextField(
+                                value = participant.shareValue?.toString() ?: "",
+                                onValueChange = { viewModel.updateParticipantValue(index, it.toDoubleOrNull()) },
+                                label = { Text("Amount") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.width(100.dp)
+                            )
+                        }
+                        IconButton(onClick = { viewModel.removeParticipant(index) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Remove", tint = Rose400)
+                        }
+                    }
+                }
             }
         }
         item {
             OutlinedTextField(
-                value = createSplitType,
-                onValueChange = { createSplitType = it.uppercase() },
-                label = { Text("Split type (EQUAL/PERCENTAGE/FIXED)") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        item {
-            OutlinedTextField(
-                value = createParticipantsInput,
-                onValueChange = { createParticipantsInput = it },
-                label = { Text("Participants (email:value, comma/new line separated)") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        item {
-            OutlinedTextField(
-                value = createDescription,
-                onValueChange = { createDescription = it },
+                value = state.createDescription,
+                onValueChange = viewModel::onCreateDescriptionChanged,
                 label = { Text("Description (optional)") },
                 modifier = Modifier.fillMaxWidth()
             )
         }
         item {
             Button(
-                onClick = {
-                    viewModel.createSharedExpense(
-                        transactionId = createTransactionId,
-                        splitType = createSplitType,
-                        participantsInput = createParticipantsInput,
-                        description = createDescription
-                    )
-                },
+                onClick = viewModel::createStructuredSharedExpense,
                 enabled = !state.isActionInProgress
             ) {
                 Text(if (state.isActionInProgress) "Working..." else "Create Shared Expense")
-            }
-        }
-        item {
-            Text(
-                text = "Example: alice@mail.com:50, bob@mail.com:50 (PERCENTAGE/FIXED use value; EQUAL can omit value)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        item {
-            Text(
-                "Lookup User",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 12.dp)
-            )
-        }
-        item {
-            OutlinedTextField(
-                value = lookupEmail,
-                onValueChange = { lookupEmail = it },
-                label = { Text("Email") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        item {
-            Button(
-                onClick = { viewModel.lookupUser(lookupEmail) },
-                enabled = !state.isActionInProgress
-            ) {
-                Text(if (state.isActionInProgress) "Working..." else "Lookup User")
-            }
-        }
-        state.lookedUpUser?.let { user ->
-            item {
-                val displayName = user.displayName?.takeIf { it.isNotBlank() } ?: "N/A"
-                Text(
-                    text = "Lookup result: ${user.email} ($displayName)",
-                    style = MaterialTheme.typography.bodyMedium
-                )
             }
         }
         state.actionMessage?.let { message ->
@@ -198,17 +243,36 @@ fun SharingScreen(
             }
         }
         item {
-            Text(
-                "Settlement Balances",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 12.dp)
-            )
-        }
-        if (state.settlementBalances.isEmpty()) {
-            item {
-                Text("No settlement balances")
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Settlement Balances",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    state.error?.let { error ->
+                        Text(
+                            text = sanitizeError(error),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        OutlinedButton(onClick = viewModel::load) {
+                            Text("Retry load")
+                        }
+                    }
+                    if (state.error == null) {
+                        if (state.settlementBalances.isEmpty()) {
+                            Text("No settlement balances")
+                        } else {
+                            SettlementSummaryCard(state.settlementBalances)
+                        }
+                    }
+                }
             }
-        } else {
+        }
+        if (state.error == null && state.settlementBalances.isNotEmpty()) {
             items(
                 items = state.settlementBalances,
                 key = { "${it.userId}-${it.currency}" }
@@ -216,22 +280,27 @@ fun SharingScreen(
                 SettlementBalanceItem(
                     balance = balance,
                     isActionInProgress = state.isActionInProgress,
-                    onSettle = { viewModel.settleAllWithUser(balance.userId, balance.currency) }
+                    onSettle = { showSettleAllKey = balance.userId to balance.currency }
                 )
             }
         }
         item {
-            Text(
-                "Payment History",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 12.dp)
-            )
-        }
-        if (state.paymentHistory.isEmpty()) {
-            item {
-                Text("No payment history")
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Payment History",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (state.paymentHistory.isEmpty()) {
+                        Text("No payment history")
+                    }
+                }
             }
-        } else {
+        }
+        if (state.paymentHistory.isNotEmpty()) {
             items(
                 items = state.paymentHistory,
                 key = { "${it.participantId}:${it.paidAt}" }
@@ -240,45 +309,108 @@ fun SharingScreen(
             }
         }
         item {
-            Text(
-                "Shared By Me",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 12.dp)
-            )
-        }
-        if (state.sharedByMe.isEmpty()) {
-            item {
-                Text("No shared expenses")
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Shared By Me",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (state.sharedByMe.isEmpty()) {
+                        Text("No shared expenses")
+                    }
+                }
             }
         }
         items(state.sharedByMe) { sharedExpense ->
             SharedByMeItem(
                 sharedExpense = sharedExpense,
                 isActionInProgress = state.isActionInProgress,
-                onDeleteShare = { viewModel.deleteShare(sharedExpense.id) },
+                onDeleteShare = { showDeleteShareId = sharedExpense.id },
                 onMarkPaid = viewModel::markParticipantPaid,
                 onSendReminder = viewModel::sendReminder
             )
         }
         item {
-            Text(
-                "Shared With Me",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-        }
-        if (state.sharedWithMe.isEmpty()) {
-            item {
-                Text("No shared expenses shared with you")
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Shared With Me",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (state.sharedWithMe.isEmpty()) {
+                        Text("No shared expenses shared with you")
+                    }
+                }
             }
         }
         items(state.sharedWithMe) { participation ->
             SharedWithMeItem(
                 participation = participation,
                 isActionInProgress = state.isActionInProgress,
-                onDecline = viewModel::declineShare
+                onDecline = { showDeclineShareId = it }
             )
         }
+    }
+    } // PullToRefreshBox
+
+    showDeleteShareId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { showDeleteShareId = null },
+            title = { Text("Delete shared expense") },
+            text = { Text("Are you sure you want to delete this shared expense? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    viewModel.deleteShare(id)
+                    showDeleteShareId = null
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteShareId = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    showDeclineShareId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { showDeclineShareId = null },
+            title = { Text("Decline shared expense") },
+            text = { Text("Are you sure you want to decline this shared expense?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    viewModel.declineShare(id)
+                    showDeclineShareId = null
+                }) { Text("Decline") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeclineShareId = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    showSettleAllKey?.let { (userId, currency) ->
+        AlertDialog(
+            onDismissRequest = { showSettleAllKey = null },
+            title = { Text("Settle all balances") },
+            text = { Text("Are you sure you want to settle all balances with this user?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    viewModel.settleAllWithUser(userId, currency)
+                    showSettleAllKey = null
+                }) { Text("Settle") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSettleAllKey = null }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -381,10 +513,16 @@ private fun SharedByMeItem(
                     val participantName = participant.participant?.displayName?.takeIf { it.isNotBlank() }
                         ?: participant.participant?.email
                         ?: "Participant"
-                    Text(
-                        text = "$participantName • ${participant.shareAmount} • ${participant.status}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "$participantName • ${participant.shareAmount}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        StatusBadge(status = participant.status)
+                    }
 
                     if (participant.status.equals("PENDING", ignoreCase = true)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -437,10 +575,16 @@ private fun SharedWithMeItem(
                 text = "Owner: $owner",
                 style = MaterialTheme.typography.bodySmall
             )
-            Text(
-                text = "Your share: ${participation.shareAmount} $currency (${participation.status})",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Your share: ${participation.shareAmount} $currency",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                StatusBadge(status = participation.status)
+            }
             if (participation.status.equals("PENDING", ignoreCase = true)) {
                 Button(
                     onClick = { onDecline(participation.id) },
@@ -451,4 +595,53 @@ private fun SharedWithMeItem(
             }
         }
     }
+}
+
+@Composable
+private fun SettlementSummaryCard(balances: List<SettlementBalanceDto>) {
+    val currencies = balances.map { it.currency }.distinct()
+    currencies.forEach { currency ->
+        val currencyBalances = balances.filter { it.currency == currency }
+        val totalYouOwe = currencyBalances.sumOf { it.youOwe.toDoubleOrNull() ?: 0.0 }
+        val totalTheyOwe = currencyBalances.sumOf { it.theyOwe.toDoubleOrNull() ?: 0.0 }
+        val netBalance = totalTheyOwe - totalYouOwe
+
+        GlassPanel(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (currencies.size > 1) {
+                    Text(currency, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("You owe", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(formatSettlementAmount(totalYouOwe, currency), style = MaterialTheme.typography.titleMedium, color = Rose400)
+                    }
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Slate700)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("They owe", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(formatSettlementAmount(totalTheyOwe, currency), style = MaterialTheme.typography.titleMedium, color = Emerald400)
+                    }
+                }
+                Surface(shape = RoundedCornerShape(12.dp), color = if (netBalance >= 0) Emerald400.copy(alpha = 0.1f) else Rose400.copy(alpha = 0.1f)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Net balance", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = (if (netBalance >= 0) "+" else "") + formatSettlementAmount(netBalance, currency),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (netBalance >= 0) Emerald400 else Rose400
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatSettlementAmount(amount: Double, currency: String): String {
+    return runCatching {
+        val formatter = java.text.NumberFormat.getCurrencyInstance(java.util.Locale.US)
+        formatter.currency = java.util.Currency.getInstance(currency)
+        formatter.maximumFractionDigits = 2
+        formatter.format(amount)
+    }.getOrElse { String.format(java.util.Locale.US, "%.2f %s", amount, currency) }
 }

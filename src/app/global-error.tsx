@@ -26,30 +26,22 @@ export default function GlobalError({
   return (
     <html>
       <body>
-        <div className="flex min-h-screen items-center justify-center p-4 bg-gray-50">
-          <div className="max-w-md rounded-lg border border-red-200 bg-white p-6 shadow-lg">
+        <div className="flex min-h-screen items-center justify-center p-4 bg-slate-950">
+          <div className="max-w-md rounded-2xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
             {isDeploymentError ? (
               <>
-                <h2 className="mb-2 text-lg font-semibold text-gray-900">
-                  App Updated
-                </h2>
-                <p className="text-sm text-gray-600">
-                  A new version has been deployed. Please refresh to continue.
-                </p>
+                <h2 className="mb-2 text-lg font-semibold text-white">App Updated</h2>
+                <p className="text-sm text-slate-300">A new version has been deployed. Please refresh to continue.</p>
               </>
             ) : (
               <>
-                <h2 className="mb-2 text-lg font-semibold text-red-900">
-                  Something went wrong
-                </h2>
-                <p className="text-sm text-red-700">
-                  An unexpected error occurred. Our team has been notified.
-                </p>
+                <h2 className="mb-2 text-lg font-semibold text-white">Something went wrong</h2>
+                <p className="text-sm text-slate-300">An unexpected error occurred. Our team has been notified.</p>
               </>
             )}
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+              className="mt-4 rounded-lg bg-sky-600 px-4 py-2 text-sm text-white hover:bg-sky-500 transition"
             >
               Refresh page
             </button>

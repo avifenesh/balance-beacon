@@ -3,6 +3,10 @@ package app.balancebeacon.mobileandroid.feature.holdings.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.balancebeacon.mobileandroid.core.result.AppResult
+import app.balancebeacon.mobileandroid.feature.accounts.data.AccountsRepository
+import app.balancebeacon.mobileandroid.feature.accounts.model.AccountDto
+import app.balancebeacon.mobileandroid.feature.categories.data.CategoriesRepository
+import app.balancebeacon.mobileandroid.feature.categories.model.CategoryDto
 import app.balancebeacon.mobileandroid.feature.holdings.data.HoldingsRepository
 import app.balancebeacon.mobileandroid.feature.holdings.model.CreateHoldingRequest
 import app.balancebeacon.mobileandroid.feature.holdings.model.HoldingDto
@@ -17,6 +21,8 @@ import java.util.Locale
 data class HoldingsUiState(
     val isLoading: Boolean = false,
     val isMutating: Boolean = false,
+    val accounts: List<AccountDto> = emptyList(),
+    val categories: List<CategoryDto> = emptyList(),
     val accountId: String = "",
     val selectedHoldingId: String? = null,
     val holdings: List<HoldingDto> = emptyList(),
@@ -31,10 +37,43 @@ data class HoldingsUiState(
 )
 
 class HoldingsViewModel(
-    private val holdingsRepository: HoldingsRepository
+    private val holdingsRepository: HoldingsRepository,
+    private val accountsRepository: AccountsRepository? = null,
+    private val categoriesRepository: CategoriesRepository? = null
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HoldingsUiState())
     val uiState: StateFlow<HoldingsUiState> = _uiState.asStateFlow()
+
+    private var initialized = false
+
+    fun initialize() {
+        if (initialized) return
+        initialized = true
+
+        viewModelScope.launch {
+            val accounts = when (val result = accountsRepository?.getAccounts()) {
+                is AppResult.Success -> result.value
+                else -> emptyList()
+            }
+            val categories = when (val result = categoriesRepository?.getCategories(includeArchived = false)) {
+                is AppResult.Success -> result.value.filter { it.isHolding }
+                else -> emptyList()
+            }
+            val resolvedAccountId = _uiState.value.accountId.ifBlank {
+                accounts.firstOrNull()?.id.orEmpty()
+            }
+            _uiState.update {
+                it.copy(
+                    accounts = accounts,
+                    categories = categories,
+                    accountId = resolvedAccountId
+                )
+            }
+            if (resolvedAccountId.isNotBlank()) {
+                load()
+            }
+        }
+    }
 
     fun onAccountIdChanged(value: String) {
         _uiState.update { it.copy(accountId = value, statusMessage = null, error = null) }

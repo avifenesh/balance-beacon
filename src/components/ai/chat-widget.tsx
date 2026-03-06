@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { Sparkles, X, Send, Plus, Trash2, Pencil } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import { Sparkles, X, Send, Plus, Trash2, Pencil, Check, Copy, ClipboardCheck } from 'lucide-react'
 import { Currency } from '@prisma/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,31 @@ interface ChatWidgetProps {
   preferredCurrency?: Currency
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard API may not be available in all contexts
+    }
+  }, [text])
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="absolute right-2 top-2 rounded-md border border-white/10 bg-white/5 p-1 text-slate-400 opacity-0 transition hover:border-white/20 hover:bg-white/10 hover:text-slate-200 group-hover/msg:opacity-100"
+      aria-label={copied ? 'Copied' : 'Copy message'}
+    >
+      {copied ? <ClipboardCheck className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  )
+}
+
 export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidgetProps) {
   const storageKey = useMemo(() => `balance-ai-sessions::${accountId}::${monthKey}`, [accountId, monthKey])
   const activeSessionKey = useMemo(() => `balance-ai-active-session::${accountId}::${monthKey}`, [accountId, monthKey])
@@ -35,6 +61,10 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
   const [sessions, setSessions] = useState<ChatSession[]>([])
 
   const [activeSessionId, setActiveSessionId] = useState('')
+
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
 
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -190,27 +220,29 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
     }
   }, [])
 
-  const renameSession = useCallback(
-    (session: ChatSession) => {
-      const proposed = window.prompt('Rename conversation', session.title)
-      if (!proposed) return
-      const trimmed = proposed.trim()
-      if (!trimmed) return
+  const startRename = useCallback((session: ChatSession) => {
+    setRenamingSessionId(session.id)
+    setRenameValue(session.title)
+    queueMicrotask(() => renameInputRef.current?.focus())
+  }, [])
 
+  const commitRename = useCallback(() => {
+    const trimmed = renameValue.trim()
+    if (trimmed && renamingSessionId) {
       setSessionsWithPersist((prev) =>
         prev.map((item) =>
-          item.id === session.id
-            ? {
-                ...item,
-                title: trimmed.slice(0, 64),
-                isCustomTitle: true,
-              }
-            : item,
+          item.id === renamingSessionId ? { ...item, title: trimmed.slice(0, 64), isCustomTitle: true } : item,
         ),
       )
-    },
-    [setSessionsWithPersist],
-  )
+    }
+    setRenamingSessionId(null)
+    setRenameValue('')
+  }, [renameValue, renamingSessionId, setSessionsWithPersist])
+
+  const cancelRename = useCallback(() => {
+    setRenamingSessionId(null)
+    setRenameValue('')
+  }, [])
 
   const deleteSession = useCallback(
     (sessionId: string) => {
@@ -496,6 +528,7 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
             <div className="flex flex-1 items-center gap-2 overflow-x-auto">
               {sessions.map((session) => {
                 const isActive = session.id === currentSession?.id
+                const isRenaming = renamingSessionId === session.id
                 return (
                   <div
                     key={session.id}
@@ -506,37 +539,75 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
                         : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:text-white',
                     )}
                   >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateActiveSessionId(session.id)
-                        queueMicrotask(() => inputRef.current?.focus())
-                      }}
-                      onDoubleClick={() => renameSession(session)}
-                      className="max-w-[160px] truncate text-left"
-                    >
-                      {session.title}
-                    </button>
-                    <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
-                      <button
-                        type="button"
-                        onClick={() => renameSession(session)}
-                        className="rounded-full border border-white/10 bg-white/5 p-1 text-slate-200 hover:border-white/20 hover:bg-white/10"
-                        aria-label={`Rename ${session.title}`}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      {sessions.length > 1 && (
+                    {isRenaming ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          ref={renameInputRef}
+                          type="text"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitRename()
+                            if (e.key === 'Escape') cancelRename()
+                          }}
+                          onBlur={commitRename}
+                          className="w-24 bg-transparent text-xs text-white outline-none placeholder:text-slate-500"
+                          maxLength={64}
+                        />
                         <button
                           type="button"
-                          onClick={() => deleteSession(session.id)}
-                          className="rounded-full border border-white/10 bg-white/5 p-1 text-slate-200 hover:border-white/20 hover:bg-white/10"
-                          aria-label={`Delete ${session.title}`}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={commitRename}
+                          className="rounded-full border border-white/10 bg-white/5 p-1 text-emerald-300 hover:border-white/20 hover:bg-white/10"
+                          aria-label="Confirm rename"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Check className="h-3 w-3" />
                         </button>
-                      )}
-                    </div>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={cancelRename}
+                          className="rounded-full border border-white/10 bg-white/5 p-1 text-slate-200 hover:border-white/20 hover:bg-white/10"
+                          aria-label="Cancel rename"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateActiveSessionId(session.id)
+                            queueMicrotask(() => inputRef.current?.focus())
+                          }}
+                          onDoubleClick={() => startRename(session)}
+                          className="max-w-[160px] truncate text-left"
+                        >
+                          {session.title}
+                        </button>
+                        <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => startRename(session)}
+                            className="rounded-full border border-white/10 bg-white/5 p-1 text-slate-200 hover:border-white/20 hover:bg-white/10"
+                            aria-label={`Rename ${session.title}`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          {sessions.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => deleteSession(session.id)}
+                              className="rounded-full border border-white/10 bg-white/5 p-1 text-slate-200 hover:border-white/20 hover:bg-white/10"
+                              aria-label={`Delete ${session.title}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )
               })}
@@ -585,13 +656,75 @@ export function ChatWidget({ accountId, monthKey, preferredCurrency }: ChatWidge
             >
               <div
                 className={cn(
-                  'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow shadow-slate-950/30 backdrop-blur',
+                  'relative max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow shadow-slate-950/30 backdrop-blur',
                   message.role === 'user'
                     ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
-                    : 'bg-white/8 text-slate-100 ring-1 ring-white/10',
+                    : 'group/msg bg-white/8 text-slate-100 ring-1 ring-white/10',
                 )}
               >
-                <div className="whitespace-pre-wrap text-[13px]">{message.content}</div>
+                {message.role === 'assistant' && <CopyButton text={message.content} />}
+                {message.role === 'user' ? (
+                  <div className="whitespace-pre-wrap text-[13px]">{message.content}</div>
+                ) : (
+                  <div className="chat-markdown text-[13px]">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({ children }) => (
+                          <h1 className="mb-2 mt-3 text-base font-semibold text-white first:mt-0">{children}</h1>
+                        ),
+                        h2: ({ children }) => (
+                          <h2 className="mb-2 mt-3 text-sm font-semibold text-white first:mt-0">{children}</h2>
+                        ),
+                        h3: ({ children }) => (
+                          <h3 className="mb-1 mt-2 text-sm font-semibold text-white first:mt-0">{children}</h3>
+                        ),
+                        p: ({ children }) => <p className="mb-2 last:mb-0 text-slate-200">{children}</p>,
+                        strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                        em: ({ children }) => <em className="italic text-slate-300">{children}</em>,
+                        ul: ({ children }) => (
+                          <ul className="mb-2 list-disc space-y-1 pl-4 text-slate-200 last:mb-0">{children}</ul>
+                        ),
+                        ol: ({ children }) => (
+                          <ol className="mb-2 list-decimal space-y-1 pl-4 text-slate-200 last:mb-0">{children}</ol>
+                        ),
+                        li: ({ children }) => <li className="text-slate-200">{children}</li>,
+                        a: ({ href, children }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sky-400 underline decoration-sky-400/30 hover:text-sky-300 hover:decoration-sky-300/50"
+                          >
+                            {children}
+                          </a>
+                        ),
+                        code: ({ className, children }) => {
+                          const isBlock = className?.includes('language-')
+                          if (isBlock) {
+                            return (
+                              <code className="block overflow-x-auto rounded-lg bg-white/10 p-3 font-mono text-xs text-slate-200">
+                                {children}
+                              </code>
+                            )
+                          }
+                          return (
+                            <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-slate-200">
+                              {children}
+                            </code>
+                          )
+                        },
+                        pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
+                        blockquote: ({ children }) => (
+                          <blockquote className="mb-2 border-l-2 border-sky-400/40 pl-3 text-slate-300 last:mb-0">
+                            {children}
+                          </blockquote>
+                        ),
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                )}
               </div>
             </div>
           ))}

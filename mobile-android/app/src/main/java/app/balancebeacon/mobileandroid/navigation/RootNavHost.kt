@@ -9,11 +9,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,14 +36,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import app.balancebeacon.mobileandroid.core.AppContainer
 import app.balancebeacon.mobileandroid.core.session.SessionState
@@ -77,7 +94,30 @@ import app.balancebeacon.mobileandroid.feature.subscription.ui.SubscriptionViewM
 import app.balancebeacon.mobileandroid.feature.transactions.ui.TransactionsScreen
 import app.balancebeacon.mobileandroid.feature.transactions.ui.TransactionsViewModel
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+import app.balancebeacon.mobileandroid.ui.theme.GlassSurfaceStrong
+import app.balancebeacon.mobileandroid.ui.theme.SkyBlue
+import app.balancebeacon.mobileandroid.ui.theme.Slate300
 import kotlinx.coroutines.launch
+
+private enum class BottomNavTab(
+    val route: String,
+    val label: String,
+    val icon: ImageVector
+) {
+    Home(AppDestination.Dashboard.route, "Home", Icons.Default.Home),
+    Transactions(AppDestination.Transactions.route, "Transactions", Icons.Default.Receipt),
+    Budgets(AppDestination.Budgets.route, "Budgets", Icons.Default.AccountBalance),
+    Sharing(AppDestination.Sharing.route, "Sharing", Icons.Default.People),
+    Assistant(AppDestination.Assistant.route, "AI", Icons.Default.AutoAwesome)
+}
+
+private val bottomNavRoutes = BottomNavTab.entries.map { it.route }.toSet()
+
+private fun isBottomNavRoute(route: String?): Boolean {
+    if (route == null) return false
+    val baseRoute = route.substringBefore("?")
+    return baseRoute in bottomNavRoutes
+}
 
 @Composable
 fun RootNavHost(
@@ -99,231 +139,294 @@ fun RootNavHost(
             SessionState.Unauthenticated, SessionState.Loading -> AppDestination.Login.route
         }
 
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = modifier
-        ) {
-            composable(AppDestination.Login.route) {
-                val loginViewModel: LoginViewModel = viewModel(
-                    factory = remember { LoginViewModelFactory(appContainer.authRepository) }
-                )
-                LoginScreen(
-                    viewModel = loginViewModel,
-                    onRegisterClick = { navController.navigate(AppDestination.Register.route) },
-                    onResetPasswordClick = { navController.navigate(AppDestination.ResetPassword.route) },
-                    onVerifyEmailClick = { navController.navigate(AppDestination.VerifyEmail.route) }
-                )
-            }
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
+        val showBottomNav = isBottomNavRoute(currentRoute)
 
-            composable(AppDestination.Register.route) {
-                val registerViewModel: RegisterViewModel = viewModel(
-                    factory = remember { RegisterViewModelFactory(appContainer.authRepository) }
-                )
-                FeatureShell(
-                    title = "Register",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    RegisterScreen(
-                        viewModel = registerViewModel,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
+        val view = LocalView.current
 
-            composable(AppDestination.ResetPassword.route) {
-                val resetPasswordViewModel: ResetPasswordViewModel = viewModel(
-                    factory = remember { ResetPasswordViewModelFactory(appContainer.authRepository) }
-                )
-                FeatureShell(
-                    title = "Reset Password",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    ResetPasswordScreen(
-                        viewModel = resetPasswordViewModel,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-
-            composable(AppDestination.VerifyEmail.route) {
-                val verifyEmailViewModel: VerifyEmailViewModel = viewModel(
-                    factory = remember { VerifyEmailViewModelFactory(appContainer.authRepository) }
-                )
-                FeatureShell(
-                    title = "Verify Email",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    VerifyEmailScreen(
-                        viewModel = verifyEmailViewModel,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-
-            composable(AppDestination.Dashboard.route) {
-                val dashboardVm: DashboardViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory {
-                            DashboardViewModel(
-                                dashboardRepository = appContainer.dashboardRepository,
-                                transactionsRepository = appContainer.transactionsRepository
+        Scaffold(
+            modifier = modifier,
+            containerColor = Color.Transparent,
+            bottomBar = {
+                if (showBottomNav) {
+                    NavigationBar(
+                        containerColor = GlassSurfaceStrong,
+                        contentColor = Color.White,
+                        tonalElevation = 0.dp
+                    ) {
+                        BottomNavTab.entries.forEach { tab ->
+                            val selected = currentRoute?.substringBefore("?") == tab.route
+                            NavigationBarItem(
+                                selected = selected,
+                                onClick = {
+                                    if (!selected) {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        navController.navigate(tab.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = tab.icon,
+                                        contentDescription = tab.label
+                                    )
+                                },
+                                label = { Text(tab.label) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = Color.White,
+                                    selectedTextColor = SkyBlue,
+                                    indicatorColor = SkyBlue.copy(alpha = 0.2f),
+                                    unselectedIconColor = Slate300,
+                                    unselectedTextColor = Slate300
+                                )
                             )
                         }
                     }
-                )
-                DashboardScreen(
-                    dashboardViewModel = dashboardVm,
-                    onOpenOverview = { navController.navigate(AppDestination.Overview.route) },
-                    onOpenAssistant = { navController.navigate(AppDestination.Assistant.route) },
-                    onOpenRecurring = { navController.navigate(AppDestination.Recurring.route) },
-                    onOpenHoldings = { navController.navigate(AppDestination.Holdings.route) },
-                    onOpenOnboarding = { navController.navigate(AppDestination.Onboarding.route) },
-                    onOpenSubscription = { navController.navigate(AppDestination.Subscription.route) },
-                    onOpenPaywall = { navController.navigate(AppDestination.Paywall.route) },
-                    onOpenTransactions = { navController.navigate(AppDestination.Transactions.route) },
-                    onOpenBudgets = { navController.navigate(AppDestination.Budgets.route) },
-                    onOpenAccounts = { navController.navigate(AppDestination.Accounts.route) },
-                    onOpenCategories = { navController.navigate(AppDestination.Categories.route) },
-                    onOpenSharing = { navController.navigate(AppDestination.Sharing.createRoute()) },
-                    onOpenProfile = { navController.navigate(AppDestination.Profile.route) },
-                    onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
-                    onSignOut = {
-                        coroutineScope.launch {
-                            appContainer.authRepository.logout()
-                        }
-                    }
-                )
-            }
-
-            composable(AppDestination.Overview.route) {
-                val vm: DashboardViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory {
-                            DashboardViewModel(
-                                dashboardRepository = appContainer.dashboardRepository,
-                                transactionsRepository = appContainer.transactionsRepository
-                            )
-                        }
-                    }
-                )
-                FeatureShell(
-                    title = "Overview",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    DashboardOverviewScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                 }
             }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable(AppDestination.Login.route) {
+                    val loginViewModel: LoginViewModel = viewModel(
+                        factory = remember { LoginViewModelFactory(appContainer.authRepository) }
+                    )
+                    LoginScreen(
+                        viewModel = loginViewModel,
+                        onRegisterClick = { navController.navigate(AppDestination.Register.route) },
+                        onResetPasswordClick = { navController.navigate(AppDestination.ResetPassword.route) },
+                        onVerifyEmailClick = { navController.navigate(AppDestination.VerifyEmail.route) }
+                    )
+                }
 
-            composable(AppDestination.Assistant.route) {
-                val vm: AssistantViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory {
-                            AssistantViewModel(
-                                assistantRepository = appContainer.assistantRepository,
-                                accountsRepository = appContainer.accountsRepository,
-                                assistantSessionStore = appContainer.assistantSessionStore
-                            )
-                        }
+                composable(AppDestination.Register.route) {
+                    val registerViewModel: RegisterViewModel = viewModel(
+                        factory = remember { RegisterViewModelFactory(appContainer.authRepository) }
+                    )
+                    FeatureShell(
+                        title = "Register",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        RegisterScreen(
+                            viewModel = registerViewModel,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
-                )
-                FeatureShell(
-                    title = "Assistant",
-                    onBack = { navController.popBackStack() }
-                ) {
+                }
+
+                composable(AppDestination.ResetPassword.route) {
+                    val resetPasswordViewModel: ResetPasswordViewModel = viewModel(
+                        factory = remember { ResetPasswordViewModelFactory(appContainer.authRepository) }
+                    )
+                    FeatureShell(
+                        title = "Reset Password",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        ResetPasswordScreen(
+                            viewModel = resetPasswordViewModel,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                composable(AppDestination.VerifyEmail.route) {
+                    val verifyEmailViewModel: VerifyEmailViewModel = viewModel(
+                        factory = remember { VerifyEmailViewModelFactory(appContainer.authRepository) }
+                    )
+                    FeatureShell(
+                        title = "Verify Email",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        VerifyEmailScreen(
+                            viewModel = verifyEmailViewModel,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                composable(AppDestination.Dashboard.route) {
+                    val dashboardVm: DashboardViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory {
+                                DashboardViewModel(
+                                    dashboardRepository = appContainer.dashboardRepository,
+                                    transactionsRepository = appContainer.transactionsRepository,
+                                    accountsRepository = appContainer.accountsRepository
+                                )
+                            }
+                        }
+                    )
+                    DashboardScreen(
+                        dashboardViewModel = dashboardVm,
+                        onOpenOverview = { navController.navigate(AppDestination.Overview.route) },
+                        onOpenRecurring = { navController.navigate(AppDestination.Recurring.route) },
+                        onOpenHoldings = { navController.navigate(AppDestination.Holdings.route) },
+                        onOpenOnboarding = { navController.navigate(AppDestination.Onboarding.route) },
+                        onOpenSubscription = { navController.navigate(AppDestination.Subscription.route) },
+                        onOpenPaywall = { navController.navigate(AppDestination.Paywall.route) },
+                        onOpenAccounts = { navController.navigate(AppDestination.Accounts.route) },
+                        onOpenCategories = { navController.navigate(AppDestination.Categories.route) },
+                        onOpenProfile = { navController.navigate(AppDestination.Profile.route) },
+                        onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
+                        onSignOut = {
+                            coroutineScope.launch {
+                                appContainer.authRepository.logout()
+                            }
+                        }
+                    )
+                }
+
+                composable(AppDestination.Overview.route) {
+                    val vm: DashboardViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory {
+                                DashboardViewModel(
+                                    dashboardRepository = appContainer.dashboardRepository,
+                                    transactionsRepository = appContainer.transactionsRepository,
+                                    accountsRepository = appContainer.accountsRepository
+                                )
+                            }
+                        }
+                    )
+                    FeatureShell(
+                        title = "Overview",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        DashboardOverviewScreen(
+                            viewModel = vm,
+                            navToAccounts = { navController.navigate(AppDestination.Accounts.route) },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                composable(AppDestination.Assistant.route) {
+                    val vm: AssistantViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory {
+                                AssistantViewModel(
+                                    assistantRepository = appContainer.assistantRepository,
+                                    accountsRepository = appContainer.accountsRepository,
+                                    assistantSessionStore = appContainer.assistantSessionStore
+                                )
+                            }
+                        }
+                    )
                     AssistantScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                 }
-            }
 
-            composable(AppDestination.Recurring.route) {
-                val vm: RecurringViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory {
-                            RecurringViewModel(
-                                recurringRepository = appContainer.recurringRepository,
-                                accountsRepository = appContainer.accountsRepository,
-                                categoriesRepository = appContainer.categoriesRepository
-                            )
+                composable(AppDestination.Recurring.route) {
+                    val vm: RecurringViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory {
+                                RecurringViewModel(
+                                    recurringRepository = appContainer.recurringRepository,
+                                    accountsRepository = appContainer.accountsRepository,
+                                    categoriesRepository = appContainer.categoriesRepository
+                                )
+                            }
                         }
-                    }
-                )
-                FeatureShell(
-                    title = "Recurring",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    RecurringScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
-                }
-            }
-
-            composable(AppDestination.Holdings.route) {
-                val vm: HoldingsViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory { HoldingsViewModel(appContainer.holdingsRepository) }
-                    }
-                )
-                FeatureShell(
-                    title = "Holdings",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    HoldingsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
-                }
-            }
-
-            composable(AppDestination.Onboarding.route) {
-                val vm: OnboardingViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory { OnboardingViewModel(appContainer.onboardingRepository) }
-                    }
-                )
-                FeatureShell(
-                    title = "Onboarding",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    OnboardingScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
-                }
-            }
-
-            composable(AppDestination.Subscription.route) {
-                val vm: SubscriptionViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory { SubscriptionViewModel(appContainer.subscriptionRepository) }
-                    }
-                )
-                FeatureShell(
-                    title = "Subscription",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    SubscriptionScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
-                }
-            }
-
-            composable(AppDestination.Paywall.route) {
-                FeatureShell(
-                    title = "Paywall",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    PaywallScreen(
-                        onUpgradeClick = { navController.navigate(AppDestination.Subscription.route) },
-                        modifier = Modifier.fillMaxSize()
                     )
-                }
-            }
-
-            composable(AppDestination.Transactions.route) {
-                val vm: TransactionsViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory {
-                            TransactionsViewModel(
-                                transactionsRepository = appContainer.transactionsRepository,
-                                dashboardRepository = appContainer.dashboardRepository
-                            )
-                        }
+                    FeatureShell(
+                        title = "Recurring",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        RecurringScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                     }
-                )
-                FeatureShell(
-                    title = "Transactions",
-                    onBack = { navController.popBackStack() }
-                ) {
+                }
+
+                composable(AppDestination.Holdings.route) {
+                    val vm: HoldingsViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory {
+                                HoldingsViewModel(
+                                    holdingsRepository = appContainer.holdingsRepository,
+                                    accountsRepository = appContainer.accountsRepository,
+                                    categoriesRepository = appContainer.categoriesRepository
+                                )
+                            }
+                        }
+                    )
+                    FeatureShell(
+                        title = "Holdings",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        HoldingsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                    }
+                }
+
+                composable(AppDestination.Onboarding.route) {
+                    val vm: OnboardingViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory {
+                                OnboardingViewModel(
+                                    onboardingRepository = appContainer.onboardingRepository,
+                                    authRepository = appContainer.authRepository,
+                                    categoriesRepository = appContainer.categoriesRepository
+                                )
+                            }
+                        }
+                    )
+                    FeatureShell(
+                        title = "Setup Wizard",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        OnboardingScreen(
+                            viewModel = vm,
+                            onComplete = { navController.popBackStack() },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                composable(AppDestination.Subscription.route) {
+                    val vm: SubscriptionViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory { SubscriptionViewModel(appContainer.subscriptionRepository) }
+                        }
+                    )
+                    FeatureShell(
+                        title = "Subscription",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        SubscriptionScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
+                    }
+                }
+
+                composable(AppDestination.Paywall.route) {
+                    FeatureShell(
+                        title = "Paywall",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        PaywallScreen(
+                            onUpgradeClick = { navController.navigate(AppDestination.Subscription.route) },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                composable(AppDestination.Transactions.route) {
+                    val vm: TransactionsViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory {
+                                TransactionsViewModel(
+                                    transactionsRepository = appContainer.transactionsRepository,
+                                    dashboardRepository = appContainer.dashboardRepository,
+                                    accountsRepository = appContainer.accountsRepository,
+                                    categoriesRepository = appContainer.categoriesRepository
+                                )
+                            }
+                        }
+                    )
                     TransactionsScreen(
                         viewModel = vm,
                         onShareTransaction = { transactionId ->
@@ -332,109 +435,100 @@ fun RootNavHost(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-            }
 
-            composable(AppDestination.Budgets.route) {
-                val vm: BudgetsViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory {
-                            BudgetsViewModel(
-                                budgetsRepository = appContainer.budgetsRepository,
-                                accountsRepository = appContainer.accountsRepository
-                            )
+                composable(AppDestination.Budgets.route) {
+                    val vm: BudgetsViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory {
+                                BudgetsViewModel(
+                                    budgetsRepository = appContainer.budgetsRepository,
+                                    accountsRepository = appContainer.accountsRepository,
+                                    categoriesRepository = appContainer.categoriesRepository
+                                )
+                            }
                         }
-                    }
-                )
-                FeatureShell(
-                    title = "Budgets",
-                    onBack = { navController.popBackStack() }
-                ) {
+                    )
                     BudgetsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                 }
-            }
 
-            composable(AppDestination.Accounts.route) {
-                val vm: AccountsViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory { AccountsViewModel(appContainer.accountsRepository) }
+                composable(AppDestination.Accounts.route) {
+                    val vm: AccountsViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory { AccountsViewModel(appContainer.accountsRepository) }
+                        }
+                    )
+                    FeatureShell(
+                        title = "Accounts",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        AccountsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                     }
-                )
-                FeatureShell(
-                    title = "Accounts",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    AccountsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                 }
-            }
 
-            composable(AppDestination.Categories.route) {
-                val vm: CategoriesViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory { CategoriesViewModel(appContainer.categoriesRepository) }
+                composable(AppDestination.Categories.route) {
+                    val vm: CategoriesViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory { CategoriesViewModel(appContainer.categoriesRepository) }
+                        }
+                    )
+                    FeatureShell(
+                        title = "Categories",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        CategoriesScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                     }
-                )
-                FeatureShell(
-                    title = "Categories",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    CategoriesScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                 }
-            }
 
-            composable(
-                route = AppDestination.Sharing.routeWithArgs,
-                arguments = listOf(
-                    navArgument(AppDestination.Sharing.transactionIdArg) {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    }
-                )
-            ) { backStackEntry ->
-                val initialTransactionId = backStackEntry.arguments
-                    ?.getString(AppDestination.Sharing.transactionIdArg)
-                    .orEmpty()
-                val vm: SharingViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory { SharingViewModel(appContainer.sharingRepository) }
-                    }
-                )
-                FeatureShell(
-                    title = "Sharing",
-                    onBack = { navController.popBackStack() }
-                ) {
+                composable(
+                    route = AppDestination.Sharing.routeWithArgs,
+                    arguments = listOf(
+                        navArgument(AppDestination.Sharing.transactionIdArg) {
+                            type = NavType.StringType
+                            defaultValue = ""
+                        }
+                    )
+                ) { backStackEntry ->
+                    val initialTransactionId = backStackEntry.arguments
+                        ?.getString(AppDestination.Sharing.transactionIdArg)
+                        .orEmpty()
+                    val vm: SharingViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory { SharingViewModel(appContainer.sharingRepository) }
+                        }
+                    )
                     SharingScreen(
                         viewModel = vm,
                         initialTransactionId = initialTransactionId,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-            }
 
-            composable(AppDestination.Profile.route) {
-                val vm: ProfileViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory { ProfileViewModel(appContainer.authRepository) }
+                composable(AppDestination.Profile.route) {
+                    val vm: ProfileViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory { ProfileViewModel(appContainer.authRepository) }
+                        }
+                    )
+                    FeatureShell(
+                        title = "Profile",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        ProfileScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                     }
-                )
-                FeatureShell(
-                    title = "Profile",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    ProfileScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                 }
-            }
 
-            composable(AppDestination.Settings.route) {
-                val vm: SettingsViewModel = viewModel(
-                    factory = remember {
-                        simpleFactory { SettingsViewModel(appContainer.authRepository) }
+                composable(AppDestination.Settings.route) {
+                    val vm: SettingsViewModel = viewModel(
+                        factory = remember {
+                            simpleFactory { SettingsViewModel(appContainer.authRepository) }
+                        }
+                    )
+                    FeatureShell(
+                        title = "Settings",
+                        onBack = { navController.popBackStack() }
+                    ) {
+                        SettingsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                     }
-                )
-                FeatureShell(
-                    title = "Settings",
-                    onBack = { navController.popBackStack() }
-                ) {
-                    SettingsScreen(viewModel = vm, modifier = Modifier.fillMaxSize())
                 }
             }
         }
@@ -469,17 +563,13 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
 private fun DashboardScreen(
     dashboardViewModel: DashboardViewModel,
     onOpenOverview: () -> Unit,
-    onOpenAssistant: () -> Unit,
     onOpenRecurring: () -> Unit,
     onOpenHoldings: () -> Unit,
     onOpenOnboarding: () -> Unit,
     onOpenSubscription: () -> Unit,
     onOpenPaywall: () -> Unit,
-    onOpenTransactions: () -> Unit,
-    onOpenBudgets: () -> Unit,
     onOpenAccounts: () -> Unit,
     onOpenCategories: () -> Unit,
-    onOpenSharing: () -> Unit,
     onOpenProfile: () -> Unit,
     onOpenSettings: () -> Unit,
     onSignOut: () -> Unit,
@@ -491,131 +581,113 @@ private fun DashboardScreen(
         dashboardViewModel.loadDashboard()
     }
 
-    val navigationActions = listOf(
+    val secondaryActions = listOf(
         "Overview" to onOpenOverview,
-        "Assistant" to onOpenAssistant,
+        "Settings" to onOpenSettings,
         "Recurring" to onOpenRecurring,
         "Holdings" to onOpenHoldings,
-        "Transactions" to onOpenTransactions,
-        "Budgets" to onOpenBudgets,
         "Accounts" to onOpenAccounts,
         "Categories" to onOpenCategories,
-        "Sharing" to onOpenSharing,
         "Profile" to onOpenProfile,
-        "Settings" to onOpenSettings,
         "Onboarding" to onOpenOnboarding,
         "Subscription" to onOpenSubscription,
         "Paywall" to onOpenPaywall
     )
-    val featuredActions = navigationActions.take(6)
-    val secondaryActions = navigationActions.drop(6)
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
-        horizontalAlignment = Alignment.Start
     ) {
-        GlassPanel(modifier = Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Dashboard", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    "Use the same web features in Android with the same dark glass styling.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                dashboardState.data?.summary?.let { summary ->
-                    Text(
-                        text = "Cashflow Snapshot: ${summary.netResult}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                if (dashboardState.isLoading && dashboardState.data == null) {
-                    Text(
-                        text = "Loading trend...",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                dashboardState.error?.let { error ->
-                    Text(
-                        text = error,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                Button(
-                    onClick = onOpenOverview,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                    )
-                ) {
-                    Text("Open Cashflow Details")
+        item {
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Balance Beacon", style = MaterialTheme.typography.headlineSmall)
+                    dashboardState.data?.summary?.let { summary ->
+                        Text(
+                            text = "Cashflow: ${summary.netResult}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    if (dashboardState.isLoading && dashboardState.data == null) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(strokeWidth = 2.dp)
+                            Text(
+                                text = "Loading...",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    dashboardState.error?.let { error ->
+                        val displayError = if (error.contains("expired", ignoreCase = true)) {
+                            "Session expired"
+                        } else if (error.length > 60) {
+                            "Could not load data"
+                        } else {
+                            error
+                        }
+                        Text(
+                            text = displayError,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
 
-        GlassPanel(modifier = Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Quick access", style = MaterialTheme.typography.titleMedium)
-                featuredActions.chunked(2).forEach { rowItems ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        rowItems.forEach { (label, action) ->
-                            Button(
-                                onClick = action,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(label)
+        if (dashboardState.data != null) {
+            val dashboard = dashboardState.data!!
+            item {
+                DashboardTrendCard(
+                    history = dashboard.history,
+                    comparison = dashboard.comparison,
+                    currencyCode = dashboard.preferredCurrency ?: "USD",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        item {
+            GlassPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("More", style = MaterialTheme.typography.titleMedium)
+                    secondaryActions.chunked(2).forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            rowItems.forEach { (label, action) ->
+                                Button(
+                                    onClick = action,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(label)
+                                }
+                            }
+                            repeat(2 - rowItems.size) {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
-                        repeat(2 - rowItems.size) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
                     }
                 }
             }
         }
 
-        dashboardState.data?.let { dashboard ->
-            DashboardTrendCard(
-                history = dashboard.history,
-                comparison = dashboard.comparison,
-                currencyCode = dashboard.preferredCurrency ?: "USD",
+        item {
+            TextButton(
+                onClick = onSignOut,
                 modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        GlassPanel(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                item {
-                    Text(
-                        text = "More destinations",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                items(secondaryActions) { (label, action) ->
-                    Button(
-                        onClick = action,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(label)
-                    }
-                }
+                Text(
+                    "Sign Out",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        }
-
-        TextButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
-            Text("Sign Out")
         }
     }
 }
@@ -627,20 +699,26 @@ private fun FeatureShell(
     content: @Composable () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.fillMaxSize()
     ) {
-        GlassPanel(modifier = Modifier.fillMaxWidth()) {
-            Column(
+        GlassPanel(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+        ) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(title, style = MaterialTheme.typography.titleLarge)
-                TextButton(onClick = onBack) {
-                    Text("Back")
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Go back",
+                        tint = Color.White
+                    )
                 }
+                Text(title, style = MaterialTheme.typography.titleLarge)
             }
         }
         Box(
@@ -648,9 +726,7 @@ private fun FeatureShell(
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            GlassPanel(modifier = Modifier.fillMaxSize()) {
-                content()
-            }
+            content()
         }
     }
 }

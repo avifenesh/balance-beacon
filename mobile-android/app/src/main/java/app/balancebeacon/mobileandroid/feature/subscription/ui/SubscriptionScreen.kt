@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+import app.balancebeacon.mobileandroid.ui.util.sanitizeError
 
 @Composable
 fun SubscriptionScreen(
@@ -53,7 +54,7 @@ fun SubscriptionScreen(
                         }
 
                         state.error != null -> {
-                            Text(state.error ?: "Failed to load subscription", color = MaterialTheme.colorScheme.error)
+                            Text(sanitizeError(state.error ?: "Failed to load subscription"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Button(onClick = viewModel::load) {
                                 Text("Retry")
                             }

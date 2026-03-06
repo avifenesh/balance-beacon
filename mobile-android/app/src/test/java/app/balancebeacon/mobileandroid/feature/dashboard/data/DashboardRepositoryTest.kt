@@ -3,6 +3,7 @@ package app.balancebeacon.mobileandroid.feature.dashboard.data
 import app.balancebeacon.mobileandroid.core.network.ApiEnvelope
 import app.balancebeacon.mobileandroid.core.result.AppResult
 import app.balancebeacon.mobileandroid.feature.dashboard.model.DashboardResponse
+import app.balancebeacon.mobileandroid.feature.dashboard.model.ExchangeRateRefreshResponse
 import java.io.IOException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -63,6 +64,16 @@ class DashboardRepositoryTest {
             lastAccountId = accountId
             lastMonth = month
             return response
+        }
+
+        override suspend fun refreshExchangeRates(): ApiEnvelope<ExchangeRateRefreshResponse> {
+            if (shouldThrow) {
+                throw IOException("network down")
+            }
+            return ApiEnvelope(
+                success = true,
+                data = ExchangeRateRefreshResponse(updatedAt = "2026-03-06T12:00:00Z")
+            )
         }
     }
 }

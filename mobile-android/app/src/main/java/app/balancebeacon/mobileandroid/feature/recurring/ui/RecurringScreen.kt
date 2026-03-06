@@ -1,5 +1,6 @@
 package app.balancebeacon.mobileandroid.feature.recurring.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,11 +9,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -20,30 +25,40 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import app.balancebeacon.mobileandroid.feature.categories.model.CategoryDto
 import app.balancebeacon.mobileandroid.feature.recurring.model.RecurringTemplateDto
+import app.balancebeacon.mobileandroid.ui.components.SkeletonLine
 import app.balancebeacon.mobileandroid.ui.theme.GlassPanel
+import app.balancebeacon.mobileandroid.ui.theme.SkyBlue
+import app.balancebeacon.mobileandroid.ui.util.sanitizeError
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecurringScreen(
     viewModel: RecurringViewModel,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val view = LocalView.current
+    var showDeleteConfirmId by rememberSaveable { mutableStateOf<String?>(null) }
     val filteredTemplates = remember(state.templates, state.typeFilter, state.showInactiveTemplates) {
         filterRecurringTemplates(
             templates = state.templates,
@@ -73,8 +88,16 @@ fun RecurringScreen(
         viewModel.initialize()
     }
 
+    PullToRefreshBox(
+        isRefreshing = state.isLoading,
+        onRefresh = {
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            viewModel.load()
+        },
+        modifier = modifier.fillMaxSize()
+    ) {
     LazyColumn(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -85,27 +108,21 @@ fun RecurringScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Recurring", style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        text = "Keep predictable cashflow on schedule with active templates, faster filters, and a cleaner create flow.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
                     if (state.isLoading) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            CircularProgressIndicator()
-                            Text("Loading recurring templates...")
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SkeletonLine(width = 200.dp, height = 14.dp)
+                            SkeletonLine(width = 140.dp, height = 14.dp)
                         }
                     }
                     state.statusMessage?.let {
                         Text(it, color = MaterialTheme.colorScheme.primary)
                     }
                     state.error?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = sanitizeError(it),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
 
                     Text("Account", style = MaterialTheme.typography.labelLarge)
@@ -282,9 +299,10 @@ fun RecurringScreen(
                     template = template,
                     accountName = accountNames[template.accountId] ?: template.accountId,
                     categoryName = template.category?.name ?: categoryNames[template.categoryId] ?: template.categoryId,
+                    categoryColor = template.category?.color,
                     isMutating = state.isMutating,
                     onToggle = { viewModel.toggleTemplate(template.id, false) },
-                    onDelete = { viewModel.deleteTemplate(template.id) }
+                    onDelete = { showDeleteConfirmId = template.id }
                 )
             }
         }
@@ -298,12 +316,32 @@ fun RecurringScreen(
                     template = template,
                     accountName = accountNames[template.accountId] ?: template.accountId,
                     categoryName = template.category?.name ?: categoryNames[template.categoryId] ?: template.categoryId,
+                    categoryColor = template.category?.color,
                     isMutating = state.isMutating,
                     onToggle = { viewModel.toggleTemplate(template.id, true) },
-                    onDelete = { viewModel.deleteTemplate(template.id) }
+                    onDelete = { showDeleteConfirmId = template.id }
                 )
             }
         }
+    }
+    } // PullToRefreshBox
+
+    showDeleteConfirmId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmId = null },
+            title = { Text("Delete template") },
+            text = { Text("Are you sure you want to delete this recurring template? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    viewModel.deleteTemplate(id)
+                    showDeleteConfirmId = null
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmId = null }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -447,6 +485,7 @@ private fun RecurringTemplateItem(
     template: RecurringTemplateDto,
     accountName: String,
     categoryName: String,
+    categoryColor: String? = null,
     isMutating: Boolean,
     onToggle: () -> Unit,
     onDelete: () -> Unit
@@ -456,10 +495,23 @@ private fun RecurringTemplateItem(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = categoryName,
-                style = MaterialTheme.typography.titleSmall
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(
+                            color = parseHexColor(categoryColor),
+                            shape = CircleShape
+                        )
+                )
+                Text(
+                    text = categoryName,
+                    style = MaterialTheme.typography.titleSmall
+                )
+            }
             Text(
                 text = "$accountName • ${template.type.lowercase(Locale.ROOT).replaceFirstChar { it.uppercase() }} • Day ${template.dayOfMonth}",
                 style = MaterialTheme.typography.bodySmall,
@@ -501,5 +553,14 @@ private fun formatCurrency(amount: Double, currencyCode: String): String {
         formatter.format(amount)
     }.getOrElse {
         String.format(Locale.US, "%.2f %s", amount, currencyCode.uppercase(Locale.ROOT))
+    }
+}
+
+private fun parseHexColor(hex: String?, default: Color = SkyBlue): Color {
+    if (hex.isNullOrBlank()) return default
+    return try {
+        Color(android.graphics.Color.parseColor(if (hex.startsWith("#")) hex else "#$hex"))
+    } catch (_: Exception) {
+        default
     }
 }
