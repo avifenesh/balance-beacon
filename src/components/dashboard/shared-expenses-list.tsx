@@ -95,6 +95,8 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                 type="button"
                 className="flex w-full items-center justify-between p-4 text-left hover:bg-white/5 transition"
                 onClick={() => setExpandedId(isExpanded ? null : expense.id)}
+                aria-expanded={isExpanded}
+                aria-controls={`details-${expense.id}`}
               >
                 <div className="space-y-1">
                   <p className="font-medium text-white">
@@ -114,77 +116,75 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
                     </p>
                   </div>
                   {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-slate-400" />
+                    <ChevronUp className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                    <ChevronDown className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   )}
                 </div>
               </button>
 
-              {isExpanded && (
-                <div className="border-t border-white/10 p-4 space-y-3">
-                  {expense.participants.map((participant) => (
-                    <div key={participant.id} className="flex items-center justify-between rounded-lg bg-white/5 p-3">
-                      <div>
-                        <p className="font-medium text-white">{participant.participant.displayName}</p>
-                        <p className="text-xs text-slate-400">{participant.participant.email}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">
-                          {formatCurrency(participant.shareAmount, expense.currency)}
-                        </span>
-                        {participant.status === PaymentStatus.PAID && (
-                          <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
-                            <Check className="h-3 w-3" />
-                            Paid
-                          </span>
-                        )}
-                        {participant.status === PaymentStatus.DECLINED && (
-                          <span className="flex items-center gap-1 rounded-full bg-rose-500/20 px-2 py-0.5 text-xs text-rose-300">
-                            <X className="h-3 w-3" />
-                            Declined
-                          </span>
-                        )}
-                        {participant.status === PaymentStatus.PENDING && (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="h-7 px-2 text-xs text-amber-300 hover:bg-amber-500/20"
-                              onClick={() => handleSendReminder(participant.id)}
-                              disabled={isPending}
-                              title="Send reminder"
-                            >
-                              <Bell className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="h-7 px-2 text-xs text-emerald-300 hover:bg-emerald-500/20"
-                              onClick={() => handleMarkPaid(participant.id)}
-                              disabled={isPending}
-                              title="Mark as paid"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+              <div id={`details-${expense.id}`} className="border-t border-white/10 p-4 space-y-3" hidden={!isExpanded}>
+                {expense.participants.map((participant) => (
+                  <div key={participant.id} className="flex items-center justify-between rounded-lg bg-white/5 p-3">
+                    <div>
+                      <p className="font-medium text-white">{participant.participant.displayName}</p>
+                      <p className="text-xs text-slate-400">{participant.participant.email}</p>
                     </div>
-                  ))}
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="text-xs text-rose-400 hover:bg-rose-500/20"
-                      onClick={() => handleCancelSharing(expense.id)}
-                      disabled={isPending}
-                    >
-                      Cancel sharing
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-white">
+                        {formatCurrency(participant.shareAmount, expense.currency)}
+                      </span>
+                      {participant.status === PaymentStatus.PAID && (
+                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
+                          <Check className="h-3 w-3" aria-hidden="true" />
+                          Paid
+                        </span>
+                      )}
+                      {participant.status === PaymentStatus.DECLINED && (
+                        <span className="flex items-center gap-1 rounded-full bg-rose-500/20 px-2 py-0.5 text-xs text-rose-300">
+                          <X className="h-3 w-3" aria-hidden="true" />
+                          Declined
+                        </span>
+                      )}
+                      {participant.status === PaymentStatus.PENDING && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-amber-300 hover:bg-amber-500/20"
+                            onClick={() => handleSendReminder(participant.id)}
+                            disabled={isPending}
+                            aria-label={`Send payment reminder to ${participant.participant.displayName || participant.participant.email}`}
+                          >
+                            <Bell className="h-3.5 w-3.5" aria-hidden="true" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-emerald-300 hover:bg-emerald-500/20"
+                            onClick={() => handleMarkPaid(participant.id)}
+                            disabled={isPending}
+                            aria-label={`Mark share from ${participant.participant.displayName || participant.participant.email} as paid`}
+                          >
+                            <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                ))}
+                <div className="flex justify-end pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-xs text-rose-400 hover:bg-rose-500/20"
+                    onClick={() => handleCancelSharing(expense.id)}
+                    disabled={isPending}
+                  >
+                    Cancel sharing
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
           )
         })}

@@ -77,9 +77,9 @@ export function RequestList({ requests, preferredCurrency: _preferredCurrency }:
             {feedback.message}
           </div>
         )}
-        <div className="space-y-3">
+        <ul className="space-y-3">
           {requests.map((request) => (
-            <div
+            <li
               key={request.id}
               className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-white/10"
             >
@@ -104,22 +104,22 @@ export function RequestList({ requests, preferredCurrency: _preferredCurrency }:
                   className="h-8 w-8 rounded-full border border-rose-500/30 bg-rose-500/10 p-0 text-rose-200 hover:bg-rose-500/20"
                   onClick={() => handleReject(request.id)}
                   disabled={isPending}
-                  title="Reject request"
+                  aria-label={`Reject request from ${request.from.name}`}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button
                   className="h-8 gap-1.5 rounded-full bg-sky-500 px-4 text-xs font-semibold text-white hover:bg-sky-400"
                   onClick={() => handleApprove(request.id)}
                   disabled={isPending}
                 >
-                  <Check className="h-3.5 w-3.5" />
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
                   Approve
                 </Button>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </CardContent>
     </Card>
   )

@@ -7,18 +7,15 @@
 import { Prisma, TransactionType, Currency } from '@prisma/client'
 import { convertAmountWithCache, type RateCache } from '@/lib/currency'
 
-const TWO_DECIMAL = 100
+const TWO_DECIMAL_ROUNDING_FACTOR = 100
 
 export function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (!value) return 0
   const parsed = typeof value === 'number' ? value : value.toNumber()
-  return Math.round(parsed * TWO_DECIMAL) / TWO_DECIMAL
+  return Math.round(parsed * TWO_DECIMAL_ROUNDING_FACTOR) / TWO_DECIMAL_ROUNDING_FACTOR
 }
 
-export function sumByType(
-  tx: Array<{ type: TransactionType; amount: number }>,
-  type: TransactionType,
-): number {
+export function sumByType(tx: Array<{ type: TransactionType; amount: number }>, type: TransactionType): number {
   return tx.filter((t) => t.type === type).reduce((acc, curr) => acc + curr.amount, 0)
 }
 
