@@ -1,6 +1,11 @@
 package app.balancebeacon.mobileandroid.feature.dashboard.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -27,6 +32,8 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Receipt
@@ -38,6 +45,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +59,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -200,6 +209,14 @@ fun DashboardOverviewScreen(
                         onAskAi = navToAssistant
                     )
                 }
+            }
+            item {
+                MonthlyRecapCard(
+                    totalIncome = parseAmount(dashboard.summary.totalIncome),
+                    totalExpenses = parseAmount(dashboard.summary.totalExpenses),
+                    stats = dashboard.stats,
+                    currencyCode = currencyCode
+                )
             }
             if (dashboard.stats.isNotEmpty()) {
                 item {
@@ -445,6 +462,108 @@ private fun AiInsightCard(
 }
 
 @Composable
+private fun MonthlyRecapCard(
+    totalIncome: Double,
+    totalExpenses: Double,
+    stats: List<DashboardStatDto>,
+    currencyCode: String
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val net = totalIncome - totalExpenses
+
+    GlassPanel(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.DateRange,
+                        contentDescription = null,
+                        tint = SkyBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text("Monthly Recap", style = MaterialTheme.typography.titleMedium)
+                }
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                RecapMetric(
+                    label = "Income",
+                    value = formatCurrency(totalIncome, currencyCode),
+                    color = Emerald400
+                )
+                RecapMetric(
+                    label = "Expenses",
+                    value = formatCurrency(totalExpenses, currencyCode),
+                    color = Rose400
+                )
+                RecapMetric(
+                    label = "Net",
+                    value = formatCurrency(net, currencyCode),
+                    color = if (net >= 0) Emerald400 else Rose400
+                )
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HorizontalDivider(color = GlassBorder)
+                    stats.forEach { stat ->
+                        val color = when (stat.variant) {
+                            "positive" -> Emerald400
+                            "negative" -> Rose400
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                stat.label,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Slate200
+                            )
+                            Text(
+                                formatCurrency(stat.amount, currencyCode),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = color
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecapMetric(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleSmall, color = color)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
 private fun FeatureHighlightChip(
     icon: ImageVector,
     label: String,
@@ -627,7 +746,27 @@ private fun SummarySection(
                 MetricCard(
                     label = "Balance",
                     value = formatSignedCurrency(netResult, currencyCode, withPlus = false),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    trailing = if (netResult > 0) {
+                        {
+                            val infiniteTransition = rememberInfiniteTransition(label = "sparkle")
+                            val sparkleAlpha by infiniteTransition.animateFloat(
+                                initialValue = 0.4f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1000),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "sparkle_alpha"
+                            )
+                            Icon(
+                                Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = Emerald400.copy(alpha = sparkleAlpha)
+                            )
+                        }
+                    } else null
                 )
             }
         }
@@ -638,12 +777,19 @@ private fun SummarySection(
 private fun MetricCard(
     label: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    trailing: @Composable (() -> Unit)? = null
 ) {
     GlassPanel(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium)
-            Text(value, style = MaterialTheme.typography.titleMedium)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(value, style = MaterialTheme.typography.titleMedium)
+                trailing?.invoke()
+            }
         }
     }
 }

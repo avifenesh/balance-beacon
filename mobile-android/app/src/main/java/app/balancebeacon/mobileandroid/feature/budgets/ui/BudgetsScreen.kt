@@ -1,7 +1,12 @@
 package app.balancebeacon.mobileandroid.feature.budgets.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -36,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -385,7 +392,7 @@ fun BudgetsScreen(
                                     }
                                     val animatedProgress by animateFloatAsState(
                                         targetValue = rawProgress,
-                                        animationSpec = tween(durationMillis = 600),
+                                        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
                                         label = "budget_progress"
                                     )
                                     val progressColor = when {
@@ -412,6 +419,25 @@ fun BudgetsScreen(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = progressColor
                                         )
+                                        AnimatedVisibility(
+                                            visible = rawProgress < 0.5f,
+                                            enter = fadeIn() + scaleIn()
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = Emerald400.copy(alpha = 0.15f),
+                                                border = BorderStroke(1.dp, Emerald400.copy(alpha = 0.3f))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp), tint = Emerald400)
+                                                    Text("On track", style = MaterialTheme.typography.labelSmall, color = Emerald400)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                                 OutlinedButton(

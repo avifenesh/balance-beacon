@@ -14,6 +14,7 @@ import {
   Download,
   FileSpreadsheet,
   Gauge,
+  Keyboard,
   Layers,
   LogOut,
   PiggyBank,
@@ -174,6 +175,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const [menuPosition, setMenuPosition] = useState<{ top?: number; bottom?: number }>({})
 
   // Refs for settings menu keyboard navigation and positioning
@@ -324,16 +326,61 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
     router.push(query ? `${pathname}?${query}` : pathname)
   }
 
-  const handleTabChange = (tab: TabValue) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (tab === 'overview') {
-      params.delete('tab')
-    } else {
-      params.set('tab', tab)
+  const handleTabChange = useCallback(
+    (tab: TabValue) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (tab === 'overview') {
+        params.delete('tab')
+      } else {
+        params.set('tab', tab)
+      }
+      const query = params.toString()
+      router.replace(query ? `${pathname}?${query}` : pathname)
+    },
+    [searchParams, pathname, router],
+  )
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+
+      const tabKeys: Record<string, TabValue> = {
+        '1': 'overview',
+        '2': 'transactions',
+        '3': 'budgets',
+        '4': 'categories',
+        '5': 'recurring',
+        '6': 'holdings',
+      }
+
+      if (tabKeys[e.key]) {
+        e.preventDefault()
+        handleTabChange(tabKeys[e.key])
+      }
+
+      if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        const form = document.querySelector('[data-form-section]') || document.querySelector('form')
+        form?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        const firstInput = form?.querySelector('input') as HTMLInputElement | null
+        firstInput?.focus()
+      }
+
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+        e.preventDefault()
+        setShowShortcuts((prev) => !prev)
+      }
+
+      if (e.key === 'Escape') {
+        setShowShortcuts(false)
+      }
     }
-    const query = params.toString()
-    router.replace(query ? `${pathname}?${query}` : pathname)
-  }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [handleTabChange])
 
   const handleMonthChange = (direction: number) => {
     const nextKey = shiftMonth(monthKey, direction)
@@ -439,77 +486,105 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
             </Button>
           </div>
 
-          {/* Right side actions - Settings dropdown */}
-          <div className="relative">
-            <Button
-              ref={settingsButtonRef}
-              type="button"
-              variant="ghost"
-              className="h-8 gap-1.5 rounded-full px-3 text-xs font-medium text-white/70 hover:bg-white/10 hover:text-white"
-              onClick={() => setShowSettingsMenu((prev) => !prev)}
-              aria-haspopup="menu"
-              aria-expanded={showSettingsMenu}
-              aria-controls="settings-menu"
-            >
-              <Settings className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Account</span>
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-            {showSettingsMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)} aria-hidden="true" />
-                <div
-                  ref={settingsMenuRef}
-                  id="settings-menu"
-                  role="menu"
-                  aria-label="Account settings"
-                  className="fixed right-4 z-50 w-48 rounded-lg border border-white/20 bg-slate-900 py-1 shadow-xl"
-                  style={menuPosition.bottom ? { bottom: menuPosition.bottom } : { top: menuPosition.top }}
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    tabIndex={-1}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none"
-                    onClick={() => {
-                      setShowSettingsMenu(false)
-                      setShowExportDialog(true)
-                    }}
+          {/* Right side actions */}
+          <div className="flex items-center gap-1">
+            {/* Keyboard shortcuts help */}
+            <div className="relative">
+              <button
+                onClick={() => setShowShortcuts(!showShortcuts)}
+                className="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/10 transition"
+                title="Keyboard shortcuts (?)"
+              >
+                <Keyboard className="h-4 w-4" />
+              </button>
+
+              {showShortcuts && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowShortcuts(false)} aria-hidden="true" />
+                  <div className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-white/15 bg-slate-900/95 backdrop-blur-xl p-4 shadow-xl z-50">
+                    <h4 className="text-sm font-medium text-white mb-3">Keyboard Shortcuts</h4>
+                    <div className="space-y-2 text-xs">
+                      <ShortcutRow keys="1-6" desc="Switch tabs" />
+                      <ShortcutRow keys="N" desc="New item (focus form)" />
+                      <ShortcutRow keys="?" desc="Toggle this help" />
+                      <ShortcutRow keys="Esc" desc="Close dialogs" />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            {/* Settings dropdown */}
+            <div className="relative">
+              <Button
+                ref={settingsButtonRef}
+                type="button"
+                variant="ghost"
+                className="h-8 gap-1.5 rounded-full px-3 text-xs font-medium text-white/70 hover:bg-white/10 hover:text-white"
+                onClick={() => setShowSettingsMenu((prev) => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={showSettingsMenu}
+                aria-controls="settings-menu"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Account</span>
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+              {showSettingsMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)} aria-hidden="true" />
+                  <div
+                    ref={settingsMenuRef}
+                    id="settings-menu"
+                    role="menu"
+                    aria-label="Account settings"
+                    className="fixed right-4 z-50 w-48 rounded-lg border border-white/20 bg-slate-900 py-1 shadow-xl"
+                    style={menuPosition.bottom ? { bottom: menuPosition.bottom } : { top: menuPosition.top }}
                   >
-                    <Download className="h-4 w-4" />
-                    Export my data
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    tabIndex={-1}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none"
-                    onClick={() => {
-                      setShowSettingsMenu(false)
-                      handleLogout()
-                    }}
-                    disabled={isPendingLogout}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    {isPendingLogout ? 'Signing out...' : 'Sign out'}
-                  </button>
-                  <div className="my-1 h-px bg-white/10" role="separator" />
-                  <button
-                    type="button"
-                    role="menuitem"
-                    tabIndex={-1}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-400 hover:bg-rose-500/10 focus:bg-rose-500/10 focus:outline-none"
-                    onClick={() => {
-                      setShowSettingsMenu(false)
-                      setShowDeleteDialog(true)
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete account
-                  </button>
-                </div>
-              </>
-            )}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      tabIndex={-1}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none"
+                      onClick={() => {
+                        setShowSettingsMenu(false)
+                        setShowExportDialog(true)
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                      Export my data
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      tabIndex={-1}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none"
+                      onClick={() => {
+                        setShowSettingsMenu(false)
+                        handleLogout()
+                      }}
+                      disabled={isPendingLogout}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      {isPendingLogout ? 'Signing out...' : 'Sign out'}
+                    </button>
+                    <div className="my-1 h-px bg-white/10" role="separator" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      tabIndex={-1}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-400 hover:bg-rose-500/10 focus:bg-rose-500/10 focus:outline-none"
+                      onClick={() => {
+                        setShowSettingsMenu(false)
+                        setShowDeleteDialog(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete account
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -883,6 +958,17 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
 
       {/* Delete Account Dialog */}
       {showDeleteDialog && <DeleteAccountDialog userEmail={userEmail} onClose={() => setShowDeleteDialog(false)} />}
+    </div>
+  )
+}
+
+function ShortcutRow({ keys, desc }: { keys: string; desc: string }) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-slate-400">{desc}</span>
+      <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-slate-300 font-mono text-[10px]">
+        {keys}
+      </kbd>
     </div>
   )
 }
