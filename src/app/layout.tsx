@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { headers } from 'next/headers'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ToastContainer } from '@/components/ui/toast-container'
 import './globals.css'
@@ -12,13 +11,10 @@ export const metadata: Metadata = {
   description: 'Plan, track, and forecast shared finances across accounts.',
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Extract nonce from request headers
-  const nonce = (await headers()).get('x-nonce') ?? undefined
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen`} nonce={nonce}>
+      <body className={`${inter.className} min-h-screen`}>
         <ErrorBoundary>{children}</ErrorBoundary>
         <ToastContainer />
       </body>

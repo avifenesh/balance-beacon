@@ -139,7 +139,13 @@ fun TransactionsScreen(
             isRefreshing = state.isLoading,
             onRefresh = {
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                viewModel.initialize()
+                val effectiveAccountId = accountId.ifBlank {
+                    state.activeAccountId ?: state.accounts.firstOrNull()?.id
+                }
+                viewModel.load(
+                    accountId = effectiveAccountId,
+                    month = monthKey.ifBlank { null }
+                )
             },
             modifier = Modifier.fillMaxSize()
         ) {
@@ -280,7 +286,10 @@ fun TransactionsScreen(
                                     }
                                 }
                                 tx.description?.let { Text("Desc: $it", style = MaterialTheme.typography.bodySmall) }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.horizontalScroll(rememberScrollState())
+                                ) {
                                     Button(
                                         onClick = {
                                             selectedTransactionId = tx.id
@@ -293,18 +302,18 @@ fun TransactionsScreen(
                                             showFormSheet = true
                                         }
                                     ) {
-                                        Text("Edit")
+                                        Text("Edit", maxLines = 1)
                                     }
                                     Button(
                                         onClick = { showDeleteConfirmId = tx.id }
                                     ) {
-                                        Text("Delete")
+                                        Text("Delete", maxLines = 1)
                                     }
                                     if (isShareEligible(tx.type, onShareTransaction != null)) {
                                         OutlinedButton(
                                             onClick = { onShareTransaction?.invoke(tx.id) }
                                         ) {
-                                            Text("Share")
+                                            Text("Share", maxLines = 1)
                                         }
                                     }
                                 }
@@ -637,13 +646,13 @@ private fun RequestsSection(
                                 onClick = { onApprove(request.id) },
                                 enabled = actionsEnabled
                             ) {
-                                Text(if (isRowLoading) "Working..." else "Approve")
+                                Text(if (isRowLoading) "Working..." else "Approve", maxLines = 1)
                             }
                             OutlinedButton(
                                 onClick = { onReject(request.id) },
                                 enabled = actionsEnabled
                             ) {
-                                Text(if (isRowLoading) "Working..." else "Reject")
+                                Text(if (isRowLoading) "Working..." else "Reject", maxLines = 1)
                             }
                         }
                     }

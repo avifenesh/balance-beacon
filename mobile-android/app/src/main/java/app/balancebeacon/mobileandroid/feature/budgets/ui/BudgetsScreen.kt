@@ -199,7 +199,7 @@ fun BudgetsScreen(
             isRefreshing = state.isLoading,
             onRefresh = {
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                viewModel.initialize()
+                viewModel.load()
             },
             modifier = Modifier.fillMaxSize()
         ) {

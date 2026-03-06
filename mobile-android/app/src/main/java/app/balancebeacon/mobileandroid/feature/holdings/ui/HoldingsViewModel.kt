@@ -104,10 +104,15 @@ class HoldingsViewModel(
     }
 
     fun load() {
-        val accountId = _uiState.value.accountId.trim()
+        var accountId = _uiState.value.accountId.trim()
         if (accountId.isBlank()) {
-            _uiState.update { it.copy(error = "Account ID is required to load holdings") }
-            return
+            // Auto-select first account if available
+            accountId = _uiState.value.accounts.firstOrNull()?.id.orEmpty()
+            if (accountId.isBlank()) {
+                _uiState.update { it.copy(error = "No accounts found. Create an account first.") }
+                return
+            }
+            _uiState.update { it.copy(accountId = accountId) }
         }
 
         viewModelScope.launch {

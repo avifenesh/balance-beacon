@@ -67,6 +67,9 @@ class BudgetsViewModel(
                     selectedAccountId = resolvedAccountId
                 )
             }
+            if (resolvedAccountId.isNotBlank()) {
+                load()
+            }
         }
     }
 
