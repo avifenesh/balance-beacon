@@ -686,7 +686,7 @@ export function generateOpenAPIDocument() {
           parameters: [
             { name: 'accountId', in: 'query', required: true, schema: { type: 'string' } },
             { name: 'categoryId', in: 'query', required: true, schema: { type: 'string' } },
-            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string', pattern: MONTH_KEY_PATTERN } },
           ],
           responses: {
             '200': {
@@ -758,7 +758,7 @@ export function generateOpenAPIDocument() {
           summary: 'Delete month-specific income goal',
           parameters: [
             { name: 'accountId', in: 'query', required: true, schema: { type: 'string' } },
-            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'monthKey', in: 'query', required: true, schema: { type: 'string', pattern: MONTH_KEY_PATTERN } },
           ],
           responses: {
             '200': {
