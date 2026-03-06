@@ -16,7 +16,11 @@ import { serverLogger } from '@/lib/server-logger'
 const createAccountSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be 50 characters or less'),
   type: z.enum(['SELF', 'PARTNER', 'OTHER']),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color').optional().nullable(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color')
+    .optional()
+    .nullable(),
   preferredCurrency: z.enum(['USD', 'EUR', 'ILS']).optional().nullable(),
 })
 
@@ -136,19 +140,20 @@ export async function POST(request: NextRequest) {
 
   const { name, type, color, preferredCurrency } = parsed.data
 
-  const existingAccount = await prisma.account.findFirst({
-    where: {
-      userId: user.userId,
-      name,
-      deletedAt: null,
-    },
-  })
-
-  if (existingAccount) {
-    return validationError({ name: ['An account with this name already exists'] })
-  }
-
   try {
+    const existingAccount = await prisma.account.findFirst({
+      where: {
+        userId: user.userId,
+        name,
+        deletedAt: null,
+      },
+      select: { id: true },
+    })
+
+    if (existingAccount) {
+      return validationError({ name: ['An account with this name already exists'] })
+    }
+
     const account = await prisma.account.create({
       data: {
         userId: user.userId,
@@ -174,18 +179,25 @@ export async function POST(request: NextRequest) {
       // Check if this is due to a soft-deleted account with the same name
       const deletedAccount = await prisma.account.findFirst({
         where: { userId: user.userId, name, deletedAt: { not: null } },
+        select: { id: true },
       })
       if (deletedAccount) {
         return validationError({
-          name: ['A deleted account with this name exists. Please use a different name or restore the deleted account.'],
+          name: [
+            'A deleted account with this name exists. Please use a different name or restore the deleted account.',
+          ],
         })
       }
       return validationError({ name: ['An account with this name already exists'] })
     }
-    serverLogger.error('Failed to create account', {
-      action: 'POST /api/v1/accounts',
-      userId: user.userId,
-    }, error)
+    serverLogger.error(
+      'Failed to create account',
+      {
+        action: 'POST /api/v1/accounts',
+        userId: user.userId,
+      },
+      error,
+    )
     return serverError('Unable to create account')
   }
 }

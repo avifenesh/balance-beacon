@@ -11,9 +11,7 @@ import { serverLogger } from '@/lib/server-logger'
 const setBalanceApiSchema = z.object({
   targetBalance: z.number().finite(),
   currency: z.nativeEnum(Currency).default(Currency.USD),
-  monthKey: z
-    .string()
-    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Month key must be in YYYY-MM format with valid month (01-12)'),
+  monthKey: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Month key must be in YYYY-MM format with valid month (01-12)'),
 })
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -37,6 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       const account = await prisma.account.findFirst({
         where: { id: accountId, userId: user.userId, deletedAt: null },
+        select: { id: true },
       })
 
       if (!account) {

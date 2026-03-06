@@ -87,24 +87,29 @@ export async function GET(request: NextRequest) {
     accountId = accountCheck.resource.id
     preferredCurrency = accountCheck.resource.preferredCurrency ?? undefined
   } else {
-    const [accounts, userRecord] = await Promise.all([
-      getAccounts(user.userId),
-      prisma.user.findFirst({
-        where: { id: user.userId, deletedAt: null },
-        select: { activeAccountId: true },
-      }),
-    ])
+    try {
+      const [accounts, userRecord] = await Promise.all([
+        getAccounts(user.userId),
+        prisma.user.findFirst({
+          where: { id: user.userId, deletedAt: null },
+          select: { activeAccountId: true },
+        }),
+      ])
 
-    const activeAccountId = userRecord?.activeAccountId ?? null
-    const resolvedAccount =
-      (activeAccountId ? accounts.find((a) => a.id === activeAccountId) : undefined) ?? accounts[0]
+      const activeAccountId = userRecord?.activeAccountId ?? null
+      const resolvedAccount =
+        (activeAccountId ? accounts.find((a) => a.id === activeAccountId) : undefined) ?? accounts[0]
 
-    if (!resolvedAccount) {
-      return forbiddenError('Access denied')
+      if (!resolvedAccount) {
+        return forbiddenError('Access denied')
+      }
+
+      accountId = resolvedAccount.id
+      preferredCurrency = resolvedAccount.preferredCurrency ?? undefined
+    } catch (error) {
+      serverLogger.error('Failed to resolve account', { action: 'GET /api/v1/dashboard' }, error)
+      return serverError('Unable to fetch dashboard data')
     }
-
-    accountId = resolvedAccount.id
-    preferredCurrency = resolvedAccount.preferredCurrency ?? undefined
   }
 
   try {

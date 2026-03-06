@@ -31,21 +31,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const subscriptionError = await checkSubscription(user.userId)
   if (subscriptionError) return subscriptionError
 
-  // Security: Verify account ownership by including userId in WHERE clause
-  // This prevents users from activating accounts they don't own
-  const account = await prisma.account.findFirst({
-    where: {
-      id: accountId,
-      userId: user.userId,
-      deletedAt: null,
-    },
-  })
-
-  if (!account) {
-    return notFoundError('Account not found')
-  }
-
   try {
+    // Security: Verify account ownership by including userId in WHERE clause
+    // This prevents users from activating accounts they don't own
+    const account = await prisma.account.findFirst({
+      where: {
+        id: accountId,
+        userId: user.userId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    })
+
+    if (!account) {
+      return notFoundError('Account not found')
+    }
+
     await prisma.user.update({
       where: { id: user.userId },
       data: { activeAccountId: accountId },
@@ -53,11 +54,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     return successResponse({ activeAccountId: accountId })
   } catch (error) {
-    serverLogger.error('Failed to update activeAccountId', {
-      action: 'PATCH /api/v1/accounts/[id]/activate',
-      userId: user.userId,
-      accountId,
-    }, error)
+    serverLogger.error(
+      'Failed to update activeAccountId',
+      {
+        action: 'PATCH /api/v1/accounts/[id]/activate',
+        userId: user.userId,
+        accountId,
+      },
+      error,
+    )
     return serverError('Unable to activate account')
   }
 }

@@ -1,13 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withApiAuth } from '@/lib/api-middleware'
-import {
-  successResponse,
-  notFoundError,
-  forbiddenError,
-  validationError,
-  serverError,
-} from '@/lib/api-helpers'
+import { successResponse, notFoundError, forbiddenError, validationError, serverError } from '@/lib/api-helpers'
 import { PaymentStatus } from '@prisma/client'
 import { serverLogger } from '@/lib/server-logger'
 import { sendPaymentReminderEmail } from '@/lib/email'
@@ -27,10 +21,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     async (user) => {
       const { id: participantId } = await params
 
-      // 1. Get participant with related data for email
-      const participant = await prisma.expenseParticipant.findUnique({
+      // 1. Get participant with related data for email (filter out soft-deleted)
+      const participant = await prisma.expenseParticipant.findFirst({
         where: {
           id: participantId,
+          deletedAt: null,
+          sharedExpense: { deletedAt: null },
         },
         include: {
           participant: {
@@ -41,7 +37,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               ownerId: true,
               description: true,
               currency: true,
-              deletedAt: true,
               owner: { select: { displayName: true } },
               transaction: { select: { description: true } },
             },
@@ -49,12 +44,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
       })
 
-      // Check if participant exists and is not soft-deleted
-      if (
-        !participant ||
-        participant.deletedAt !== null ||
-        participant.sharedExpense.deletedAt !== null
-      ) {
+      if (!participant) {
         return notFoundError('Participant not found')
       }
 
@@ -66,16 +56,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // 3. Validate status is PENDING
       if (participant.status !== PaymentStatus.PENDING) {
         return validationError({
-          status: [
-            `Cannot send reminder for a ${participant.status.toLowerCase()} share`,
-          ],
+          status: [`Cannot send reminder for a ${participant.status.toLowerCase()} share`],
         })
       }
 
       // 4. Check 24-hour cooldown
       if (participant.reminderSentAt) {
-        const hoursSinceLastReminder =
-          (Date.now() - participant.reminderSentAt.getTime()) / (1000 * 60 * 60)
+        const hoursSinceLastReminder = (Date.now() - participant.reminderSentAt.getTime()) / (1000 * 60 * 60)
 
         if (hoursSinceLastReminder < REMINDER_COOLDOWN_HOURS) {
           return validationError({
@@ -89,17 +76,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       // 6. Update reminderSentAt atomically with conditional check
       // This prevents race conditions: only update if cooldown has expired
-      const cooldownThreshold = new Date(
-        Date.now() - REMINDER_COOLDOWN_HOURS * 60 * 60 * 1000
-      )
+      const cooldownThreshold = new Date(Date.now() - REMINDER_COOLDOWN_HOURS * 60 * 60 * 1000)
 
       const updateResult = await prisma.expenseParticipant.updateMany({
         where: {
           id: participantId,
-          OR: [
-            { reminderSentAt: null },
-            { reminderSentAt: { lt: cooldownThreshold } },
-          ],
+          OR: [{ reminderSentAt: null }, { reminderSentAt: { lt: cooldownThreshold } }],
         },
         data: { reminderSentAt: new Date() },
       })
@@ -120,9 +102,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       // 7. Send email and check result
       const description =
-        participant.sharedExpense.description ||
-        participant.sharedExpense.transaction.description ||
-        'Shared expense'
+        participant.sharedExpense.description || participant.sharedExpense.transaction.description || 'Shared expense'
 
       const emailResult = await sendPaymentReminderEmail({
         to: participant.participant.email,
@@ -161,6 +141,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         reminderSentAt: reminderSentAt.toISOString(),
       })
     },
-    { requireSubscription: true }
+    { requireSubscription: true },
   )
 }

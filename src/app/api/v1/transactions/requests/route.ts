@@ -69,17 +69,17 @@ export async function POST(request: NextRequest) {
 
   const data = parsed.data
 
-  // 3. Get user's primary account by userId (the 'from' account)
-  const fromAccount = await prisma.account.findFirst({
-    where: { userId: user.userId, type: 'SELF', deletedAt: null },
-  })
-
-  if (!fromAccount) {
-    return serverError('Unable to identify your primary account')
-  }
-
-  // 4. Create transaction request
+  // 3. Get user's primary account and create transaction request
   try {
+    const fromAccount = await prisma.account.findFirst({
+      where: { userId: user.userId, type: 'SELF', deletedAt: null },
+      select: { id: true },
+    })
+
+    if (!fromAccount) {
+      return serverError('Unable to identify your primary account')
+    }
+
     const transactionRequest = await createTransactionRequest({
       fromId: fromAccount.id,
       toId: data.toId,
