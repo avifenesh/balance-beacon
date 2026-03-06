@@ -15,6 +15,7 @@ import {
   createInitialCategoriesSchema,
   createQuickBudgetSchema,
 } from '@/schemas'
+import { DECIMAL_12_2_MAX } from '@/schemas/shared'
 
 /**
  * Schema Edge Case Tests - Unique Coverage
@@ -564,7 +565,7 @@ describe('monthKey Format Validation', () => {
 })
 
 describe('Amount Upper Bound Validation (Decimal(12,2))', () => {
-  const MAX = 9999999999.99
+  const MAX = DECIMAL_12_2_MAX
 
   it('transactionSchema should reject amount exceeding Decimal(12,2)', () => {
     const result = transactionSchema.safeParse({
