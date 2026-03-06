@@ -144,7 +144,7 @@ describe('normalizeDateInput', () => {
 
   it('returns null for non-string input', () => {
     // FormDataEntryValue can be File
-    expect(normalizeDateInput(new File([], 'test.txt'))).toBeNull()
+    expect(normalizeDateInput({} as unknown as File)).toBeNull()
   })
 
   it('returns null for incomplete date (missing day)', () => {

@@ -165,7 +165,7 @@ describe('api-helpers', () => {
       expect(res.status).toBe(429)
 
       const retryAfter = Number(res.headers.get('Retry-After'))
-      expect(retryAfter).toBeLessThanOrEqual(0)
+      expect(retryAfter).toBe(0)
     })
   })
 

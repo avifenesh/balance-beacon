@@ -76,7 +76,7 @@ export function notFoundError(message = 'Resource not found') {
  * 429 Too Many Requests - Rate limit exceeded
  */
 export function rateLimitError(resetAt: Date) {
-  const retryAfterSeconds = Math.ceil((resetAt.getTime() - Date.now()) / 1000)
+  const retryAfterSeconds = Math.max(0, Math.ceil((resetAt.getTime() - Date.now()) / 1000))
   return NextResponse.json(
     { error: 'Rate limit exceeded' },
     {
@@ -120,10 +120,7 @@ export function successResponseWithRateLimit<T>(
  * 402 Payment Required - User needs active subscription
  */
 export function subscriptionRequiredError(message = 'Active subscription required') {
-  return NextResponse.json(
-    { error: message, code: 'SUBSCRIPTION_REQUIRED' },
-    { status: 402 },
-  )
+  return NextResponse.json({ error: message, code: 'SUBSCRIPTION_REQUIRED' }, { status: 402 })
 }
 
 /**
