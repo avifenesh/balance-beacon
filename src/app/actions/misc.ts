@@ -120,9 +120,9 @@ export async function setBalanceAction(input: z.infer<typeof setBalanceSchema>) 
 
     if (Math.abs(result.adjustment) >= 0.01) {
       await invalidateDashboardCache({ monthKey, accountId })
+      revalidatePath('/')
     }
 
-    revalidatePath('/')
     return success({ adjustment: result.adjustment })
   } catch (error) {
     return handlePrismaError(error, {

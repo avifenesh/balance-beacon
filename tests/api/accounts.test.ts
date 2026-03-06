@@ -17,6 +17,9 @@ vi.mock('@/lib/prisma', () => {
       count: vi.fn(),
       update: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
   }
   return {
     prisma: {
@@ -60,9 +63,7 @@ const mockRequireJwtAuth = vi.mocked(requireJwtAuth)
 const mockAccountFindMany = vi.mocked(prisma.account.findMany)
 const mockAccountFindFirst = vi.mocked(prisma.account.findFirst)
 const mockAccountUpdate = vi.mocked(prisma.account.update)
-const mockAccountCount = vi.mocked(prisma.account.count)
 const mockTransactionGroupBy = vi.mocked(prisma.transaction.groupBy)
-const mockUserFindUnique = vi.mocked(prisma.user.findUnique)
 
 describe('GET /api/v1/accounts', () => {
   const mockUser = { userId: 'user-123', email: 'test@example.com' }
@@ -400,15 +401,14 @@ describe('DELETE /api/v1/accounts/[id]', () => {
     mockRequireJwtAuth.mockReturnValue(mockUser)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountFindFirst.mockResolvedValue(mockAccount as any)
-    mockAccountCount.mockResolvedValue(2) // User has 2 accounts
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockUserFindUnique.mockResolvedValue({ activeAccountId: 'acc-2' } as any)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountUpdate.mockResolvedValue({ ...mockAccount, deletedAt: new Date() } as any)
 
     // Set up transaction client defaults for DELETE handler
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tx = (prisma as any)._txClient
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(tx.user.findUnique).mockResolvedValue({ activeAccountId: 'acc-2' } as any)
     vi.mocked(tx.account.count).mockResolvedValue(2)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(tx.account.update).mockResolvedValue({ ...mockAccount, deletedAt: new Date() } as any)
@@ -451,7 +451,9 @@ describe('DELETE /api/v1/accounts/[id]', () => {
   describe('Constraints', () => {
     it('returns 400 when trying to delete active account', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mockUserFindUnique.mockResolvedValue({ activeAccountId: 'acc-1' } as any)
+      const tx = (prisma as any)._txClient
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(tx.user.findUnique).mockResolvedValue({ activeAccountId: 'acc-1' } as any)
 
       const response = await DELETE(createRequest(), {
         params: Promise.resolve({ id: 'acc-1' }),

@@ -192,17 +192,18 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return notFoundError('Account not found')
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { activeAccountId: true },
-    })
+    // Use transaction to prevent TOCTOU races between active-account check,
+    // count check, and delete
+    const result = await prisma.$transaction(async (tx) => {
+      const dbUser = await tx.user.findUnique({
+        where: { id: user.userId },
+        select: { activeAccountId: true },
+      })
 
-    if (dbUser?.activeAccountId === accountId) {
-      return validationError({ id: ['Cannot delete the active account. Switch to another account first.'] })
-    }
+      if (dbUser?.activeAccountId === accountId) {
+        return 'ACTIVE_ACCOUNT' as const
+      }
 
-    // Use transaction to prevent TOCTOU race between count and delete
-    await prisma.$transaction(async (tx) => {
       const accountCount = await tx.account.count({
         where: {
           userId: user.userId,
@@ -211,7 +212,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       })
 
       if (accountCount <= 1) {
-        throw new Error('LAST_ACCOUNT')
+        return 'LAST_ACCOUNT' as const
       }
 
       await tx.account.update({
@@ -221,13 +222,19 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
           deletedBy: user.userId,
         },
       })
+
+      return 'DELETED' as const
     })
+
+    if (result === 'ACTIVE_ACCOUNT') {
+      return validationError({ id: ['Cannot delete the active account. Switch to another account first.'] })
+    }
+    if (result === 'LAST_ACCOUNT') {
+      return validationError({ id: ['Cannot delete your only account.'] })
+    }
 
     return successResponse({ deleted: true })
   } catch (error) {
-    if (error instanceof Error && error.message === 'LAST_ACCOUNT') {
-      return validationError({ id: ['Cannot delete your only account.'] })
-    }
     serverLogger.error(
       'Failed to delete account',
       {
