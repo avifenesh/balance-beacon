@@ -51,14 +51,16 @@ export async function POST(request: NextRequest) {
       // Verify account belongs to user
       const account = await prisma.account.findFirst({
         where: { id: data.accountId, userId: user.userId, deletedAt: null },
+        select: { id: true },
       })
       if (!account) {
         return forbiddenError('Account not found or access denied')
       }
 
-      // Verify category belongs to user
+      // Verify category belongs to user and is not archived
       const category = await prisma.category.findFirst({
-        where: { id: data.categoryId, userId: user.userId },
+        where: { id: data.categoryId, userId: user.userId, isArchived: false },
+        select: { id: true },
       })
       if (!category) {
         return forbiddenError('Category not found or access denied')

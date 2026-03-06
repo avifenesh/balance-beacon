@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       const account = await prisma.account.findFirst({
         where: { userId: user.userId, deletedAt: null },
         orderBy: { createdAt: 'asc' },
+        select: { id: true },
       })
       if (!account) {
         return forbiddenError('No account found. Please create an account first.')
