@@ -24,15 +24,21 @@ export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
 
   async function handleVerify() {
     setState('loading')
-    const result = await verifyEmailAction({ token, csrfToken })
 
-    if ('error' in result) {
-      const errorMessage = result.error.token?.[0] || result.error.general?.[0] || 'Verification failed'
-      setMessage(errorMessage)
+    try {
+      const result = await verifyEmailAction({ token, csrfToken })
+
+      if ('error' in result) {
+        const errorMessage = result.error.token?.[0] || result.error.general?.[0] || 'Verification failed'
+        setMessage(errorMessage)
+        setState('error')
+      } else {
+        setMessage(result.data.message)
+        setState('success')
+      }
+    } catch {
+      setMessage('Something went wrong. Please try again.')
       setState('error')
-    } else {
-      setMessage(result.data.message)
-      setState('success')
     }
   }
 
