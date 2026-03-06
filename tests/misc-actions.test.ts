@@ -67,6 +67,7 @@ vi.mock('@/lib/prisma', () => ({
     category: {
       findFirst: vi.fn(),
       create: vi.fn(),
+      upsert: vi.fn(),
     },
     transaction: {
       findMany: vi.fn(),
@@ -193,7 +194,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -205,7 +206,7 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.findFirst).mockResolvedValue({
+    vi.mocked(prisma.category.upsert).mockResolvedValue({
       id: 'cat-adjust',
       name: 'Balance Adjustment',
       type: TransactionType.INCOME,
@@ -251,7 +252,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -263,7 +264,7 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.findFirst).mockResolvedValue({
+    vi.mocked(prisma.category.upsert).mockResolvedValue({
       id: 'cat-adjust',
       name: 'Balance Adjustment',
       type: TransactionType.INCOME,
@@ -309,7 +310,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -343,7 +344,7 @@ describe('setBalanceAction', () => {
     expect(prisma.transaction.create).not.toHaveBeenCalled()
   })
 
-  it('should create Balance Adjustment category if not exists', async () => {
+  it('should upsert Balance Adjustment category atomically', async () => {
     const { requireSession, getDbUserAsAuthUser } = await import('@/lib/auth-server')
     vi.mocked(requireSession).mockResolvedValue({} as any)
     vi.mocked(getDbUserAsAuthUser).mockResolvedValue({
@@ -353,7 +354,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -365,8 +366,7 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.findFirst).mockResolvedValue(null)
-    vi.mocked(prisma.category.create).mockResolvedValue({
+    vi.mocked(prisma.category.upsert).mockResolvedValue({
       id: 'cat-new',
       name: 'Balance Adjustment',
       type: TransactionType.INCOME,
@@ -385,12 +385,21 @@ describe('setBalanceAction', () => {
     })
 
     expect('success' in result && result.success).toBe(true)
-    expect(prisma.category.create).toHaveBeenCalledWith({
-      data: {
+    expect(prisma.category.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_name_type: {
+          userId: 'test-user',
+          name: 'Balance Adjustment',
+          type: TransactionType.INCOME,
+        },
+      },
+      create: {
         userId: 'test-user',
         name: 'Balance Adjustment',
         type: TransactionType.INCOME,
       },
+      update: {},
+      select: { id: true },
     })
   })
 
@@ -404,7 +413,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -416,7 +425,7 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.findFirst).mockResolvedValue({
+    vi.mocked(prisma.category.upsert).mockResolvedValue({
       id: 'cat-adjust',
       name: 'Balance Adjustment',
       type: TransactionType.INCOME,
@@ -467,7 +476,7 @@ describe('setBalanceAction', () => {
       passwordHash: 'hash',
       preferredCurrency: Currency.USD,
       hasCompletedOnboarding: true,
-    activeAccountId: null,
+      activeAccountId: null,
       accountNames: ['Account1'],
       defaultAccountName: 'Account1',
     })
@@ -479,7 +488,7 @@ describe('setBalanceAction', () => {
       userId: 'test-user',
     } as any)
 
-    vi.mocked(prisma.category.findFirst).mockResolvedValue({
+    vi.mocked(prisma.category.upsert).mockResolvedValue({
       id: 'cat-adjust',
       name: 'Balance Adjustment',
       type: TransactionType.INCOME,

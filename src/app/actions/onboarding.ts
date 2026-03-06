@@ -235,17 +235,37 @@ export async function createQuickBudgetAction(input: CreateQuickBudgetInput) {
   if ('error' in subscriptionCheck) return subscriptionCheck
 
   // Verify account belongs to user
-  const account = await prisma.account.findFirst({
-    where: { id: parsed.data.accountId, userId: authUser.id, deletedAt: null },
-  })
+  let account
+  try {
+    account = await prisma.account.findFirst({
+      where: { id: parsed.data.accountId, userId: authUser.id, deletedAt: null },
+      select: { id: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'createQuickBudget.verifyAccount',
+      userId: authUser.id,
+      fallbackMessage: 'Unable to verify account access',
+    })
+  }
   if (!account) {
     return generalError('Account not found or access denied')
   }
 
   // Verify category belongs to user
-  const category = await prisma.category.findFirst({
-    where: { id: parsed.data.categoryId, userId: authUser.id },
-  })
+  let category
+  try {
+    category = await prisma.category.findFirst({
+      where: { id: parsed.data.categoryId, userId: authUser.id },
+      select: { id: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'createQuickBudget.verifyCategory',
+      userId: authUser.id,
+      fallbackMessage: 'Unable to verify category access',
+    })
+  }
   if (!category) {
     return generalError('Category not found or access denied')
   }
@@ -309,10 +329,20 @@ export async function seedSampleDataAction(input: SeedSampleDataInput) {
   if ('error' in subscriptionCheck) return subscriptionCheck
 
   // Get user's first account
-  const account = await prisma.account.findFirst({
-    where: { userId: authUser.id, deletedAt: null },
-    orderBy: { createdAt: 'asc' },
-  })
+  let account
+  try {
+    account = await prisma.account.findFirst({
+      where: { userId: authUser.id, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    })
+  } catch (error) {
+    return handlePrismaError(error, {
+      action: 'seedSampleData.findAccount',
+      userId: authUser.id,
+      fallbackMessage: 'Unable to find your account',
+    })
+  }
   if (!account) {
     return generalError('No account found. Please create an account first.')
   }
