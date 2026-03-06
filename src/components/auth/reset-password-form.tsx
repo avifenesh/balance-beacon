@@ -33,14 +33,19 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     setErrors(null)
     setMessage(null)
 
-    const result = await resetPasswordAction({ token, newPassword, csrfToken })
+    try {
+      const result = await resetPasswordAction({ token, newPassword, csrfToken })
 
-    if ('error' in result) {
-      setErrors(result.error)
+      if ('error' in result) {
+        setErrors(result.error)
+        setState('error')
+      } else {
+        setMessage(result.data.message)
+        setState('success')
+      }
+    } catch {
+      setErrors({ general: ['Something went wrong. Please try again.'] })
       setState('error')
-    } else {
-      setMessage(result.data.message)
-      setState('success')
     }
   }
 
