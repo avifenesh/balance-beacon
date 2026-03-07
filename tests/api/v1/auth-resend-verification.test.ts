@@ -2,10 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { resetAllRateLimits } from '@/lib/rate-limit'
 
-vi.mock('@/lib/rate-limit', () => ({
-  consumeRateLimit: vi.fn(),
-  resetAllRateLimits: vi.fn(),
-}))
+vi.mock('@/lib/rate-limit', async () => {
+  const actual = await vi.importActual('@/lib/rate-limit')
+  return {
+    ...actual,
+    consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
+  }
+})
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
