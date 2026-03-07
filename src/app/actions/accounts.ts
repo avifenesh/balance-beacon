@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { successVoid, generalError } from '@/lib/action-result'
 import { handlePrismaError } from '@/lib/prisma-errors'
-import { parseInput, requireCsrfToken, requireAuthUser } from './shared'
+import { parseInput, requireCsrfToken, requireAuthUser, softDeleteData } from './shared'
 import { deleteFinancialAccountSchema } from '@/schemas'
 import { invalidateDashboardCache } from '@/lib/dashboard-cache'
 import { getMonthKey } from '@/utils/date'
@@ -69,7 +69,7 @@ export async function deleteFinancialAccountAction(input: z.infer<typeof deleteF
   try {
     await prisma.account.update({
       where: { id: parsed.data.accountId },
-      data: { deletedAt: new Date(), deletedBy: authUser.id },
+      data: softDeleteData(authUser.id),
     })
 
     // Invalidate dashboard cache for all months (account deletion affects all historical data)

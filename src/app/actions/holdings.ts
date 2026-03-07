@@ -6,7 +6,13 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { success, successVoid, failure, generalError } from '@/lib/action-result'
 import { handlePrismaError } from '@/lib/prisma-errors'
-import { parseInput, toDecimalString, ensureAccountAccessWithSubscription, requireCsrfToken } from './shared'
+import {
+  parseInput,
+  toDecimalString,
+  ensureAccountAccessWithSubscription,
+  requireCsrfToken,
+  softDeleteData,
+} from './shared'
 import { invalidateDashboardCache } from '@/lib/dashboard-cache'
 import {
   holdingSchema,
@@ -185,10 +191,7 @@ export async function deleteHoldingAction(input: z.infer<typeof deleteHoldingSch
   try {
     await prisma.holding.update({
       where: { id: parsed.data.id },
-      data: {
-        deletedAt: new Date(),
-        deletedBy: access.authUser.id,
-      },
+      data: softDeleteData(access.authUser.id),
     })
 
     // Invalidate dashboard cache for this account (holdings affect portfolio value across all months)

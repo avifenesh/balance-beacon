@@ -8,7 +8,13 @@ import { getMonthStartFromKey } from '@/utils/date'
 import { getDaysInMonth } from 'date-fns'
 import { success, successVoid, failure, generalError } from '@/lib/action-result'
 import { handlePrismaError } from '@/lib/prisma-errors'
-import { parseInput, toDecimalString, ensureAccountAccessWithSubscription, requireCsrfToken } from './shared'
+import {
+  parseInput,
+  toDecimalString,
+  ensureAccountAccessWithSubscription,
+  requireCsrfToken,
+  softDeleteData,
+} from './shared'
 import { invalidateDashboardCache } from '@/lib/dashboard-cache'
 import {
   recurringTemplateSchema,
@@ -251,10 +257,7 @@ export async function deleteRecurringTemplateAction(input: z.infer<typeof delete
   try {
     await prisma.recurringTemplate.update({
       where: { id: parsed.data.id },
-      data: {
-        deletedAt: new Date(),
-        deletedBy: authUser.id,
-      },
+      data: softDeleteData(authUser.id),
     })
   } catch (error) {
     return handlePrismaError(error, {
