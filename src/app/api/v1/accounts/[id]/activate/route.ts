@@ -9,7 +9,7 @@ import {
   rateLimitError,
   checkSubscription,
 } from '@/lib/api-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,11 +22,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return authError(error instanceof Error ? error.message : 'Unauthorized')
   }
 
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   const subscriptionError = await checkSubscription(user.userId)
   if (subscriptionError) return subscriptionError

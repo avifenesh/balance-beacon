@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { verifyRefreshToken, generateAccessToken, generateRefreshToken } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { rateLimitError } from '@/lib/api-helpers'
 
 export async function POST(request: NextRequest) {
@@ -22,11 +22,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit check
-    const rateLimit = checkRateLimit(payload.userId)
+    const rateLimit = await consumeRateLimit(payload.userId)
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
     }
-    incrementRateLimit(payload.userId)
 
     const rotationResult = await prisma.$transaction(async (tx) => {
       const { token: newRefreshToken, jti: newJti, expiresAt } = generateRefreshToken(payload.userId, payload.email)

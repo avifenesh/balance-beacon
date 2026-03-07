@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { serverLogger } from '@/lib/server-logger'
-import { checkCronRateLimit } from '@/lib/rate-limit'
+import { checkCronRateLimit, cleanupExpiredRateLimits } from '@/lib/rate-limit'
 import { env } from '@/lib/env-schema'
 
 /**
@@ -89,6 +89,7 @@ async function performCleanup(): Promise<{
   expiredPasswordResetTokens: number
   expiredEmailVerificationTokens: number
   expiredRefreshTokens: number
+  expiredRateLimitEntries: number
 }> {
   const now = new Date()
 
@@ -128,9 +129,13 @@ async function performCleanup(): Promise<{
     },
   })
 
+  // Clean up expired rate limit entries from the database
+  const expiredRateLimitEntries = await cleanupExpiredRateLimits()
+
   return {
     expiredPasswordResetTokens: passwordResetResult.count,
     expiredEmailVerificationTokens: emailVerificationResult.count,
     expiredRefreshTokens: refreshTokenResult.count,
+    expiredRateLimitEntries,
   }
 }

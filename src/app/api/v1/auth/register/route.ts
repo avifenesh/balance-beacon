@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { rateLimitError, validationError, successResponse, serverError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 import { sendVerificationEmail } from '@/lib/email'
@@ -40,11 +40,10 @@ export async function POST(request: NextRequest) {
     const { email, password, displayName } = parsed.data
     const normalizedEmail = email.trim().toLowerCase()
 
-    const rateLimit = checkRateLimitTyped(normalizedEmail, 'registration')
+    const rateLimit = await consumeRateLimit(normalizedEmail, 'registration')
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
     }
-    incrementRateLimitTyped(normalizedEmail, 'registration')
 
     // Auto-verify test emails in test environment or E2E testing
     const isE2ETest = process.env.E2E_TEST === 'true'

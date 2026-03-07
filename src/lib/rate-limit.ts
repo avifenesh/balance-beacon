@@ -1,5 +1,6 @@
 import 'server-only'
 
+import crypto from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { serverLogger } from '@/lib/server-logger'
 
@@ -58,11 +59,30 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>()
 
+/**
+ * Build storage key for rate limit entry.
+ * Hashes identifier to avoid storing PII (emails) in database or logs.
+ */
 function buildKey(identifier: string, type: RateLimitType): string {
-  return `${type}:${identifier}`
+  const hash = crypto.createHash('sha256').update(identifier).digest('hex').substring(0, 16)
+  return `${type}:${hash}`
+}
+
+function cleanupExpiredInMemory(): void {
+  const now = new Date()
+  const expiredKeys: string[] = []
+
+  rateLimitStore.forEach((entry, key) => {
+    if (now >= entry.resetTime) {
+      expiredKeys.push(key)
+    }
+  })
+
+  expiredKeys.forEach((key) => rateLimitStore.delete(key))
 }
 
 function checkInMemory(identifier: string, type: RateLimitType): RateLimitResult {
+  cleanupExpiredInMemory() // Prevent unbounded growth
   const config = RATE_LIMIT_CONFIGS[type]
   const key = buildKey(identifier, type)
   const now = new Date()
@@ -111,7 +131,7 @@ async function consumeInMemory(identifier: string, type: RateLimitType): Promise
 
 /**
  * Atomically check and consume one rate limit token.
- * Uses PostgreSQL upsert for cross-instance consistency.
+ * Uses raw SQL with INSERT ... ON CONFLICT for true atomicity.
  * Falls back to in-memory if database is unavailable.
  */
 async function checkDatabase(identifier: string, type: RateLimitType): Promise<RateLimitResult> {
@@ -119,46 +139,29 @@ async function checkDatabase(identifier: string, type: RateLimitType): Promise<R
   const key = buildKey(identifier, type)
   const now = new Date()
 
-  // Upsert: create new window or get existing
-  const entry = await prisma.rateLimit.upsert({
-    where: { key },
-    create: {
-      key,
-      count: 1,
-      windowStart: now,
-      windowMs: config.windowMs,
-    },
-    update: {
-      // If window expired, reset; otherwise increment
-      count: {
-        // We'll handle window expiry logic after the upsert
-        increment: 1,
-      },
-    },
-  })
+  // Atomic upsert with conditional reset on expiry using raw SQL
+  // CASE: if window expired (now >= windowStart + windowMs), reset to count=1 and new windowStart
+  //       else increment count
+  const result = await prisma.$queryRaw<Array<{ key: string; count: number; windowStart: Date; windowMs: number }>>`
+    INSERT INTO "RateLimit" ("key", "count", "windowStart", "windowMs")
+    VALUES (${key}, 1, ${now}, ${config.windowMs})
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE
+        WHEN CURRENT_TIMESTAMP >= "RateLimit"."windowStart" + ("RateLimit"."windowMs" || ' milliseconds')::interval
+        THEN 1
+        ELSE "RateLimit"."count" + 1
+      END,
+      "windowStart" = CASE
+        WHEN CURRENT_TIMESTAMP >= "RateLimit"."windowStart" + ("RateLimit"."windowMs" || ' milliseconds')::interval
+        THEN ${now}
+        ELSE "RateLimit"."windowStart"
+      END,
+      "windowMs" = ${config.windowMs}
+    RETURNING "key", "count", "windowStart", "windowMs"
+  `
 
-  const windowEnd = new Date(entry.windowStart.getTime() + config.windowMs)
-
-  // Window expired — reset it
-  if (now >= windowEnd) {
-    const newEntry = await prisma.rateLimit.update({
-      where: { key },
-      data: {
-        count: 1,
-        windowStart: now,
-        windowMs: config.windowMs,
-      },
-    })
-    const newWindowEnd = new Date(newEntry.windowStart.getTime() + config.windowMs)
-    return {
-      allowed: true,
-      limit: config.maxRequests,
-      remaining: config.maxRequests - 1,
-      resetAt: newWindowEnd,
-    }
-  }
-
-  // Window still active — check count
+  const entry = result[0]
+  const windowEnd = new Date(entry.windowStart.getTime() + entry.windowMs)
   const allowed = entry.count <= config.maxRequests
   const remaining = Math.max(0, config.maxRequests - entry.count)
 
@@ -176,9 +179,13 @@ async function checkDatabase(identifier: string, type: RateLimitType): Promise<R
  */
 export async function consumeRateLimit(identifier: string, type: RateLimitType = 'default'): Promise<RateLimitResult> {
   try {
-    return await checkDatabase(identifier, type)
+    const result = await checkDatabase(identifier, type)
+    // Update in-memory shadow for header generation
+    const key = buildKey(identifier, type)
+    rateLimitStore.set(key, { count: result.limit - result.remaining, resetTime: result.resetAt })
+    return result
   } catch (error) {
-    serverLogger.warn('Rate limit DB fallback to in-memory', { key: buildKey(identifier, type) }, error)
+    serverLogger.warn('Rate limit DB fallback to in-memory', { rateLimitType: type }, error)
     return consumeInMemory(identifier, type)
   }
 }
@@ -250,17 +257,33 @@ export async function resetAllRateLimits(): Promise<void> {
 
 /**
  * Clean up expired rate limit entries from the database.
+ * Uses per-bucket cutoff to allow index usage on windowStart.
  * Call from a cron job periodically.
  */
 export async function cleanupExpiredRateLimits(): Promise<number> {
-  const now = new Date()
-  // Delete entries where windowStart + windowMs < now
-  // We need raw SQL since Prisma can't do computed column comparisons
-  const result = await prisma.$executeRaw`
-    DELETE FROM "RateLimit"
-    WHERE "windowStart" + ("windowMs" || ' milliseconds')::interval < ${now}
-  `
-  return result
+  const now = Date.now()
+
+  // Get distinct window durations
+  const windowBuckets = await prisma.rateLimit.findMany({
+    distinct: ['windowMs'],
+    select: { windowMs: true },
+  })
+
+  let totalDeleted = 0
+
+  // Delete expired entries per bucket (allows windowStart index usage)
+  for (const bucket of windowBuckets) {
+    const cutoff = new Date(now - bucket.windowMs)
+    const { count } = await prisma.rateLimit.deleteMany({
+      where: {
+        windowMs: bucket.windowMs,
+        windowStart: { lt: cutoff },
+      },
+    })
+    totalDeleted += count
+  }
+
+  return totalDeleted
 }
 
 // =============================================================================

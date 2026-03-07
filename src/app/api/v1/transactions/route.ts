@@ -13,7 +13,7 @@ import {
 } from '@/lib/api-helpers'
 import { prisma } from '@/lib/prisma'
 import { ensureApiAccountOwnership } from '@/lib/api-auth-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { getMonthStartFromKey, formatDateForApi } from '@/utils/date'
 import { TransactionType } from '@prisma/client'
 import { serverLogger } from '@/lib/server-logger'
@@ -49,11 +49,10 @@ export async function GET(request: NextRequest) {
   }
 
   // 1.5 Rate limit check
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // Note: No subscription check for GET - users can always view their data
 
@@ -205,11 +204,10 @@ export async function POST(request: NextRequest) {
   }
 
   // 1.5 Rate limit check
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // 1.6 Subscription check
   const subscriptionError = await checkSubscription(user.userId)

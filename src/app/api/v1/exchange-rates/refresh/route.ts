@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireJwtAuth } from '@/lib/api-auth'
 import { authError, rateLimitError, serverError, successResponse } from '@/lib/api-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { refreshExchangeRates } from '@/lib/currency'
 import { serverLogger } from '@/lib/server-logger'
 
@@ -25,11 +25,10 @@ export async function POST(request: NextRequest) {
   }
 
   // 1.5 Rate limit check
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // Note: No subscription check - exchange-rate refresh is allowed for authenticated users
 

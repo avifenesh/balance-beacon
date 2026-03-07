@@ -127,6 +127,11 @@ export function successResponse<T>(data: T, status = 200, cache?: CacheConfig) {
       directive += `, stale-while-revalidate=${cache.staleWhileRevalidate}`
     }
     headers['Cache-Control'] = directive
+
+    // For private (authenticated) responses, vary by Authorization to prevent cross-user cache pollution
+    if (!cache.isPublic) {
+      headers['Vary'] = 'Authorization'
+    }
   }
 
   return NextResponse.json({ success: true, data }, { status, headers })

@@ -12,7 +12,7 @@ import {
   checkSubscription,
 } from '@/lib/api-helpers'
 import { ensureApiAccountOwnership } from '@/lib/api-auth-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { NotFoundError, ValidationError, isServiceError } from '@/lib/services/errors'
 
 /**
@@ -41,11 +41,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   // 1.5 Rate limit check
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // 1.6 Subscription check
   const subscriptionError = await checkSubscription(user.userId)

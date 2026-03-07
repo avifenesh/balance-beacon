@@ -11,7 +11,7 @@ import {
   rateLimitError,
   checkSubscription,
 } from '@/lib/api-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -25,11 +25,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   // 1.5 Rate limit check
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // 1.6 Subscription check
   const subscriptionError = await checkSubscription(user.userId)

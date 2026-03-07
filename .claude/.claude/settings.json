@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "You MUST respond with ONLY a JSON object, no other text.\n\nCheck if code was written (Edit/Write tools modified src/ or tests/ files).\n\nIf NO code was written (exploration, Q&A, planning, docs, config):\n{\"ok\": true}\n\nIf code WAS written, check Definition of Done:\n- DB schema supports changes (if needed)\n- Server actions return {success, data} or {success, error}\n- UI has loading/error states\n- Tests exist for new code\n- Types/lint pass\n\nAll criteria met or N/A:\n{\"ok\": true}\n\nCriteria failed:\n{\"ok\": false, \"reason\": \"<which criterion failed>\"}\n\nRespond with ONLY the JSON object, nothing else."
+            "prompt": "You MUST respond with ONLY a JSON object, no other text.\n\nCheck if code was written (Edit/Write tools modified src/, tests/, or mobile-android/ files).\n\nIf NO code was written (exploration, Q&A, planning, docs, config):\n{\"ok\": true}\n\nIf code WAS written, check Definition of Done:\n- DB schema supports changes (if needed, N/A for Android UI-only changes)\n- Server actions return {success, data} or {success, error} (N/A for Android-only changes)\n- UI has loading/error states\n- Tests exist for new code (N/A for pure layout/styling refactors)\n- Build passes (assembleDebug for Android, npm run build for web)\n\nAll criteria met or N/A:\n{\"ok\": true}\n\nCriteria failed:\n{\"ok\": false, \"reason\": \"<which criterion failed>\"}\n\nRespond with ONLY the JSON object, nothing else."
           }
         ]
       }

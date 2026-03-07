@@ -246,12 +246,6 @@ export async function exportUserDataAction(input: z.infer<typeof exportUserDataS
   if ('error' in auth) return auth
   const { authUser } = auth
 
-  // Rate limit check (3/hour)
-  const exportRateLimit = await consumeRateLimit(authUser.id, 'data_export')
-  if (!exportRateLimit.allowed) {
-    return failure({ general: ['Too many export requests. Please try again later.'] })
-  }
-
   const { format } = parsed.data
 
   try {
@@ -407,6 +401,12 @@ export async function exportUserDataAction(input: z.infer<typeof exportUserDataS
         recurringTemplates: recurringTemplates.length,
       },
     })
+
+    // Rate limit check after successful data fetch (3/hour) - only charge on success
+    const exportRateLimit = await consumeRateLimit(authUser.id, 'data_export')
+    if (!exportRateLimit.allowed) {
+      return failure({ general: ['Too many export requests. Please try again later.'] })
+    }
 
     // Build export data with proper serialization
     const exportData: UserDataExport = {

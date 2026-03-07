@@ -8,10 +8,7 @@ import {
   serverError,
   rateLimitError,
 } from '@/lib/api-helpers'
-import {
-  checkRateLimitTyped,
-  incrementRateLimitTyped,
-} from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 import { exportUserDataApiSchema } from '@/schemas/api'
 
@@ -124,7 +121,7 @@ export async function GET(request: NextRequest) {
       return authError('Invalid token')
     }
 
-    const rateLimit = checkRateLimitTyped(auth.userId, 'data_export')
+    const rateLimit = await consumeRateLimit(auth.userId, 'data_export')
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
     }
@@ -274,8 +271,6 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
     ])
 
-    incrementRateLimitTyped(auth.userId, 'data_export')
-
     serverLogger.info('User data exported (GDPR)', {
       userId: auth.userId,
       format,
@@ -391,14 +386,7 @@ export async function GET(request: NextRequest) {
         'SUBSCRIPTION',
         'id,status,trialEndsAt,currentPeriodStart,currentPeriodEnd,createdAt',
         [exportData.subscription],
-        (s) => [
-          s.id,
-          s.status,
-          s.trialEndsAt ?? '',
-          s.currentPeriodStart ?? '',
-          s.currentPeriodEnd ?? '',
-          s.createdAt,
-        ],
+        (s) => [s.id, s.status, s.trialEndsAt ?? '', s.currentPeriodStart ?? '', s.currentPeriodEnd ?? '', s.createdAt],
       )
     }
 
