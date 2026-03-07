@@ -20,15 +20,18 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('@/lib/rate-limit', () => ({
-  consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
-  resetAllRateLimits: vi.fn(),
-  getRateLimitHeaders: vi.fn().mockReturnValue({
-    'X-RateLimit-Limit': '3',
-    'X-RateLimit-Remaining': '2',
-    'X-RateLimit-Reset': '1234567890',
-  }),
-}))
+vi.mock('@/lib/rate-limit', async () => {
+  const actual = await vi.importActual('@/lib/rate-limit')
+  return {
+    ...actual,
+    consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
+    getRateLimitHeaders: vi.fn().mockReturnValue({
+      'X-RateLimit-Limit': '3',
+      'X-RateLimit-Remaining': '2',
+      'X-RateLimit-Reset': '1234567890',
+    }),
+  }
+})
 
 vi.mock('@/lib/paddle', () => ({
   cancelPaddleSubscription: vi.fn(),
