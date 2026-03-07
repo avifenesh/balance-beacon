@@ -372,7 +372,7 @@ export function RecurringTab({
                             .getElementById('recurring-form')
                             ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                         }
-                        className="text-sm text-sky-400 hover:text-sky-300 font-medium"
+                        className="text-sm text-sky-400 hover:text-sky-300 font-medium rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                       >
                         Add your first template →
                       </button>
