@@ -38,6 +38,11 @@ import { hasActiveSubscription, getSubscriptionState, type SubscriptionState } f
 // Re-export from utils for backwards compatibility with actions
 export { toDecimalString } from '@/utils/decimal'
 
+/** Soft-delete data payload. Use in Prisma update `data` field. */
+export function softDeleteData(userId: string) {
+  return { deletedAt: new Date(), deletedBy: userId }
+}
+
 export function parseInput<T>(
   schema: z.ZodSchema<T>,
   input: unknown,

@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { clearSession, updateSessionAccount } from '@/lib/auth-server'
 import { success, successVoid, failure, generalError } from '@/lib/action-result'
-import { parseInput, ensureAccountAccess, requireCsrfToken, requireAuthUser } from './shared'
+import { parseInput, ensureAccountAccess, requireCsrfToken, requireAuthUser, softDeleteData } from './shared'
 import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 import { accountSelectionSchema, deleteAccountSchema, exportUserDataSchema } from '@/schemas'
@@ -79,7 +79,7 @@ export async function deleteAccountAction(input: z.infer<typeof deleteAccountSch
     deleteOps.push(
       prisma.sharedExpense.updateMany({
         where: { ownerId: authUser.id, deletedAt: null },
-        data: { deletedAt: new Date(), deletedBy: authUser.id },
+        data: softDeleteData(authUser.id),
       }),
     )
 

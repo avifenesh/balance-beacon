@@ -99,6 +99,7 @@ vi.mock('@/app/actions/shared', () => ({
   }),
   requireCsrfToken: vi.fn().mockResolvedValue({ success: true }),
   requireAuthUser: vi.fn(),
+  softDeleteData: (userId: string) => ({ deletedAt: new Date(), deletedBy: userId }),
 }))
 
 import { verifyCredentials, establishSession, clearSession, updateSessionAccount } from '@/lib/auth-server'

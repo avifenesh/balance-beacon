@@ -13,6 +13,7 @@ import {
   ensureAccountAccessWithSubscription,
   requireCsrfToken,
   requireActiveSubscription,
+  softDeleteData,
 } from './shared'
 import { invalidateDashboardCache } from '@/lib/dashboard-cache'
 import {
@@ -565,7 +566,7 @@ export async function deleteTransactionAction(input: z.infer<typeof deleteTransa
   try {
     await prisma.transaction.update({
       where: { id: parsed.data.id },
-      data: { deletedAt: new Date(), deletedBy: authUser.id },
+      data: softDeleteData(authUser.id),
     })
 
     // Invalidate dashboard cache for affected month/account

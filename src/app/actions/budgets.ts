@@ -7,7 +7,13 @@ import { prisma } from '@/lib/prisma'
 import { getMonthStartFromKey } from '@/utils/date'
 import { successVoid } from '@/lib/action-result'
 import { handlePrismaError } from '@/lib/prisma-errors'
-import { parseInput, toDecimalString, ensureAccountAccessWithSubscription, requireCsrfToken } from './shared'
+import {
+  parseInput,
+  toDecimalString,
+  ensureAccountAccessWithSubscription,
+  requireCsrfToken,
+  softDeleteData,
+} from './shared'
 import {
   budgetSchema,
   deleteBudgetSchema,
@@ -103,10 +109,7 @@ export async function deleteBudgetAction(input: z.infer<typeof deleteBudgetSchem
         },
         deletedAt: null, // Only delete non-deleted budgets
       },
-      data: {
-        deletedAt: new Date(),
-        deletedBy: authUser.id,
-      },
+      data: softDeleteData(authUser.id),
     })
 
     // Invalidate dashboard cache for affected month/account
@@ -223,10 +226,7 @@ export async function deleteMonthlyIncomeGoalAction(input: z.infer<typeof delete
         },
         deletedAt: null,
       },
-      data: {
-        deletedAt: new Date(),
-        deletedBy: authUser.id,
-      },
+      data: softDeleteData(authUser.id),
     })
 
     await invalidateDashboardCache({
