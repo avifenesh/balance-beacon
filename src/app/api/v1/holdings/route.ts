@@ -13,6 +13,7 @@ import {
   successResponse,
   rateLimitError,
   checkSubscription,
+  CACHE_STABLE,
 } from '@/lib/api-helpers'
 import { ensureApiAccountOwnership } from '@/lib/api-auth-helpers'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
@@ -84,19 +85,23 @@ export async function GET(request: NextRequest) {
       orderBy: { symbol: 'asc' },
     })
 
-    return successResponse({
-      holdings: holdings.map((holding) => ({
-        id: holding.id,
-        accountId: holding.accountId,
-        categoryId: holding.categoryId,
-        symbol: holding.symbol,
-        quantity: holding.quantity.toString(),
-        averageCost: holding.averageCost.toString(),
-        currency: holding.currency,
-        notes: holding.notes,
-        category: holding.category,
-      })),
-    })
+    return successResponse(
+      {
+        holdings: holdings.map((holding) => ({
+          id: holding.id,
+          accountId: holding.accountId,
+          categoryId: holding.categoryId,
+          symbol: holding.symbol,
+          quantity: holding.quantity.toString(),
+          averageCost: holding.averageCost.toString(),
+          currency: holding.currency,
+          notes: holding.notes,
+          category: holding.category,
+        })),
+      },
+      200,
+      CACHE_STABLE,
+    )
   } catch (error) {
     serverLogger.error('Failed to fetch holdings', { action: 'GET /api/v1/holdings' }, error)
     return serverError('Unable to fetch holdings')

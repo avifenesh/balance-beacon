@@ -96,10 +96,40 @@ export function serverError(message = 'Internal server error') {
 }
 
 /**
- * Success response with data
+ * Cache configuration for API responses.
+ * All authenticated endpoints should use `private`.
  */
-export function successResponse<T>(data: T, status = 200) {
-  return NextResponse.json({ success: true, data }, { status })
+export interface CacheConfig {
+  /** Max-age in seconds. Browser can use cached response without revalidation for this long. */
+  maxAge: number
+  /** Stale-while-revalidate in seconds. Serve stale while fetching fresh data in background. */
+  staleWhileRevalidate?: number
+  /** Set to true for unauthenticated/public endpoints (e.g., OpenAPI spec). */
+  isPublic?: boolean
+}
+
+/** Cache preset for stable data (accounts, categories, recurring, user profile). */
+export const CACHE_STABLE: CacheConfig = { maxAge: 10, staleWhileRevalidate: 30 }
+
+/** Cache preset for dashboard (already DB-cached for 5 min). */
+export const CACHE_DASHBOARD: CacheConfig = { maxAge: 30, staleWhileRevalidate: 60 }
+
+/**
+ * Success response with data and optional cache headers.
+ */
+export function successResponse<T>(data: T, status = 200, cache?: CacheConfig) {
+  const headers: Record<string, string> = {}
+
+  if (cache) {
+    const visibility = cache.isPublic ? 'public' : 'private'
+    let directive = `${visibility}, max-age=${cache.maxAge}`
+    if (cache.staleWhileRevalidate) {
+      directive += `, stale-while-revalidate=${cache.staleWhileRevalidate}`
+    }
+    headers['Cache-Control'] = directive
+  }
+
+  return NextResponse.json({ success: true, data }, { status, headers })
 }
 
 /**

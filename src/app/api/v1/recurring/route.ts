@@ -11,6 +11,7 @@ import {
   successResponse,
   rateLimitError,
   checkSubscription,
+  CACHE_STABLE,
 } from '@/lib/api-helpers'
 import { ensureApiAccountOwnership, ensureApiRecurringOwnership } from '@/lib/api-auth-helpers'
 import { getMonthStartFromKey, formatDateForApi } from '@/utils/date'
@@ -98,23 +99,27 @@ export async function GET(request: NextRequest) {
       orderBy: { dayOfMonth: 'asc' },
     })
 
-    return successResponse({
-      recurringTemplates: templates.map((template) => ({
-        id: template.id,
-        accountId: template.accountId,
-        accountName: template.account.name,
-        categoryId: template.categoryId,
-        type: template.type,
-        amount: template.amount.toString(),
-        currency: template.currency,
-        dayOfMonth: template.dayOfMonth,
-        description: template.description,
-        startMonth: formatDateForApi(template.startMonth),
-        endMonth: template.endMonth ? formatDateForApi(template.endMonth) : null,
-        isActive: template.isActive,
-        category: template.category,
-      })),
-    })
+    return successResponse(
+      {
+        recurringTemplates: templates.map((template) => ({
+          id: template.id,
+          accountId: template.accountId,
+          accountName: template.account.name,
+          categoryId: template.categoryId,
+          type: template.type,
+          amount: template.amount.toString(),
+          currency: template.currency,
+          dayOfMonth: template.dayOfMonth,
+          description: template.description,
+          startMonth: formatDateForApi(template.startMonth),
+          endMonth: template.endMonth ? formatDateForApi(template.endMonth) : null,
+          isActive: template.isActive,
+          category: template.category,
+        })),
+      },
+      200,
+      CACHE_STABLE,
+    )
   } catch (error) {
     serverLogger.error('Failed to fetch recurring templates', { action: 'GET /api/v1/recurring' }, error)
     return serverError('Unable to fetch recurring templates')

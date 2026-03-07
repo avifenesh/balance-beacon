@@ -2,7 +2,14 @@ import { NextRequest } from 'next/server'
 import { withApiAuth, parseJsonBody } from '@/lib/api-middleware'
 import { upsertBudget, deleteBudget, getBudgetByKey } from '@/lib/services/budget-service'
 import { budgetApiSchema, deleteBudgetApiSchema } from '@/schemas/api'
-import { validationError, forbiddenError, notFoundError, serverError, successResponse } from '@/lib/api-helpers'
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  serverError,
+  successResponse,
+  CACHE_STABLE,
+} from '@/lib/api-helpers'
 import { ensureApiAccountOwnership } from '@/lib/api-auth-helpers'
 import { prisma } from '@/lib/prisma'
 import { getMonthStartFromKey, formatDateForApi } from '@/utils/date'
@@ -93,26 +100,30 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return successResponse({
-      budgets: budgets.map((b) => {
-        const key = `${b.categoryId}:${b.month.toISOString()}`
-        const spent = spentByKey.get(key) ?? 0
-        const planned = Number(b.planned)
-        const percentUsed = planned > 0 ? Math.round((spent / planned) * 100) : spent > 0 ? 100 : 0
-        return {
-          id: b.id,
-          accountId: b.accountId,
-          categoryId: b.categoryId,
-          month: formatDateForApi(b.month),
-          planned: b.planned.toString(),
-          spent: spent.toFixed(2),
-          percentUsed,
-          currency: b.currency,
-          notes: b.notes,
-          category: b.category,
-        }
-      }),
-    })
+    return successResponse(
+      {
+        budgets: budgets.map((b) => {
+          const key = `${b.categoryId}:${b.month.toISOString()}`
+          const spent = spentByKey.get(key) ?? 0
+          const planned = Number(b.planned)
+          const percentUsed = planned > 0 ? Math.round((spent / planned) * 100) : spent > 0 ? 100 : 0
+          return {
+            id: b.id,
+            accountId: b.accountId,
+            categoryId: b.categoryId,
+            month: formatDateForApi(b.month),
+            planned: b.planned.toString(),
+            spent: spent.toFixed(2),
+            percentUsed,
+            currency: b.currency,
+            notes: b.notes,
+            category: b.category,
+          }
+        }),
+      },
+      200,
+      CACHE_STABLE,
+    )
   })
 }
 

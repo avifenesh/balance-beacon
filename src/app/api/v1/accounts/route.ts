@@ -8,6 +8,7 @@ import {
   validationError,
   rateLimitError,
   checkSubscription,
+  CACHE_STABLE,
 } from '@/lib/api-helpers'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
       balance: Math.round((balances.get(account.id) || 0) * 100) / 100,
     }))
 
-    return successResponse({ accounts: accountsWithBalance })
+    return successResponse({ accounts: accountsWithBalance }, 200, CACHE_STABLE)
   } catch (error) {
     serverLogger.error('Failed to fetch accounts', { action: 'GET /api/v1/accounts' }, error)
     return serverError('Unable to fetch accounts')

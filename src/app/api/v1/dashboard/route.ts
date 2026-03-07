@@ -9,6 +9,7 @@ import {
   serverError,
   successResponse,
   validationError,
+  CACHE_DASHBOARD,
 } from '@/lib/api-helpers'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
 import { getMonthKey, getMonthStartFromKey, formatDateForApi } from '@/utils/date'
@@ -232,20 +233,24 @@ export async function GET(request: NextRequest) {
       breakdown: stat.breakdown ?? null,
     }))
 
-    return successResponse({
-      month: monthKey,
-      preferredCurrency: dashboardData.preferredCurrency ?? null,
-      summary,
-      stats,
-      budgetProgress,
-      recentTransactions,
-      pendingSharedExpenses,
-      transactionRequests,
-      paymentHistory,
-      history,
-      comparison,
-      exchangeRateLastUpdate: dashboardData.exchangeRateLastUpdate?.toISOString() ?? null,
-    })
+    return successResponse(
+      {
+        month: monthKey,
+        preferredCurrency: dashboardData.preferredCurrency ?? null,
+        summary,
+        stats,
+        budgetProgress,
+        recentTransactions,
+        pendingSharedExpenses,
+        transactionRequests,
+        paymentHistory,
+        history,
+        comparison,
+        exchangeRateLastUpdate: dashboardData.exchangeRateLastUpdate?.toISOString() ?? null,
+      },
+      200,
+      CACHE_DASHBOARD,
+    )
   } catch (error) {
     serverLogger.error('Failed to fetch dashboard data', { action: 'GET /api/v1/dashboard' }, error)
     return serverError('Unable to fetch dashboard data')
