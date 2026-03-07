@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { GET as GetSharing } from '@/app/api/v1/sharing/route'
 import { POST as DeclineShare } from '@/app/api/v1/expenses/shares/[id]/decline/route'
@@ -20,6 +21,7 @@ describe('Sharing API Routes', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
     otherToken = generateAccessToken(OTHER_USER_ID, 'api-other@example.com')
 
@@ -150,7 +152,9 @@ describe('Sharing API Routes', () => {
       expect(response.status).toBe(200)
       expect(data.data.expensesSharedWithMe.length).toBeGreaterThanOrEqual(1)
 
-      const participation = data.data.expensesSharedWithMe.find((p: { sharedExpense: { id: string } }) => p.sharedExpense.id === sharedExpenseId)
+      const participation = data.data.expensesSharedWithMe.find(
+        (p: { sharedExpense: { id: string } }) => p.sharedExpense.id === sharedExpenseId,
+      )
       expect(participation).toBeDefined()
       expect(participation.shareAmount).toBe('50')
     })
@@ -259,14 +263,14 @@ describe('Sharing API Routes', () => {
       expect(data.fields.reason).toContain('Reason must be a string')
     })
 
-    it("treats whitespace-only reason as undefined", async () => {
+    it('treats whitespace-only reason as undefined', async () => {
       const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/decline`, {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${otherToken}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ reason: "   " }),
+        body: JSON.stringify({ reason: '   ' }),
       })
 
       const response = await DeclineShare(request, { params: Promise.resolve({ id: participantId }) })

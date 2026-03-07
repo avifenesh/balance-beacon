@@ -2,12 +2,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { resetAllRateLimits } from '@/lib/rate-limit'
 
+vi.mock('@/lib/rate-limit', () => ({
+  consumeRateLimit: vi.fn(),
+  resetAllRateLimits: vi.fn(),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    // rateLimit table not mocked - falls back to in-memory naturally
   },
 }))
 
@@ -20,11 +26,16 @@ vi.mock('@/lib/server-logger', () => ({
 
 import { POST as resendVerificationPost } from '@/app/api/v1/auth/resend-verification/route'
 import { prisma } from '@/lib/prisma'
+import { consumeRateLimit } from '@/lib/rate-limit'
+
+const mockConsumeRateLimit = vi.mocked(consumeRateLimit)
 
 describe('POST /api/v1/auth/resend-verification', () => {
-  beforeEach(() => {
-    resetAllRateLimits()
+  beforeEach(async () => {
+    await resetAllRateLimits()
     vi.clearAllMocks()
+    // Default: allow all requests (mock for non-rate-limit tests)
+    mockConsumeRateLimit.mockResolvedValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() })
   })
 
   const buildRequest = (body: unknown) =>
@@ -189,6 +200,14 @@ describe('POST /api/v1/auth/resend-verification', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       })
+
+      // Mock rate limit to allow first 3, block 4th
+      const resetAt = new Date(Date.now() + 900000) // 15 minutes
+      mockConsumeRateLimit
+        .mockResolvedValueOnce({ allowed: true, limit: 3, remaining: 2, resetAt })
+        .mockResolvedValueOnce({ allowed: true, limit: 3, remaining: 1, resetAt })
+        .mockResolvedValueOnce({ allowed: true, limit: 3, remaining: 0, resetAt })
+        .mockResolvedValueOnce({ allowed: false, limit: 3, remaining: 0, resetAt })
 
       // First 3 attempts should succeed
       for (let i = 0; i < 3; i++) {

@@ -18,7 +18,7 @@ import {
 } from '@/schemas'
 import { sendVerificationEmail, sendPasswordResetEmail, sendPasswordChangedEmail } from '@/lib/email'
 import { serverLogger } from '@/lib/server-logger'
-import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { registerUser } from '@/lib/services/registration-service'
 
 const BCRYPT_ROUNDS = 12
@@ -84,11 +84,10 @@ export async function requestPasswordResetAction(input: z.infer<typeof recoveryS
   const normalizedEmail = parsed.data.email.trim().toLowerCase()
 
   // Rate limit check (3/hour for abuse prevention)
-  const rateLimit = checkRateLimitTyped(normalizedEmail, 'password_reset')
+  const rateLimit = await consumeRateLimit(normalizedEmail, 'password_reset')
   if (!rateLimit.allowed) {
     return failure({ email: ['Too many password reset requests. Please try again later.'] })
   }
-  incrementRateLimitTyped(normalizedEmail, 'password_reset')
 
   // Check if user exists (but always return same message for security)
   const user = await prisma.user.findUnique({
@@ -220,11 +219,10 @@ export async function registerAction(input: z.infer<typeof registrationSchema>) 
   const { email, password, displayName } = parsed.data
 
   // Rate limit check (3/min for spam prevention)
-  const rateLimit = checkRateLimitTyped(email, 'registration')
-  if (!rateLimit.allowed) {
+  const regRateLimit = await consumeRateLimit(email, 'registration')
+  if (!regRateLimit.allowed) {
     return failure({ email: ['Too many registration attempts. Please try again later.'] })
   }
-  incrementRateLimitTyped(email, 'registration')
 
   const registerResult = await registerUser({
     email,
@@ -310,11 +308,10 @@ export async function resendVerificationEmailAction(input: z.infer<typeof resend
   const { email } = parsed.data
 
   // Rate limit check (3/15min for spam prevention)
-  const rateLimit = checkRateLimitTyped(email, 'resend_verification')
-  if (!rateLimit.allowed) {
+  const resendRateLimit = await consumeRateLimit(email, 'resend_verification')
+  if (!resendRateLimit.allowed) {
     return failure({ email: ['Too many requests. Please try again in 15 minutes.'] })
   }
-  incrementRateLimitTyped(email, 'resend_verification')
 
   // Find user - return generic message regardless of result to prevent enumeration
   const user = await prisma.user.findUnique({

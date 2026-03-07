@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { PATCH as UpdateCurrency } from '@/app/api/v1/users/me/currency/route'
 import { generateAccessToken } from '@/lib/jwt'
@@ -12,6 +13,7 @@ describe('PATCH /api/v1/users/me/currency', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     await getApiTestUser()

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { POST as ShareExpense } from '@/app/api/v1/expenses/share/route'
 import { generateAccessToken } from '@/lib/jwt'
@@ -19,6 +20,7 @@ describe('POST /api/v1/expenses/share', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
     otherToken = generateAccessToken(OTHER_USER_ID, 'api-other@example.com')
 
@@ -36,7 +38,9 @@ describe('POST /api/v1/expenses/share', () => {
 
     // Create test category
     const category = await prisma.category.upsert({
-      where: { userId_name_type: { userId: testUser.id, name: 'ShareExpenseTestCategory', type: TransactionType.EXPENSE } },
+      where: {
+        userId_name_type: { userId: testUser.id, name: 'ShareExpenseTestCategory', type: TransactionType.EXPENSE },
+      },
       update: {},
       create: { userId: testUser.id, name: 'ShareExpenseTestCategory', type: TransactionType.EXPENSE },
     })
@@ -347,7 +351,13 @@ describe('POST /api/v1/expenses/share', () => {
     it('returns 400 when trying to share an income transaction', async () => {
       // Create an income category
       const incomeCategory = await prisma.category.upsert({
-        where: { userId_name_type: { userId: testUser.id, name: 'ShareExpenseIncomeTestCategory', type: TransactionType.INCOME } },
+        where: {
+          userId_name_type: {
+            userId: testUser.id,
+            name: 'ShareExpenseIncomeTestCategory',
+            type: TransactionType.INCOME,
+          },
+        },
         update: {},
         create: { userId: testUser.id, name: 'ShareExpenseIncomeTestCategory', type: TransactionType.INCOME },
       })
@@ -499,10 +509,7 @@ describe('POST /api/v1/expenses/share', () => {
         body: JSON.stringify({
           transactionId,
           splitType: 'EQUAL',
-          participants: [
-            { email: otherUser.email },
-            { email: thirdUser.email },
-          ],
+          participants: [{ email: otherUser.email }, { email: thirdUser.email }],
         }),
       })
 

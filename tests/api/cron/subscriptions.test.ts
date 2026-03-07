@@ -60,13 +60,13 @@ function createAuthenticatedRequest(): NextRequest {
 describe('GET /api/cron/subscriptions', () => {
   const originalEnv = process.env
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
     process.env = { ...originalEnv }
     process.env.CRON_SECRET = TEST_SECRET
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     process.env = originalEnv
   })
 

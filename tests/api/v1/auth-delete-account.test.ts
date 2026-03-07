@@ -21,8 +21,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
-  checkRateLimitTyped: vi.fn().mockReturnValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
-  incrementRateLimitTyped: vi.fn(),
+  consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
   resetAllRateLimits: vi.fn(),
   getRateLimitHeaders: vi.fn().mockReturnValue({
     'X-RateLimit-Limit': '3',
@@ -46,7 +45,7 @@ vi.mock('@/lib/server-logger', () => ({
 import { DELETE } from '@/app/api/v1/auth/account/route'
 import { requireJwtAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimitTyped, resetAllRateLimits } from '@/lib/rate-limit'
+import { consumeRateLimit, resetAllRateLimits } from '@/lib/rate-limit'
 import { cancelPaddleSubscription } from '@/lib/paddle'
 import { serverLogger } from '@/lib/server-logger'
 
@@ -76,15 +75,15 @@ describe('DELETE /api/v1/auth/account', () => {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer valid-token',
+        Authorization: 'Bearer valid-token',
       },
       body: JSON.stringify(body),
     })
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
-    vi.mocked(checkRateLimitTyped).mockReturnValue({
+    await resetAllRateLimits()
+    vi.mocked(consumeRateLimit).mockResolvedValue({
       allowed: true,
       limit: 3,
       remaining: 2,
@@ -141,7 +140,7 @@ describe('DELETE /api/v1/auth/account', () => {
       })
 
       const resetAt = new Date(Date.now() + 3600000) // 1 hour from now
-      vi.mocked(checkRateLimitTyped).mockReturnValue({
+      vi.mocked(consumeRateLimit).mockResolvedValue({
         allowed: false,
         limit: 3,
         remaining: 0,
@@ -171,7 +170,7 @@ describe('DELETE /api/v1/auth/account', () => {
       const request = buildRequest({ confirmEmail: 'test@example.com' })
       await DELETE(request)
 
-      expect(checkRateLimitTyped).toHaveBeenCalledWith('user-123', 'account_deletion')
+      expect(consumeRateLimit).toHaveBeenCalledWith('user-123', 'account_deletion')
     })
   })
 
@@ -186,7 +185,7 @@ describe('DELETE /api/v1/auth/account', () => {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer valid-token',
+          Authorization: 'Bearer valid-token',
         },
         body: 'not json',
       })

@@ -13,7 +13,7 @@ vi.mock('@/lib/prisma', () => ({
 const mockQueryRaw = prisma.$queryRaw as unknown as ReturnType<typeof vi.fn>
 
 describe('GET /api/health', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
   })
 

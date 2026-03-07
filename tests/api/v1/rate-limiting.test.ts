@@ -16,7 +16,7 @@ describe('API Rate Limiting Integration', () => {
 
   beforeEach(async () => {
     vi.useFakeTimers()
-    resetAllRateLimits()
+    await resetAllRateLimits()
 
     // Get test user for userId foreign keys
     const testUser = await getApiTestUser()
@@ -49,7 +49,7 @@ describe('API Rate Limiting Integration', () => {
 
   afterEach(async () => {
     vi.useRealTimers()
-    resetAllRateLimits()
+    await resetAllRateLimits()
 
     // Cleanup test data
     await prisma.transaction.deleteMany({

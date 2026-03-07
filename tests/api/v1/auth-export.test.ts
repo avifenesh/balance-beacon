@@ -40,8 +40,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
-  checkRateLimitTyped: vi.fn().mockReturnValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
-  incrementRateLimitTyped: vi.fn(),
+  consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
   resetAllRateLimits: vi.fn(),
   getRateLimitHeaders: vi.fn().mockReturnValue({
     'X-RateLimit-Limit': '3',
@@ -61,7 +60,7 @@ vi.mock('@/lib/server-logger', () => ({
 import { GET } from '@/app/api/v1/auth/export/route'
 import { requireJwtAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimitTyped, incrementRateLimitTyped, resetAllRateLimits } from '@/lib/rate-limit'
+import { consumeRateLimit, resetAllRateLimits } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 
 describe('GET /api/v1/auth/export', () => {
@@ -176,9 +175,7 @@ describe('GET /api/v1/auth/export', () => {
   ]
 
   const buildRequest = (format?: string) => {
-    const url = format
-      ? `http://localhost/api/v1/auth/export?format=${format}`
-      : 'http://localhost/api/v1/auth/export'
+    const url = format ? `http://localhost/api/v1/auth/export?format=${format}` : 'http://localhost/api/v1/auth/export'
     return new NextRequest(url, {
       method: 'GET',
       headers: {
@@ -187,10 +184,10 @@ describe('GET /api/v1/auth/export', () => {
     })
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
-    vi.mocked(checkRateLimitTyped).mockReturnValue({
+    await resetAllRateLimits()
+    vi.mocked(consumeRateLimit).mockResolvedValue({
       allowed: true,
       limit: 3,
       remaining: 2,
@@ -260,7 +257,7 @@ describe('GET /api/v1/auth/export', () => {
   describe('rate limiting', () => {
     it('should return 429 when rate limited', async () => {
       const resetAt = new Date(Date.now() + 3600000) // 1 hour from now
-      vi.mocked(checkRateLimitTyped).mockReturnValue({
+      vi.mocked(consumeRateLimit).mockResolvedValue({
         allowed: false,
         limit: 3,
         remaining: 0,
@@ -276,21 +273,13 @@ describe('GET /api/v1/auth/export', () => {
     it('should use data_export rate limit type', async () => {
       await GET(buildRequest())
 
-      expect(checkRateLimitTyped).toHaveBeenCalledWith('user-123', 'data_export')
+      expect(consumeRateLimit).toHaveBeenCalledWith('user-123', 'data_export')
     })
 
-    it('should increment rate limit after successful export', async () => {
+    it('should consume rate limit on every request', async () => {
       await GET(buildRequest())
 
-      expect(incrementRateLimitTyped).toHaveBeenCalledWith('user-123', 'data_export')
-    })
-
-    it('should not increment rate limit if export fails', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
-
-      await GET(buildRequest())
-
-      expect(incrementRateLimitTyped).not.toHaveBeenCalled()
+      expect(consumeRateLimit).toHaveBeenCalledWith('user-123', 'data_export')
     })
   })
 

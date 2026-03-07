@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/v1/expenses/shared-by-me/route'
 import { generateAccessToken } from '@/lib/jwt'
@@ -20,6 +21,7 @@ describe('GET /api/v1/expenses/shared-by-me', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
     otherToken = generateAccessToken(OTHER_USER_ID, 'api-other@example.com')
 
@@ -37,7 +39,9 @@ describe('GET /api/v1/expenses/shared-by-me', () => {
 
     // Create test category
     const category = await prisma.category.upsert({
-      where: { userId_name_type: { userId: testUser.id, name: 'SharedByMeTestCategory', type: TransactionType.EXPENSE } },
+      where: {
+        userId_name_type: { userId: testUser.id, name: 'SharedByMeTestCategory', type: TransactionType.EXPENSE },
+      },
       update: {},
       create: { userId: testUser.id, name: 'SharedByMeTestCategory', type: TransactionType.EXPENSE },
     })
@@ -210,7 +214,7 @@ describe('GET /api/v1/expenses/shared-by-me', () => {
       expect(response.status).toBe(200)
       // Should not include expenses owned by other user
       const otherExpense = data.data.expenses.find(
-        (e: { description: string }) => e.description === 'Other user expense'
+        (e: { description: string }) => e.description === 'Other user expense',
       )
       expect(otherExpense).toBeUndefined()
     })
@@ -246,8 +250,12 @@ describe('GET /api/v1/expenses/shared-by-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      const pendingExpense = data.data.expenses.find((e: { description: string }) => e.description === 'Pending expense')
-      const settledExpense = data.data.expenses.find((e: { description: string }) => e.description === 'Settled expense')
+      const pendingExpense = data.data.expenses.find(
+        (e: { description: string }) => e.description === 'Pending expense',
+      )
+      const settledExpense = data.data.expenses.find(
+        (e: { description: string }) => e.description === 'Settled expense',
+      )
       expect(pendingExpense).toBeDefined()
       expect(settledExpense).toBeDefined()
     })
@@ -312,8 +320,12 @@ describe('GET /api/v1/expenses/shared-by-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      const pendingExpense = data.data.expenses.find((e: { description: string }) => e.description === 'Pending filter test')
-      const settledExpense = data.data.expenses.find((e: { description: string }) => e.description === 'Settled filter test')
+      const pendingExpense = data.data.expenses.find(
+        (e: { description: string }) => e.description === 'Pending filter test',
+      )
+      const settledExpense = data.data.expenses.find(
+        (e: { description: string }) => e.description === 'Settled filter test',
+      )
       expect(pendingExpense).toBeUndefined()
       expect(settledExpense).toBeDefined()
     })
@@ -345,8 +357,12 @@ describe('GET /api/v1/expenses/shared-by-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.data.expenses.find((e: { description: string }) => e.description === 'All test pending')).toBeDefined()
-      expect(data.data.expenses.find((e: { description: string }) => e.description === 'All test settled')).toBeDefined()
+      expect(
+        data.data.expenses.find((e: { description: string }) => e.description === 'All test pending'),
+      ).toBeDefined()
+      expect(
+        data.data.expenses.find((e: { description: string }) => e.description === 'All test settled'),
+      ).toBeDefined()
     })
 
     it('returns 400 for invalid status value', async () => {
@@ -415,8 +431,8 @@ describe('GET /api/v1/expenses/shared-by-me', () => {
 
       expect(response.status).toBe(200)
       // Should return 2 items (skipping first)
-      const offsetExpenses = data.data.expenses.filter(
-        (e: { description: string }) => e.description.startsWith('Offset test')
+      const offsetExpenses = data.data.expenses.filter((e: { description: string }) =>
+        e.description.startsWith('Offset test'),
       )
       expect(offsetExpenses.length).toBe(2)
     })

@@ -40,7 +40,7 @@ import { getPaddleCheckoutSettings } from '@/lib/paddle'
 import { prisma } from '@/lib/prisma'
 
 describe('GET /api/v1/subscriptions', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
   })
 

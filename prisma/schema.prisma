@@ -427,3 +427,18 @@ enum SubscriptionStatus {
   CANCELED
   EXPIRED
 }
+
+// ==============================================================================
+// RATE LIMITING
+// ==============================================================================
+// Database-backed rate limiting for persistence across cold starts and instances.
+// Uses sliding window algorithm with atomic upsert.
+
+model RateLimit {
+  key         String   @id // Format: "type:identifier" (e.g., "login:user@email.com")
+  count       Int      @default(0)
+  windowStart DateTime
+  windowMs    Int // Window duration in milliseconds for cleanup
+
+  @@index([windowStart]) // For cleanup of expired entries
+}

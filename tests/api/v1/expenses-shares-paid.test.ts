@@ -1,15 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { PATCH as MarkPaid } from '@/app/api/v1/expenses/shares/[id]/paid/route'
 import { generateAccessToken } from '@/lib/jwt'
 import { resetEnvCache } from '@/lib/env-schema'
 import { prisma } from '@/lib/prisma'
-import {
-  getApiTestUser,
-  getOtherTestUser,
-  TEST_USER_ID,
-  OTHER_USER_ID,
-} from './helpers'
+import { getApiTestUser, getOtherTestUser, TEST_USER_ID, OTHER_USER_ID } from './helpers'
 import { SplitType, PaymentStatus, TransactionType } from '@prisma/client'
 
 describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
@@ -23,6 +19,7 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
     otherToken = generateAccessToken(OTHER_USER_ID, 'api-other@example.com')
 
@@ -109,17 +106,14 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
   })
 
   it('marks participant as paid when called by owner', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
 
     const response = await MarkPaid(request, {
       params: Promise.resolve({ id: participantId }),
@@ -134,17 +128,14 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
   })
 
   it('returns 403 when called by non-owner (participant)', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${otherToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${otherToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
 
     const response = await MarkPaid(request, {
       params: Promise.resolve({ id: participantId }),
@@ -156,17 +147,14 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
   })
 
   it('returns 404 for non-existent participant', async () => {
-    const request = new NextRequest(
-      'http://localhost/api/v1/expenses/shares/non-existent-id/paid',
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }
-    )
+    const request = new NextRequest('http://localhost/api/v1/expenses/shares/non-existent-id/paid', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
 
     const response = await MarkPaid(request, {
       params: Promise.resolve({ id: 'non-existent-id' }),
@@ -183,17 +171,14 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
       data: { status: PaymentStatus.PAID, paidAt: new Date() },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
 
     const response = await MarkPaid(request, {
       params: Promise.resolve({ id: participantId }),
@@ -211,17 +196,14 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
       data: { status: PaymentStatus.DECLINED, declinedAt: new Date() },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
 
     const response = await MarkPaid(request, {
       params: Promise.resolve({ id: participantId }),
@@ -234,14 +216,11 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
   })
 
   it('returns 401 with missing token', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
 
     const response = await MarkPaid(request, {
       params: Promise.resolve({ id: participantId }),
@@ -251,17 +230,14 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
   })
 
   it('persists paid status and paidAt in database', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
 
     const beforeMark = new Date()
     await MarkPaid(request, { params: Promise.resolve({ id: participantId }) })
@@ -274,26 +250,19 @@ describe('PATCH /api/v1/expenses/shares/[participantId]/paid', () => {
     expect(participant).toBeDefined()
     expect(participant?.status).toBe(PaymentStatus.PAID)
     expect(participant?.paidAt).toBeTruthy()
-    expect(participant?.paidAt?.getTime()).toBeGreaterThanOrEqual(
-      beforeMark.getTime()
-    )
-    expect(participant?.paidAt?.getTime()).toBeLessThanOrEqual(
-      afterMark.getTime()
-    )
+    expect(participant?.paidAt?.getTime()).toBeGreaterThanOrEqual(beforeMark.getTime())
+    expect(participant?.paidAt?.getTime()).toBeLessThanOrEqual(afterMark.getTime())
   })
 
   it('returns valid ISO timestamp in paidAt field', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
 
     const response = await MarkPaid(request, {
       params: Promise.resolve({ id: participantId }),

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { GET as GetCategories, POST as CreateCategory } from '@/app/api/v1/categories/route'
 import { PATCH as ArchiveCategory } from '@/app/api/v1/categories/[id]/archive/route'
@@ -15,6 +16,7 @@ describe('Category API Routes', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     // Get test user for userId foreign keys

@@ -80,7 +80,7 @@ vi.mock('@/lib/dashboard-cache', () => ({
 import { POST as debugLoginPost } from '@/app/api/v1/auth/debug-login/route'
 
 describe('POST /api/v1/auth/debug-login', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.stubEnv('NODE_ENV', 'test')
     vi.clearAllMocks()
     prismaMock.user.upsert.mockImplementation(async ({ where }: { where: { email: string } }) => {
@@ -147,7 +147,7 @@ describe('POST /api/v1/auth/debug-login', () => {
     prismaMock.refreshToken.create.mockResolvedValue({ id: 'demo-refresh-token-id' })
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.unstubAllEnvs()
   })
 

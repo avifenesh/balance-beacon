@@ -2,7 +2,7 @@ import 'server-only'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireJwtAuth, type AuthenticatedUser } from '@/lib/api-auth'
-import { checkRateLimitTyped, incrementRateLimitTyped, type RateLimitType } from '@/lib/rate-limit'
+import { consumeRateLimit, type RateLimitType } from '@/lib/rate-limit'
 import { authError, rateLimitError, serverError, checkSubscription } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 
@@ -52,21 +52,16 @@ export async function withApiAuth(
   try {
     user = requireJwtAuth(request)
   } catch (error) {
-    serverLogger.warn(
-      'API authentication failed',
-      { path: request.nextUrl.pathname, method: request.method },
-      error,
-    )
+    serverLogger.warn('API authentication failed', { path: request.nextUrl.pathname, method: request.method }, error)
     return authError(error instanceof Error ? error.message : 'Unauthorized')
   }
 
-  // 2. Rate limit check
+  // 2. Rate limit check (database-backed with in-memory fallback)
   if (!skipRateLimit) {
-    const rateLimit = checkRateLimitTyped(user.userId, rateLimitType)
+    const rateLimit = await consumeRateLimit(user.userId, rateLimitType)
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
     }
-    incrementRateLimitTyped(user.userId, rateLimitType)
   }
 
   // 3. Subscription check (if required)

@@ -12,7 +12,7 @@ vi.mock('@/lib/currency', () => ({
 describe('Exchange Rates Refresh API Route', () => {
   let validToken: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')

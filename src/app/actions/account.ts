@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { clearSession, updateSessionAccount } from '@/lib/auth-server'
 import { success, successVoid, failure, generalError } from '@/lib/action-result'
 import { parseInput, ensureAccountAccess, requireCsrfToken, requireAuthUser, softDeleteData } from './shared'
-import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 import { accountSelectionSchema, deleteAccountSchema, exportUserDataSchema } from '@/schemas'
 
@@ -43,11 +43,10 @@ export async function deleteAccountAction(input: z.infer<typeof deleteAccountSch
   const { authUser } = auth
 
   // Rate limit check (3/hour for abuse prevention)
-  const rateLimit = checkRateLimitTyped(authUser.id, 'account_deletion')
+  const rateLimit = await consumeRateLimit(authUser.id, 'account_deletion')
   if (!rateLimit.allowed) {
     return failure({ general: ['Too many deletion attempts. Please try again later.'] })
   }
-  incrementRateLimitTyped(authUser.id, 'account_deletion')
 
   // Verify email confirmation matches authenticated user
   if (parsed.data.confirmEmail.toLowerCase() !== authUser.email.toLowerCase()) {
@@ -248,8 +247,8 @@ export async function exportUserDataAction(input: z.infer<typeof exportUserDataS
   const { authUser } = auth
 
   // Rate limit check (3/hour)
-  const rateLimit = checkRateLimitTyped(authUser.id, 'data_export')
-  if (!rateLimit.allowed) {
+  const exportRateLimit = await consumeRateLimit(authUser.id, 'data_export')
+  if (!exportRateLimit.allowed) {
     return failure({ general: ['Too many export requests. Please try again later.'] })
   }
 
@@ -408,9 +407,6 @@ export async function exportUserDataAction(input: z.infer<typeof exportUserDataS
         recurringTemplates: recurringTemplates.length,
       },
     })
-
-    // Increment rate limit only after successful data fetch
-    incrementRateLimitTyped(authUser.id, 'data_export')
 
     // Build export data with proper serialization
     const exportData: UserDataExport = {

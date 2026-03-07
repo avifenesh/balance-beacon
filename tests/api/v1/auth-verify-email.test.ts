@@ -21,7 +21,7 @@ import { POST as verifyEmailPost } from '@/app/api/v1/auth/verify-email/route'
 import { prisma } from '@/lib/prisma'
 
 describe('POST /api/v1/auth/verify-email', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
   })
 

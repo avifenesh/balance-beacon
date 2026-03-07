@@ -2,7 +2,7 @@ import { streamText } from 'ai'
 import { google } from '@ai-sdk/google'
 import { requireSession, getDbUserAsAuthUser } from '@/lib/auth-server'
 import { chatRequestSchema } from '@/schemas'
-import { checkRateLimitTyped, incrementRateLimitTyped, getRateLimitHeaders } from '@/lib/rate-limit'
+import { consumeRateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 import { prisma } from '@/lib/prisma'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
 import { buildTools } from '@/lib/ai/tools'
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const userId = authUser.id
 
   // 2. Rate limit check (before any expensive operations)
-  const rateLimit = checkRateLimitTyped(userId, 'ai_chat')
+  const rateLimit = await consumeRateLimit(userId, 'ai_chat')
   if (!rateLimit.allowed) {
     const retryAfter = Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000)
     return new Response(
@@ -61,10 +61,10 @@ export async function POST(request: Request) {
   try {
     body = await request.json()
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'Invalid JSON body' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   const parsed = chatRequestSchema.safeParse(body)
@@ -90,28 +90,25 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     serverLogger.error('Failed to verify account access', { error, accountId, userId })
-    return new Response(
-      JSON.stringify({ error: 'Failed to verify account access' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: 'Failed to verify account access' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   if (!account) {
-    return new Response(
-      JSON.stringify({ error: 'Account not found' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: 'Account not found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   if (account.userId !== userId) {
-    return new Response(
-      JSON.stringify({ error: 'You do not have access to this account' }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: 'You do not have access to this account' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
-
-  // 5. Increment rate limit (after validation passes)
-  incrementRateLimitTyped(userId, 'ai_chat')
 
   // 6. Build tools with verified context (userId from database, not client)
   const currency = preferredCurrency ?? Currency.USD
@@ -147,9 +144,9 @@ export async function POST(request: Request) {
     return result.toTextStreamResponse()
   } catch (error) {
     serverLogger.error('AI chat stream error', { error, userId, accountId })
-    return new Response(
-      JSON.stringify({ error: 'Failed to generate response' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: 'Failed to generate response' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }

@@ -10,8 +10,7 @@ import { Currency, TransactionType } from '@prisma/client'
 
 // Mock rate limiting to avoid test interference
 vi.mock('@/lib/rate-limit', () => ({
-  checkRateLimit: () => ({ allowed: true, remaining: 100, resetAt: new Date() }),
-  incrementRateLimit: vi.fn(),
+  consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() }),
   getRateLimitHeaders: () => ({}),
 }))
 
