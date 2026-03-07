@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { POST as CreateTransaction } from '@/app/api/v1/transactions/route'
 import { POST as CreateTransactionRequest } from '@/app/api/v1/transactions/requests/route'
@@ -32,6 +33,7 @@ describe('Subscription Enforcement on API Routes', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     // Get test user for userId foreign keys
@@ -452,7 +454,9 @@ describe('Subscription Enforcement on API Routes', () => {
         },
       })
 
-      const response = await ApproveTransactionRequest(request, { params: Promise.resolve({ id: transactionRequestId }) })
+      const response = await ApproveTransactionRequest(request, {
+        params: Promise.resolve({ id: transactionRequestId }),
+      })
       const data = await response.json()
 
       expect(response.status).toBe(402)
@@ -474,7 +478,9 @@ describe('Subscription Enforcement on API Routes', () => {
         },
       })
 
-      const response = await RejectTransactionRequest(request, { params: Promise.resolve({ id: transactionRequestId }) })
+      const response = await RejectTransactionRequest(request, {
+        params: Promise.resolve({ id: transactionRequestId }),
+      })
       const data = await response.json()
 
       expect(response.status).toBe(402)
@@ -499,7 +505,9 @@ describe('Subscription Enforcement on API Routes', () => {
         },
       })
 
-      const response = await ApproveTransactionRequest(request, { params: Promise.resolve({ id: transactionRequestId }) })
+      const response = await ApproveTransactionRequest(request, {
+        params: Promise.resolve({ id: transactionRequestId }),
+      })
 
       // Should succeed (200) or fail for other reasons (not 402)
       expect(response.status).not.toBe(402)
@@ -567,17 +575,14 @@ describe('Subscription Enforcement on API Routes', () => {
         data: { status: SubscriptionStatus.EXPIRED },
       })
 
-      const request = new NextRequest(
-        `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-        {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${validToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      })
 
       const response = await MarkSharePaid(request, {
         params: Promise.resolve({ id: participantId }),
@@ -597,17 +602,14 @@ describe('Subscription Enforcement on API Routes', () => {
         create: { userId: TEST_USER_ID, status: SubscriptionStatus.TRIALING, trialEndsAt },
       })
 
-      const request = new NextRequest(
-        `http://localhost/api/v1/expenses/shares/${participantId}/paid`,
-        {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${validToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        }
-      )
+      const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/paid`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      })
 
       const response = await MarkSharePaid(request, {
         params: Promise.resolve({ id: participantId }),

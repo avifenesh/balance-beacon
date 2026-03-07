@@ -9,7 +9,7 @@ import {
   serverError,
   successResponse,
 } from '@/lib/api-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 
 /**
  * DELETE /api/v1/recurring/[id]
@@ -26,11 +26,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return authError(error instanceof Error ? error.message : 'Unauthorized')
   }
 
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   const subscriptionError = await checkSubscription(user.userId)
   if (subscriptionError) return subscriptionError

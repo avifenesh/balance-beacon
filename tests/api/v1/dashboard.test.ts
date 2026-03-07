@@ -9,11 +9,14 @@ import { getApiTestUser, getOtherTestUser, OTHER_USER_ID, TEST_USER_ID } from '.
 import { Currency, TransactionType } from '@prisma/client'
 
 // Mock rate limiting to avoid test interference
-vi.mock('@/lib/rate-limit', () => ({
-  checkRateLimit: () => ({ allowed: true, remaining: 100, resetAt: new Date() }),
-  incrementRateLimit: vi.fn(),
-  getRateLimitHeaders: () => ({}),
-}))
+vi.mock('@/lib/rate-limit', async () => {
+  const actual = await vi.importActual('@/lib/rate-limit')
+  return {
+    ...actual,
+    consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() }),
+    getRateLimitHeaders: () => ({}),
+  }
+})
 
 describe('Dashboard API Routes', () => {
   let validToken: string

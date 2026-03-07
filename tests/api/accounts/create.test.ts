@@ -4,6 +4,7 @@ import { POST as CreateAccount } from '@/app/api/v1/accounts/route'
 import { generateAccessToken } from '@/lib/jwt'
 import { resetEnvCache } from '@/lib/env-schema'
 import { prisma } from '@/lib/prisma'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { getApiTestUser, TEST_USER_ID, OTHER_USER_ID, getOtherTestUser } from '../v1/helpers'
 
 describe('POST /api/v1/accounts', () => {
@@ -12,6 +13,7 @@ describe('POST /api/v1/accounts', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     // Ensure test user exists

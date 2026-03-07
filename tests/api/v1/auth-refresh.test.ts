@@ -37,9 +37,9 @@ function createRequest(body: unknown) {
 describe('POST /api/v1/auth/refresh', () => {
   let validRefreshToken: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
 

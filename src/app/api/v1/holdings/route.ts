@@ -13,9 +13,10 @@ import {
   successResponse,
   rateLimitError,
   checkSubscription,
+  CACHE_STABLE,
 } from '@/lib/api-helpers'
 import { ensureApiAccountOwnership } from '@/lib/api-auth-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 import { NotFoundError, ValidationError, isServiceError } from '@/lib/services/errors'
 
@@ -42,11 +43,10 @@ export async function GET(request: NextRequest) {
   }
 
   // 1.5 Rate limit check
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // Note: No subscription check for GET - users can always view their data
 
@@ -84,19 +84,23 @@ export async function GET(request: NextRequest) {
       orderBy: { symbol: 'asc' },
     })
 
-    return successResponse({
-      holdings: holdings.map((holding) => ({
-        id: holding.id,
-        accountId: holding.accountId,
-        categoryId: holding.categoryId,
-        symbol: holding.symbol,
-        quantity: holding.quantity.toString(),
-        averageCost: holding.averageCost.toString(),
-        currency: holding.currency,
-        notes: holding.notes,
-        category: holding.category,
-      })),
-    })
+    return successResponse(
+      {
+        holdings: holdings.map((holding) => ({
+          id: holding.id,
+          accountId: holding.accountId,
+          categoryId: holding.categoryId,
+          symbol: holding.symbol,
+          quantity: holding.quantity.toString(),
+          averageCost: holding.averageCost.toString(),
+          currency: holding.currency,
+          notes: holding.notes,
+          category: holding.category,
+        })),
+      },
+      200,
+      CACHE_STABLE,
+    )
   } catch (error) {
     serverLogger.error('Failed to fetch holdings', { action: 'GET /api/v1/holdings' }, error)
     return serverError('Unable to fetch holdings')
@@ -132,11 +136,10 @@ export async function POST(request: NextRequest) {
   }
 
   // 1.5 Rate limit check
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // 1.6 Subscription check
   const subscriptionError = await checkSubscription(user.userId)

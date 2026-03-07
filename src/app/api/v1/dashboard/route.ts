@@ -9,8 +9,9 @@ import {
   serverError,
   successResponse,
   validationError,
+  CACHE_DASHBOARD,
 } from '@/lib/api-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { getMonthKey, getMonthStartFromKey, formatDateForApi } from '@/utils/date'
 import { serverLogger } from '@/lib/server-logger'
 import { getBudgetProgress } from '@/lib/dashboard-ux'
@@ -43,11 +44,10 @@ export async function GET(request: NextRequest) {
     return authError(error instanceof Error ? error.message : 'Unauthorized')
   }
 
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   const { searchParams } = new URL(request.url)
   const accountIdParam = searchParams.get('accountId')?.trim() || null
@@ -232,20 +232,24 @@ export async function GET(request: NextRequest) {
       breakdown: stat.breakdown ?? null,
     }))
 
-    return successResponse({
-      month: monthKey,
-      preferredCurrency: dashboardData.preferredCurrency ?? null,
-      summary,
-      stats,
-      budgetProgress,
-      recentTransactions,
-      pendingSharedExpenses,
-      transactionRequests,
-      paymentHistory,
-      history,
-      comparison,
-      exchangeRateLastUpdate: dashboardData.exchangeRateLastUpdate?.toISOString() ?? null,
-    })
+    return successResponse(
+      {
+        month: monthKey,
+        preferredCurrency: dashboardData.preferredCurrency ?? null,
+        summary,
+        stats,
+        budgetProgress,
+        recentTransactions,
+        pendingSharedExpenses,
+        transactionRequests,
+        paymentHistory,
+        history,
+        comparison,
+        exchangeRateLastUpdate: dashboardData.exchangeRateLastUpdate?.toISOString() ?? null,
+      },
+      200,
+      CACHE_DASHBOARD,
+    )
   } catch (error) {
     serverLogger.error('Failed to fetch dashboard data', { action: 'GET /api/v1/dashboard' }, error)
     return serverError('Unable to fetch dashboard data')

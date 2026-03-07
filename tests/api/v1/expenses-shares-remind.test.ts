@@ -1,15 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { POST as SendReminder } from '@/app/api/v1/expenses/shares/[id]/remind/route'
 import { generateAccessToken } from '@/lib/jwt'
 import { resetEnvCache } from '@/lib/env-schema'
 import { prisma } from '@/lib/prisma'
-import {
-  getApiTestUser,
-  getOtherTestUser,
-  TEST_USER_ID,
-  OTHER_USER_ID,
-} from './helpers'
+import { getApiTestUser, getOtherTestUser, TEST_USER_ID, OTHER_USER_ID } from './helpers'
 import { SplitType, PaymentStatus, TransactionType } from '@prisma/client'
 
 // Mock the email module to prevent actual email sends
@@ -28,6 +24,7 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
     otherToken = generateAccessToken(OTHER_USER_ID, 'api-other@example.com')
 
@@ -115,16 +112,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
   })
 
   it('sends reminder when called by owner for PENDING share', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -138,16 +132,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
   })
 
   it('returns 403 when called by non-owner (the participant)', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${otherToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${otherToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -159,16 +150,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
   })
 
   it('returns 404 for non-existent participant', async () => {
-    const request = new NextRequest(
-      'http://localhost/api/v1/expenses/shares/non-existent-id/remind',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest('http://localhost/api/v1/expenses/shares/non-existent-id/remind', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: 'non-existent-id' }),
@@ -185,16 +173,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
       data: { status: PaymentStatus.PAID, paidAt: new Date() },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -212,16 +197,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
       data: { status: PaymentStatus.DECLINED, declinedAt: new Date() },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -241,16 +223,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
       data: { reminderSentAt: oneHourAgo },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -270,16 +249,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
       data: { reminderSentAt: twentyFiveHoursAgo },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -293,13 +269,10 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
   })
 
   it('returns 401 with missing token', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -309,16 +282,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
   })
 
   it('persists reminderSentAt in database after successful reminder', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const beforeRemind = new Date()
     await SendReminder(request, {
@@ -332,25 +302,18 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
 
     expect(participant).toBeDefined()
     expect(participant?.reminderSentAt).toBeTruthy()
-    expect(participant?.reminderSentAt?.getTime()).toBeGreaterThanOrEqual(
-      beforeRemind.getTime()
-    )
-    expect(participant?.reminderSentAt?.getTime()).toBeLessThanOrEqual(
-      afterRemind.getTime()
-    )
+    expect(participant?.reminderSentAt?.getTime()).toBeGreaterThanOrEqual(beforeRemind.getTime())
+    expect(participant?.reminderSentAt?.getTime()).toBeLessThanOrEqual(afterRemind.getTime())
   })
 
   it('returns valid ISO timestamp in reminderSentAt field', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -358,9 +321,7 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
     const data = await response.json()
 
     expect(data.data.reminderSentAt).toBeTruthy()
-    expect(new Date(data.data.reminderSentAt).toISOString()).toBe(
-      data.data.reminderSentAt
-    )
+    expect(new Date(data.data.reminderSentAt).toISOString()).toBe(data.data.reminderSentAt)
   })
 
   it('returns 500 when email sending fails', async () => {
@@ -369,16 +330,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
       success: false,
     })
 
-    const request = new NextRequest(
-      `http://localhost:3000/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost:3000/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),
@@ -403,16 +361,13 @@ describe('POST /api/v1/expenses/shares/[participantId]/remind', () => {
       data: { deletedAt: new Date() },
     })
 
-    const request = new NextRequest(
-      `http://localhost:3000/api/v1/expenses/shares/${participantId}/remind`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost:3000/api/v1/expenses/shares/${participantId}/remind`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     const response = await SendReminder(request, {
       params: Promise.resolve({ id: participantId }),

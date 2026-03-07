@@ -10,7 +10,14 @@ import { monthlyIncomeGoalApiSchema, deleteMonthlyIncomeGoalApiSchema } from '@/
 import { ensureApiAccountOwnership } from '@/lib/api-auth-helpers'
 import { prisma } from '@/lib/prisma'
 import { formatDateForApi, getMonthStartFromKey } from '@/utils/date'
-import { validationError, forbiddenError, notFoundError, serverError, successResponse } from '@/lib/api-helpers'
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  serverError,
+  successResponse,
+  CACHE_STABLE,
+} from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 
 /**
@@ -73,10 +80,14 @@ export async function GET(request: NextRequest) {
             }
           : null
 
-      return successResponse({
-        incomeGoal,
-        actualIncome: actualIncome.toString(),
-      })
+      return successResponse(
+        {
+          incomeGoal,
+          actualIncome: actualIncome.toString(),
+        },
+        200,
+        CACHE_STABLE,
+      )
     } catch (error) {
       serverLogger.error(
         'Failed to fetch monthly income goal',

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { GET as GetBudgets, POST as UpsertBudget, DELETE as DeleteBudget } from '@/app/api/v1/budgets/route'
 import { generateAccessToken } from '@/lib/jwt'
@@ -17,6 +18,7 @@ describe('Budget API Routes', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     // Get test user for userId foreign keys

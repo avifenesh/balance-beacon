@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { GET as GetTransactions, POST as CreateTransaction } from '@/app/api/v1/transactions/route'
-import { GET as GetTransaction, PUT as UpdateTransaction, DELETE as DeleteTransaction } from '@/app/api/v1/transactions/[id]/route'
+import {
+  GET as GetTransaction,
+  PUT as UpdateTransaction,
+  DELETE as DeleteTransaction,
+} from '@/app/api/v1/transactions/[id]/route'
 import { POST as CreateRequest } from '@/app/api/v1/transactions/requests/route'
 import { POST as ApproveRequest } from '@/app/api/v1/transactions/requests/[id]/approve/route'
 import { POST as RejectRequest } from '@/app/api/v1/transactions/requests/[id]/reject/route'
@@ -19,6 +24,7 @@ describe('Transaction API Routes', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     // Get test user for userId foreign keys
@@ -428,7 +434,7 @@ describe('Transaction API Routes', () => {
             name: expect.any(String),
             type: expect.any(String),
           }),
-        })
+        }),
       )
     })
 

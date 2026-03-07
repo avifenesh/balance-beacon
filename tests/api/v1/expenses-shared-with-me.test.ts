@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/v1/expenses/shared-with-me/route'
 import { generateAccessToken } from '@/lib/jwt'
@@ -20,6 +21,7 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
     otherToken = generateAccessToken(OTHER_USER_ID, 'api-other@example.com')
 
@@ -37,7 +39,9 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
 
     // Create test category
     const category = await prisma.category.upsert({
-      where: { userId_name_type: { userId: otherUser.id, name: 'SharedWithMeTestCategory', type: TransactionType.EXPENSE } },
+      where: {
+        userId_name_type: { userId: otherUser.id, name: 'SharedWithMeTestCategory', type: TransactionType.EXPENSE },
+      },
       update: {},
       create: { userId: otherUser.id, name: 'SharedWithMeTestCategory', type: TransactionType.EXPENSE },
     })
@@ -170,7 +174,9 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
       expect(response.status).toBe(200)
       expect(data.data.expenses.length).toBeGreaterThanOrEqual(1)
 
-      const expense = data.data.expenses.find((e: { sharedExpense: { id: string } }) => e.sharedExpense.id === sharedExpense.id)
+      const expense = data.data.expenses.find(
+        (e: { sharedExpense: { id: string } }) => e.sharedExpense.id === sharedExpense.id,
+      )
       expect(expense).toBeDefined()
       expect(expense.shareAmount).toBe('50')
       expect(expense.status).toBe('PENDING')
@@ -203,7 +209,7 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
       expect(response.status).toBe(200)
       // Should not include expenses owned by test user
       const ownedExpense = data.data.expenses.find(
-        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Test user owned expense'
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Test user owned expense',
       )
       expect(ownedExpense).toBeUndefined()
     })
@@ -245,9 +251,15 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      const pendingExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Pending expense')
-      const paidExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Paid expense')
-      const declinedExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Declined expense')
+      const pendingExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Pending expense',
+      )
+      const paidExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Paid expense',
+      )
+      const declinedExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Declined expense',
+      )
       expect(pendingExpense).toBeDefined()
       expect(paidExpense).toBeDefined()
       expect(declinedExpense).toBeDefined()
@@ -280,8 +292,12 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      const pendingExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Pending only')
-      const paidExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Paid only')
+      const pendingExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Pending only',
+      )
+      const paidExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Paid only',
+      )
       expect(pendingExpense).toBeDefined()
       expect(paidExpense).toBeUndefined()
     })
@@ -313,8 +329,12 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      const pendingExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Pending filter test')
-      const paidExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Paid filter test')
+      const pendingExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Pending filter test',
+      )
+      const paidExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Paid filter test',
+      )
       expect(pendingExpense).toBeUndefined()
       expect(paidExpense).toBeDefined()
     })
@@ -346,8 +366,12 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      const pendingExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Pending declined test')
-      const declinedExpense = data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Declined filter test')
+      const pendingExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Pending declined test',
+      )
+      const declinedExpense = data.data.expenses.find(
+        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'Declined filter test',
+      )
       expect(pendingExpense).toBeUndefined()
       expect(declinedExpense).toBeDefined()
     })
@@ -379,8 +403,16 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'All test pending')).toBeDefined()
-      expect(data.data.expenses.find((e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'All test paid')).toBeDefined()
+      expect(
+        data.data.expenses.find(
+          (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'All test pending',
+        ),
+      ).toBeDefined()
+      expect(
+        data.data.expenses.find(
+          (e: { sharedExpense: { description: string } }) => e.sharedExpense.description === 'All test paid',
+        ),
+      ).toBeDefined()
     })
 
     it('returns 400 for invalid status value', async () => {
@@ -462,8 +494,8 @@ describe('GET /api/v1/expenses/shared-with-me', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      const offsetExpenses = data.data.expenses.filter(
-        (e: { sharedExpense: { description: string } }) => e.sharedExpense.description.startsWith('Offset test')
+      const offsetExpenses = data.data.expenses.filter((e: { sharedExpense: { description: string } }) =>
+        e.sharedExpense.description.startsWith('Offset test'),
       )
       expect(offsetExpenses.length).toBe(2)
     })

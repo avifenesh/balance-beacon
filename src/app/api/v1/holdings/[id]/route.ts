@@ -11,7 +11,7 @@ import {
   rateLimitError,
   checkSubscription,
 } from '@/lib/api-helpers'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 
 /**
  * PUT /api/v1/holdings/[id]
@@ -42,11 +42,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // 1.5 Rate limit check
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // 1.6 Subscription check
   const subscriptionError = await checkSubscription(user.userId)
@@ -118,11 +117,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   // 1.5 Rate limit check
-  const rateLimitCheck = checkRateLimit(user.userId)
+  const rateLimitCheck = await consumeRateLimit(user.userId)
   if (!rateLimitCheck.allowed) {
     return rateLimitError(rateLimitCheck.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   // 1.6 Subscription check
   const subscriptionError = await checkSubscription(user.userId)

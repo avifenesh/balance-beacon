@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { withApiAuth, parseJsonBody } from '@/lib/api-middleware'
-import { authError, successResponse, validationError } from '@/lib/api-helpers'
+import { authError, successResponse, validationError, CACHE_STABLE } from '@/lib/api-helpers'
 import { prisma } from '@/lib/prisma'
 import { getSubscriptionState } from '@/lib/subscription'
 import { z } from 'zod'
@@ -47,10 +47,14 @@ export async function GET(request: NextRequest) {
       return authError('User not found')
     }
 
-    return successResponse({
-      ...dbUser,
-      subscription,
-    })
+    return successResponse(
+      {
+        ...dbUser,
+        subscription,
+      },
+      200,
+      CACHE_STABLE,
+    )
   })
 }
 

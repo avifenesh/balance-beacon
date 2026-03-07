@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { resetAllRateLimits, incrementRateLimitTyped, checkRateLimitTyped } from '@/lib/rate-limit'
+import { resetAllRateLimits, consumeRateLimit } from '@/lib/rate-limit'
 
 // Mock external dependencies
 vi.mock('@/lib/api-auth', () => ({
@@ -57,16 +57,16 @@ describe('GET /api/v1/users/lookup', () => {
     return req as import('next/server').NextRequest
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     mockRequireJwtAuth.mockReturnValue(mockUser)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockUserFindUnique.mockResolvedValue(mockFoundUser as unknown as any)
   })
 
-  afterEach(() => {
-    resetAllRateLimits()
+  afterEach(async () => {
+    await resetAllRateLimits()
   })
 
   describe('Authentication', () => {
@@ -109,8 +109,7 @@ describe('GET /api/v1/users/lookup', () => {
     it('blocks requests over login rate limit', async () => {
       // Login rate limit is 5 requests per minute (protects against email enumeration)
       for (let i = 0; i < 5; i++) {
-        checkRateLimitTyped(mockUser.userId, 'login')
-        incrementRateLimitTyped(mockUser.userId, 'login')
+        await consumeRateLimit(mockUser.userId, 'login')
       }
 
       const response = await GET(createRequest('found@example.com'))
@@ -220,7 +219,7 @@ describe('GET /api/v1/users/lookup', () => {
         id: 'user-789',
         email: 'noname@example.com',
         displayName: null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as unknown as any)
 
       const response = await GET(createRequest('noname@example.com'))

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { resetAllRateLimits, checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
+import { resetAllRateLimits, consumeRateLimit } from '@/lib/rate-limit'
 
 // Mock external dependencies before importing route handlers
 vi.mock('@/lib/api-auth', () => ({
@@ -103,9 +103,9 @@ describe('GET /api/v1/budgets', () => {
     })
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     mockRequireJwtAuth.mockReturnValue(mockUser)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountFindFirst.mockResolvedValue(makeAccount() as any)
@@ -113,8 +113,8 @@ describe('GET /api/v1/budgets', () => {
     mockTransactionGroupBy.mockResolvedValue([])
   })
 
-  afterEach(() => {
-    resetAllRateLimits()
+  afterEach(async () => {
+    await resetAllRateLimits()
   })
 
   // ----------------------------------------------------------
@@ -154,8 +154,7 @@ describe('GET /api/v1/budgets', () => {
   describe('Rate Limiting', () => {
     it('blocks requests when rate limit is exceeded', async () => {
       for (let i = 0; i < 100; i++) {
-        checkRateLimitTyped(mockUser.userId, 'default')
-        incrementRateLimitTyped(mockUser.userId, 'default')
+        await consumeRateLimit(mockUser.userId, 'default')
       }
 
       const response = await GET(createRequest({ accountId: 'acc-1' }))
@@ -524,9 +523,9 @@ describe('POST /api/v1/budgets', () => {
     })
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     mockRequireJwtAuth.mockReturnValue(mockUser)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountFindFirst.mockResolvedValue(makeAccount() as any)
@@ -535,8 +534,8 @@ describe('POST /api/v1/budgets', () => {
     mockUpsertBudget.mockResolvedValue(savedBudget as any)
   })
 
-  afterEach(() => {
-    resetAllRateLimits()
+  afterEach(async () => {
+    await resetAllRateLimits()
   })
 
   // ----------------------------------------------------------
@@ -821,9 +820,9 @@ describe('DELETE /api/v1/budgets', () => {
     })
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     mockRequireJwtAuth.mockReturnValue(mockUser)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountFindFirst.mockResolvedValue(makeAccount() as any)
@@ -832,8 +831,8 @@ describe('DELETE /api/v1/budgets', () => {
     mockDeleteBudget.mockResolvedValue(undefined as never)
   })
 
-  afterEach(() => {
-    resetAllRateLimits()
+  afterEach(async () => {
+    await resetAllRateLimits()
   })
 
   // ----------------------------------------------------------

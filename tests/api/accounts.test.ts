@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { resetAllRateLimits, incrementRateLimit, checkRateLimit } from '@/lib/rate-limit'
+import { resetAllRateLimits, consumeRateLimit } from '@/lib/rate-limit'
 
 // Helper to create mock Decimal with toNumber method
 function mockDecimal(value: number) {
@@ -95,9 +95,9 @@ describe('GET /api/v1/accounts', () => {
     }) as import('next/server').NextRequest
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     mockRequireJwtAuth.mockReturnValue(mockUser)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountFindMany.mockResolvedValue(mockAccounts as unknown as any)
@@ -105,8 +105,8 @@ describe('GET /api/v1/accounts', () => {
     mockTransactionGroupBy.mockResolvedValue([])
   })
 
-  afterEach(() => {
-    resetAllRateLimits()
+  afterEach(async () => {
+    await resetAllRateLimits()
   })
 
   describe('Authentication', () => {
@@ -149,8 +149,7 @@ describe('GET /api/v1/accounts', () => {
     it('blocks requests over limit', async () => {
       // Hit the rate limit (100 requests)
       for (let i = 0; i < 100; i++) {
-        checkRateLimit(mockUser.userId)
-        incrementRateLimit(mockUser.userId)
+        await consumeRateLimit(mockUser.userId)
       }
 
       const response = await GET(createRequest())
@@ -259,9 +258,9 @@ describe('PUT /api/v1/accounts/[id]', () => {
     }) as import('next/server').NextRequest
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     mockRequireJwtAuth.mockReturnValue(mockUser)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountFindFirst.mockResolvedValue(mockAccount as any)
@@ -269,8 +268,8 @@ describe('PUT /api/v1/accounts/[id]', () => {
     mockAccountUpdate.mockResolvedValue({ ...mockAccount, name: 'Updated Account' } as any)
   })
 
-  afterEach(() => {
-    resetAllRateLimits()
+  afterEach(async () => {
+    await resetAllRateLimits()
   })
 
   describe('Authentication', () => {
@@ -395,9 +394,9 @@ describe('DELETE /api/v1/accounts/[id]', () => {
     }) as import('next/server').NextRequest
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     mockRequireJwtAuth.mockReturnValue(mockUser)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAccountFindFirst.mockResolvedValue(mockAccount as any)
@@ -414,8 +413,8 @@ describe('DELETE /api/v1/accounts/[id]', () => {
     vi.mocked(tx.account.update).mockResolvedValue({ ...mockAccount, deletedAt: new Date() } as any)
   })
 
-  afterEach(() => {
-    resetAllRateLimits()
+  afterEach(async () => {
+    await resetAllRateLimits()
   })
 
   describe('Authentication', () => {

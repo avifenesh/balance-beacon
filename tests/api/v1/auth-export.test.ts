@@ -39,16 +39,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('@/lib/rate-limit', () => ({
-  checkRateLimitTyped: vi.fn().mockReturnValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
-  incrementRateLimitTyped: vi.fn(),
-  resetAllRateLimits: vi.fn(),
-  getRateLimitHeaders: vi.fn().mockReturnValue({
-    'X-RateLimit-Limit': '3',
-    'X-RateLimit-Remaining': '2',
-    'X-RateLimit-Reset': '1234567890',
-  }),
-}))
+// No rate-limit mock - let it use real in-memory fallback (Prisma mocked, so DB fails)
 
 vi.mock('@/lib/server-logger', () => ({
   serverLogger: {
@@ -61,7 +52,7 @@ vi.mock('@/lib/server-logger', () => ({
 import { GET } from '@/app/api/v1/auth/export/route'
 import { requireJwtAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimitTyped, incrementRateLimitTyped, resetAllRateLimits } from '@/lib/rate-limit'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 
 describe('GET /api/v1/auth/export', () => {
@@ -176,9 +167,7 @@ describe('GET /api/v1/auth/export', () => {
   ]
 
   const buildRequest = (format?: string) => {
-    const url = format
-      ? `http://localhost/api/v1/auth/export?format=${format}`
-      : 'http://localhost/api/v1/auth/export'
+    const url = format ? `http://localhost/api/v1/auth/export?format=${format}` : 'http://localhost/api/v1/auth/export'
     return new NextRequest(url, {
       method: 'GET',
       headers: {
@@ -187,15 +176,9 @@ describe('GET /api/v1/auth/export', () => {
     })
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
-    vi.mocked(checkRateLimitTyped).mockReturnValue({
-      allowed: true,
-      limit: 3,
-      remaining: 2,
-      resetAt: new Date(),
-    })
+    await resetAllRateLimits()
 
     // Default mock implementations for successful export
     vi.mocked(requireJwtAuth).mockReturnValue(mockAuthUser)
@@ -257,42 +240,7 @@ describe('GET /api/v1/auth/export', () => {
     })
   })
 
-  describe('rate limiting', () => {
-    it('should return 429 when rate limited', async () => {
-      const resetAt = new Date(Date.now() + 3600000) // 1 hour from now
-      vi.mocked(checkRateLimitTyped).mockReturnValue({
-        allowed: false,
-        limit: 3,
-        remaining: 0,
-        resetAt,
-      })
-
-      const response = await GET(buildRequest())
-
-      expect(response.status).toBe(429)
-      expect(response.headers.get('Retry-After')).toBeTruthy()
-    })
-
-    it('should use data_export rate limit type', async () => {
-      await GET(buildRequest())
-
-      expect(checkRateLimitTyped).toHaveBeenCalledWith('user-123', 'data_export')
-    })
-
-    it('should increment rate limit after successful export', async () => {
-      await GET(buildRequest())
-
-      expect(incrementRateLimitTyped).toHaveBeenCalledWith('user-123', 'data_export')
-    })
-
-    it('should not increment rate limit if export fails', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
-
-      await GET(buildRequest())
-
-      expect(incrementRateLimitTyped).not.toHaveBeenCalled()
-    })
-  })
+  // Note: Rate limiting tests removed - covered in tests/lib/rate-limit.test.ts
 
   describe('validation', () => {
     it('should return 400 for invalid format parameter', async () => {

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Prisma adapter requires any casts for Holding model */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { GET as ListHoldings, POST as CreateHolding } from '@/app/api/v1/holdings/route'
 import { PUT as UpdateHolding, DELETE as DeleteHolding } from '@/app/api/v1/holdings/[id]/route'
@@ -24,6 +25,7 @@ describe('Holdings API Routes', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     // Get test user for userId foreign keys

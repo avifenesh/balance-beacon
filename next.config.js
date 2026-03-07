@@ -1,4 +1,7 @@
 const { withSentryConfig } = require('@sentry/nextjs')
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
 
 // DevSkim: ignore DS162092 - localhost is expected for local development origins
 const ALLOWED_DEV_ORIGINS = ['127.0.0.1']
@@ -35,7 +38,7 @@ if (isSentryEnabled) {
       `Sentry is enabled (SENTRY_ENABLED=true) but required configuration is missing:\n` +
         `  Missing: ${missingVars.join(', ')}\n\n` +
         `Either set the missing variables or disable Sentry by setting SENTRY_ENABLED=false.\n` +
-        `See .env.example for configuration details.`
+        `See .env.example for configuration details.`,
     )
   }
 
@@ -45,4 +48,5 @@ if (isSentryEnabled) {
 }
 
 // Only apply Sentry in production builds
-module.exports = isSentryEnabled ? withSentryConfig(nextConfig, sentryWebpackPluginOptions) : nextConfig
+const configWithSentry = isSentryEnabled ? withSentryConfig(nextConfig, sentryWebpackPluginOptions) : nextConfig
+module.exports = withBundleAnalyzer(configWithSentry)

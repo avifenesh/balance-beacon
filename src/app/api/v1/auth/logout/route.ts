@@ -3,7 +3,7 @@ import { verifyRefreshToken, type TokenPayload } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 import { env } from '@/lib/env-schema'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { rateLimitError } from '@/lib/api-helpers'
 
 export async function POST(request: NextRequest) {
@@ -33,11 +33,10 @@ export async function POST(request: NextRequest) {
     const { jti, userId } = payload
 
     // Rate limit check
-    const rateLimit = checkRateLimit(userId)
+    const rateLimit = await consumeRateLimit(userId)
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
     }
-    incrementRateLimit(userId)
 
     await prisma.refreshToken.deleteMany({
       where: { jti },

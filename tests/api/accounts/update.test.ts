@@ -4,6 +4,7 @@ import { PUT as UpdateAccount } from '@/app/api/v1/accounts/[id]/route'
 import { generateAccessToken } from '@/lib/jwt'
 import { resetEnvCache } from '@/lib/env-schema'
 import { prisma } from '@/lib/prisma'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { getApiTestUser, TEST_USER_ID, OTHER_USER_ID, getOtherTestUser } from '../v1/helpers'
 
 describe('PUT /api/v1/accounts/[id] - Extended fields', () => {
@@ -14,6 +15,7 @@ describe('PUT /api/v1/accounts/[id] - Extended fields', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     const testUser = await getApiTestUser()

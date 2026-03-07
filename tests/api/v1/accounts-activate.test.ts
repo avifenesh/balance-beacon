@@ -4,6 +4,7 @@ import { PATCH as ActivateAccount } from '@/app/api/v1/accounts/[id]/activate/ro
 import { generateAccessToken } from '@/lib/jwt'
 import { resetEnvCache } from '@/lib/env-schema'
 import { prisma } from '@/lib/prisma'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { getApiTestUser, getOtherTestUser, TEST_USER_ID } from './helpers'
 
 describe('PATCH /api/v1/accounts/[id]/activate', () => {
@@ -15,6 +16,7 @@ describe('PATCH /api/v1/accounts/[id]/activate', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     // Get test user for userId foreign keys

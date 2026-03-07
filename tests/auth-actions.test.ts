@@ -74,8 +74,7 @@ vi.mock('@/lib/csrf', () => ({
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
-  checkRateLimitTyped: vi.fn().mockReturnValue({ allowed: true, limit: 3, remaining: 3, resetAt: new Date() }),
-  incrementRateLimitTyped: vi.fn(),
+  consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 3, remaining: 3, resetAt: new Date() }),
   resetRateLimitTyped: vi.fn(),
   resetAllRateLimits: vi.fn(),
 }))

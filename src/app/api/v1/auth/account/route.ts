@@ -9,10 +9,7 @@ import {
   serverError,
   rateLimitError,
 } from '@/lib/api-helpers'
-import {
-  checkRateLimitTyped,
-  incrementRateLimitTyped,
-} from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { cancelPaddleSubscription } from '@/lib/paddle'
 import { serverLogger } from '@/lib/server-logger'
 import { deleteAccountApiSchema } from '@/schemas/api'
@@ -39,11 +36,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Rate limit check (3/hour for account deletion)
-    const rateLimit = checkRateLimitTyped(auth.userId, 'account_deletion')
+    const rateLimit = await consumeRateLimit(auth.userId, 'account_deletion')
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
     }
-    incrementRateLimitTyped(auth.userId, 'account_deletion')
 
     // Parse and validate request body
     let body
@@ -137,11 +133,7 @@ export async function DELETE(request: NextRequest) {
       userId: user.id,
     })
 
-    return successResponseWithRateLimit(
-      { message: 'Account deleted successfully' },
-      auth.userId,
-      'account_deletion',
-    )
+    return successResponseWithRateLimit({ message: 'Account deleted successfully' }, auth.userId, 'account_deletion')
   } catch (error) {
     serverLogger.error('Account deletion failed', {
       error: error instanceof Error ? error.message : String(error),

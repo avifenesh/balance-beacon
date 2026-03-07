@@ -27,13 +27,13 @@ import { registerUser } from '@/lib/services/registration-service'
 import { sendVerificationEmail } from '@/lib/email'
 
 describe('POST /api/v1/auth/register', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.stubEnv('NODE_ENV', 'test')
-    resetAllRateLimits()
+    await resetAllRateLimits()
     vi.clearAllMocks()
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.unstubAllEnvs()
   })
 

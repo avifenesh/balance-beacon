@@ -8,9 +8,10 @@ import {
   validationError,
   rateLimitError,
   checkSubscription,
+  CACHE_STABLE,
 } from '@/lib/api-helpers'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { serverLogger } from '@/lib/server-logger'
 
 const createAccountSchema = z.object({
@@ -42,11 +43,10 @@ export async function GET(request: NextRequest) {
     return authError(error instanceof Error ? error.message : 'Unauthorized')
   }
 
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   try {
     const accounts = await prisma.account.findMany({
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       balance: Math.round((balances.get(account.id) || 0) * 100) / 100,
     }))
 
-    return successResponse({ accounts: accountsWithBalance })
+    return successResponse({ accounts: accountsWithBalance }, 200, CACHE_STABLE)
   } catch (error) {
     serverLogger.error('Failed to fetch accounts', { action: 'GET /api/v1/accounts' }, error)
     return serverError('Unable to fetch accounts')
@@ -117,11 +117,10 @@ export async function POST(request: NextRequest) {
     return authError(error instanceof Error ? error.message : 'Unauthorized')
   }
 
-  const rateLimit = checkRateLimit(user.userId)
+  const rateLimit = await consumeRateLimit(user.userId)
   if (!rateLimit.allowed) {
     return rateLimitError(rateLimit.resetAt)
   }
-  incrementRateLimit(user.userId)
 
   const subscriptionError = await checkSubscription(user.userId)
   if (subscriptionError) return subscriptionError

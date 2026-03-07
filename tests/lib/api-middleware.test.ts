@@ -6,8 +6,7 @@ vi.mock('@/lib/api-auth', () => ({
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
-  checkRateLimitTyped: vi.fn().mockReturnValue({ allowed: true }),
-  incrementRateLimitTyped: vi.fn(),
+  consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() }),
 }))
 
 vi.mock('@/lib/api-helpers', () => ({
@@ -29,7 +28,7 @@ vi.mock('@/lib/server-logger', () => ({
 
 import { withApiAuth, parseJsonBody } from '@/lib/api-middleware'
 import { requireJwtAuth } from '@/lib/api-auth'
-import { checkRateLimitTyped } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { checkSubscription } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 
@@ -41,7 +40,7 @@ describe('withApiAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(requireJwtAuth).mockReturnValue({ userId: 'user-1', email: 'test@example.com' })
-    vi.mocked(checkRateLimitTyped).mockReturnValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() })
+    vi.mocked(consumeRateLimit).mockResolvedValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() })
   })
 
   it('calls handler with authenticated user on success', async () => {
@@ -84,7 +83,7 @@ describe('withApiAuth', () => {
   })
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(checkRateLimitTyped).mockReturnValue({
+    vi.mocked(consumeRateLimit).mockResolvedValue({
       allowed: false,
       limit: 100,
       remaining: 0,
@@ -99,7 +98,7 @@ describe('withApiAuth', () => {
   })
 
   it('skips rate limiting when skipRateLimit is true', async () => {
-    vi.mocked(checkRateLimitTyped).mockReturnValue({
+    vi.mocked(consumeRateLimit).mockResolvedValue({
       allowed: false,
       limit: 100,
       remaining: 0,
@@ -111,7 +110,7 @@ describe('withApiAuth', () => {
 
     expect(res.status).toBe(200)
     expect(handler).toHaveBeenCalled()
-    expect(checkRateLimitTyped).not.toHaveBeenCalled()
+    expect(consumeRateLimit).not.toHaveBeenCalled()
   })
 
   it('checks subscription when requireSubscription is true', async () => {
@@ -151,7 +150,7 @@ describe('withApiAuth', () => {
     const handler = vi.fn().mockResolvedValue(NextResponse.json({ ok: true }))
     await withApiAuth(createRequest(), handler, { rateLimitType: 'login' })
 
-    expect(checkRateLimitTyped).toHaveBeenCalledWith('user-1', 'login')
+    expect(consumeRateLimit).toHaveBeenCalledWith('user-1', 'login')
   })
 })
 

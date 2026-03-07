@@ -17,8 +17,8 @@ vi.mock('@/lib/prisma', () => ({
 import { POST as loginPost } from '@/app/api/v1/auth/login/route'
 
 describe('Auth login rate limiting', () => {
-  beforeEach(() => {
-    resetAllRateLimits()
+  beforeEach(async () => {
+    await resetAllRateLimits()
     vi.clearAllMocks()
   })
 

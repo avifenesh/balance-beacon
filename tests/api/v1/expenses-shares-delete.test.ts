@@ -1,15 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { DELETE as DeleteShare } from '@/app/api/v1/expenses/shares/[id]/route'
 import { generateAccessToken } from '@/lib/jwt'
 import { resetEnvCache } from '@/lib/env-schema'
 import { prisma } from '@/lib/prisma'
-import {
-  getApiTestUser,
-  getOtherTestUser,
-  TEST_USER_ID,
-  OTHER_USER_ID,
-} from './helpers'
+import { getApiTestUser, getOtherTestUser, TEST_USER_ID, OTHER_USER_ID } from './helpers'
 import { SplitType, PaymentStatus, TransactionType } from '@prisma/client'
 
 describe('DELETE /api/v1/expenses/shares/[id]', () => {
@@ -24,6 +20,7 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
     otherToken = generateAccessToken(OTHER_USER_ID, 'api-other@example.com')
 
@@ -111,15 +108,12 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
   })
 
   it('deletes shared expense when called by owner with PENDING participants', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${sharedExpenseId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${sharedExpenseId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+      },
+    })
 
     const response = await DeleteShare(request, {
       params: Promise.resolve({ id: sharedExpenseId }),
@@ -132,12 +126,9 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
   })
 
   it('returns 401 with missing token', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${sharedExpenseId}`,
-      {
-        method: 'DELETE',
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${sharedExpenseId}`, {
+      method: 'DELETE',
+    })
 
     const response = await DeleteShare(request, {
       params: Promise.resolve({ id: sharedExpenseId }),
@@ -147,15 +138,12 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
   })
 
   it('returns 404 for non-existent shared expense', async () => {
-    const request = new NextRequest(
-      'http://localhost/api/v1/expenses/shares/non-existent-id',
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-        },
-      }
-    )
+    const request = new NextRequest('http://localhost/api/v1/expenses/shares/non-existent-id', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+      },
+    })
 
     const response = await DeleteShare(request, {
       params: Promise.resolve({ id: 'non-existent-id' }),
@@ -167,15 +155,12 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
   })
 
   it('returns 403 when called by non-owner', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${sharedExpenseId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${otherToken}`,
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${sharedExpenseId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${otherToken}`,
+      },
+    })
 
     const response = await DeleteShare(request, {
       params: Promise.resolve({ id: sharedExpenseId }),
@@ -192,15 +177,12 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
       data: { status: PaymentStatus.PAID, paidAt: new Date() },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${sharedExpenseId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${sharedExpenseId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+      },
+    })
 
     const response = await DeleteShare(request, {
       params: Promise.resolve({ id: sharedExpenseId }),
@@ -218,15 +200,12 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
       data: { status: PaymentStatus.DECLINED, declinedAt: new Date() },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${sharedExpenseId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${sharedExpenseId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+      },
+    })
 
     const response = await DeleteShare(request, {
       params: Promise.resolve({ id: sharedExpenseId }),
@@ -239,15 +218,12 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
   })
 
   it('soft deletes both SharedExpense and ExpenseParticipant in database', async () => {
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${sharedExpenseId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${sharedExpenseId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+      },
+    })
 
     const beforeDelete = new Date()
     await DeleteShare(request, { params: Promise.resolve({ id: sharedExpenseId }) })
@@ -279,15 +255,12 @@ describe('DELETE /api/v1/expenses/shares/[id]', () => {
       data: { deletedAt: new Date(), deletedBy: TEST_USER_ID },
     })
 
-    const request = new NextRequest(
-      `http://localhost/api/v1/expenses/shares/${sharedExpenseId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${validToken}`,
-        },
-      }
-    )
+    const request = new NextRequest(`http://localhost/api/v1/expenses/shares/${sharedExpenseId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${validToken}`,
+      },
+    })
 
     const response = await DeleteShare(request, {
       params: Promise.resolve({ id: sharedExpenseId }),

@@ -26,8 +26,10 @@ import {
   successResponseWithRateLimit,
   subscriptionRequiredError,
   checkSubscription,
+  CACHE_STABLE,
+  CACHE_DASHBOARD,
 } from '@/lib/api-helpers'
-import type { ApiResponse } from '@/lib/api-helpers'
+import type { ApiResponse, CacheConfig } from '@/lib/api-helpers'
 import { getSubscriptionState } from '@/lib/subscription'
 
 describe('api-helpers', () => {
@@ -212,6 +214,39 @@ describe('api-helpers', () => {
       const res = successResponse(data)
       const body = await res.json()
       expect(body.data).toHaveLength(2)
+    })
+
+    it('does not set Cache-Control when no cache config', () => {
+      const res = successResponse({ id: '1' })
+      expect(res.headers.get('Cache-Control')).toBeNull()
+    })
+
+    it('sets private Cache-Control with max-age and stale-while-revalidate', () => {
+      const cache: CacheConfig = { maxAge: 10, staleWhileRevalidate: 30 }
+      const res = successResponse({ id: '1' }, 200, cache)
+      expect(res.headers.get('Cache-Control')).toBe('private, max-age=10, stale-while-revalidate=30')
+    })
+
+    it('sets public Cache-Control when isPublic is true', () => {
+      const cache: CacheConfig = { maxAge: 3600, isPublic: true }
+      const res = successResponse({ id: '1' }, 200, cache)
+      expect(res.headers.get('Cache-Control')).toBe('public, max-age=3600')
+    })
+
+    it('sets Cache-Control without stale-while-revalidate when not provided', () => {
+      const cache: CacheConfig = { maxAge: 60 }
+      const res = successResponse({ id: '1' }, 200, cache)
+      expect(res.headers.get('Cache-Control')).toBe('private, max-age=60')
+    })
+
+    it('CACHE_STABLE preset has correct values', () => {
+      const res = successResponse({ id: '1' }, 200, CACHE_STABLE)
+      expect(res.headers.get('Cache-Control')).toBe('private, max-age=10, stale-while-revalidate=30')
+    })
+
+    it('CACHE_DASHBOARD preset has correct values', () => {
+      const res = successResponse({ id: '1' }, 200, CACHE_DASHBOARD)
+      expect(res.headers.get('Cache-Control')).toBe('private, max-age=30, stale-while-revalidate=60')
     })
   })
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { resetAllRateLimits } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 import { POST as SeedData } from '@/app/api/v1/seed-data/route'
 import { generateAccessToken } from '@/lib/jwt'
@@ -28,6 +29,7 @@ describe('POST /api/v1/seed-data', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
     resetEnvCache()
+    await resetAllRateLimits()
     validToken = generateAccessToken(TEST_USER_ID, 'api-test@example.com')
 
     const testUser = await getApiTestUser()

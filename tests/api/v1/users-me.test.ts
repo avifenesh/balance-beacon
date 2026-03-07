@@ -21,10 +21,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
-  checkRateLimit: vi.fn().mockReturnValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() }),
-  incrementRateLimit: vi.fn(),
-  checkRateLimitTyped: vi.fn().mockReturnValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() }),
-  incrementRateLimitTyped: vi.fn(),
+  consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() }),
 }))
 
 vi.mock('@/lib/server-logger', () => ({
@@ -40,7 +37,7 @@ import { PATCH } from '@/app/api/v1/users/me/route'
 import { requireJwtAuth } from '@/lib/api-auth'
 import { getSubscriptionState } from '@/lib/subscription'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimitTyped } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 
 describe('GET /api/v1/users/me', () => {
   // Full User model fields for TypeScript compatibility
@@ -72,9 +69,9 @@ describe('GET /api/v1/users/me', () => {
     daysRemaining: 14,
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    vi.mocked(checkRateLimitTyped).mockReturnValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() })
+    vi.mocked(consumeRateLimit).mockResolvedValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() })
   })
 
   describe('authentication', () => {
@@ -113,7 +110,7 @@ describe('GET /api/v1/users/me', () => {
       })
 
       const resetAt = new Date(Date.now() + 60000)
-      vi.mocked(checkRateLimitTyped).mockReturnValue({ allowed: false, limit: 100, remaining: 0, resetAt })
+      vi.mocked(consumeRateLimit).mockResolvedValue({ allowed: false, limit: 100, remaining: 0, resetAt })
 
       const request = new NextRequest('http://localhost/api/v1/users/me')
       const response = await GET(request)
@@ -388,9 +385,9 @@ describe('PATCH /api/v1/users/me', () => {
     preferredCurrency: Currency.USD,
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    vi.mocked(checkRateLimitTyped).mockReturnValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() })
+    vi.mocked(consumeRateLimit).mockResolvedValue({ allowed: true, limit: 100, remaining: 99, resetAt: new Date() })
   })
 
   describe('authentication', () => {

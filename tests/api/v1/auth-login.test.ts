@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { resetAllRateLimits } from '@/lib/rate-limit'
+
+vi.mock('@/lib/rate-limit', async () => {
+  const actual = await vi.importActual('@/lib/rate-limit')
+  return {
+    ...actual,
+    consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 3, remaining: 2, resetAt: new Date() }),
+  }
+})
 
 vi.mock('@/lib/auth-server', () => ({
   verifyCredentials: vi.fn(),
@@ -14,6 +21,7 @@ vi.mock('@/lib/prisma', () => ({
     refreshToken: {
       create: vi.fn(),
     },
+    // rateLimit table not mocked - falls back to in-memory naturally
   },
 }))
 
@@ -27,10 +35,12 @@ vi.mock('@/lib/server-logger', () => ({
 import { POST } from '@/app/api/v1/auth/login/route'
 import { verifyCredentials } from '@/lib/auth-server'
 import { prisma } from '@/lib/prisma'
+import { consumeRateLimit, resetAllRateLimits } from '@/lib/rate-limit'
 
 const mockVerifyCredentials = vi.mocked(verifyCredentials)
 const mockUserFindUnique = vi.mocked(prisma.user.findUnique)
 const mockRefreshTokenCreate = vi.mocked(prisma.refreshToken.create)
+const mockConsumeRateLimit = vi.mocked(consumeRateLimit)
 
 function createRequest(body: unknown) {
   return new NextRequest('http://localhost/api/v1/auth/login', {
@@ -41,10 +51,12 @@ function createRequest(body: unknown) {
 }
 
 describe('POST /api/v1/auth/login', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetAllRateLimits()
+    await resetAllRateLimits()
     process.env.JWT_SECRET = 'test-secret-key-for-jwt-testing!'
+    // Default: allow all requests (mock for non-rate-limit tests)
+    mockConsumeRateLimit.mockResolvedValue({ allowed: true, limit: 5, remaining: 4, resetAt: new Date() })
   })
 
   describe('Input Validation', () => {
@@ -119,7 +131,7 @@ describe('POST /api/v1/auth/login', () => {
   })
 
   describe('Success', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       mockVerifyCredentials.mockResolvedValue({ valid: true, userId: 'user-123' })
       mockUserFindUnique.mockResolvedValue({
         id: 'user-123',

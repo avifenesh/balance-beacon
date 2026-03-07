@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { rateLimitError, validationError, successResponse, serverError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 
@@ -28,11 +28,10 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = email.trim().toLowerCase()
 
     // Rate limit: 3 per hour per email
-    const rateLimit = checkRateLimitTyped(normalizedEmail, 'password_reset')
+    const rateLimit = await consumeRateLimit(normalizedEmail, 'password_reset')
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
     }
-    incrementRateLimitTyped(normalizedEmail, 'password_reset')
 
     // Find user by email
     const user = await prisma.user.findUnique({

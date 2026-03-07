@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimitTyped, incrementRateLimitTyped } from '@/lib/rate-limit'
+import { consumeRateLimit } from '@/lib/rate-limit'
 import { rateLimitError, validationError, successResponse, serverError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 import { sendVerificationEmail } from '@/lib/email'
@@ -29,11 +29,10 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = email.trim().toLowerCase()
 
     // Rate limit: 3 per 15 minutes per email
-    const rateLimit = checkRateLimitTyped(normalizedEmail, 'resend_verification')
+    const rateLimit = await consumeRateLimit(normalizedEmail, 'resend_verification')
     if (!rateLimit.allowed) {
       return rateLimitError(rateLimit.resetAt)
     }
-    incrementRateLimitTyped(normalizedEmail, 'resend_verification')
 
     // Find user by email
     const user = await prisma.user.findUnique({

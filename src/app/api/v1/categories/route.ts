@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { withApiAuth, parseJsonBody } from '@/lib/api-middleware'
 import { createOrReactivateCategory } from '@/lib/services/category-service'
 import { categoryApiSchema } from '@/schemas/api'
-import { validationError, successResponse } from '@/lib/api-helpers'
+import { validationError, successResponse, CACHE_STABLE } from '@/lib/api-helpers'
 import { prisma } from '@/lib/prisma'
 import { TransactionType } from '@prisma/client'
 
@@ -52,17 +52,21 @@ export async function GET(request: NextRequest) {
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     })
 
-    return successResponse({
-      categories: categories.map((c) => ({
-        id: c.id,
-        name: c.name,
-        type: c.type,
-        color: c.color,
-        isArchived: c.isArchived,
-        isHolding: c.isHolding,
-        userId: c.userId,
-      })),
-    })
+    return successResponse(
+      {
+        categories: categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          type: c.type,
+          color: c.color,
+          isArchived: c.isArchived,
+          isHolding: c.isHolding,
+          userId: c.userId,
+        })),
+      },
+      200,
+      CACHE_STABLE,
+    )
   })
 }
 
