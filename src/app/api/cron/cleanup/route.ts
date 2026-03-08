@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { serverLogger } from '@/lib/server-logger'
@@ -32,7 +33,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  // Mitigate timing attacks by using crypto.timingSafeEqual
+  let isAuthorized = false
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const providedSecret = authHeader.substring(7)
+    if (providedSecret.length === cronSecret.length) {
+      isAuthorized = crypto.timingSafeEqual(Buffer.from(providedSecret), Buffer.from(cronSecret))
+    }
+  }
+
+  if (!isAuthorized) {
     serverLogger.warn('Cron cleanup: unauthorized access attempt', {
       action: 'cron.cleanup',
       clientIp,
