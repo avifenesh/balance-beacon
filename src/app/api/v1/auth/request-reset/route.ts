@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { randomBytes } from 'crypto'
+import { randomBytes, createHash } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { consumeRateLimit } from '@/lib/rate-limit'
@@ -46,13 +46,14 @@ export async function POST(request: NextRequest) {
 
     // Generate reset token
     const resetToken = randomBytes(32).toString('hex')
+    const hashedToken = createHash('sha256').update(resetToken).digest('hex')
     const resetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
     // Update user with reset token
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        passwordResetToken: resetToken,
+        passwordResetToken: hashedToken,
         passwordResetExpires: resetExpires,
       },
     })
