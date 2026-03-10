@@ -735,7 +735,10 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                 key={stat.label}
                 type="button"
                 onClick={() => setExpandedStat(isExpanded ? null : stat.label)}
-                className={cn(cardClassName, 'cursor-pointer hover:bg-white/10 text-left')}
+                className={cn(
+                  cardClassName,
+                  'cursor-pointer hover:bg-white/10 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950',
+                )}
                 aria-expanded={isExpanded}
                 aria-controls={`stat-breakdown-${stat.label.replace(/\s+/g, '-').toLowerCase()}`}
                 aria-label={`View ${stat.label} breakdown`}
@@ -767,7 +770,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                   <button
                     type="button"
                     onClick={() => setExpandedStat(null)}
-                    className="text-xs text-slate-400 hover:text-white transition"
+                    className="text-xs text-slate-400 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 rounded-sm px-1"
                     aria-label="Close breakdown"
                   >
                     Close
@@ -821,21 +824,21 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => handleTabChange('transactions')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add Transaction
               </button>
               <button
                 onClick={() => handleTabChange('budgets')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
                 <Target className="h-3.5 w-3.5" />
                 Set Budget
               </button>
               <button
                 onClick={() => handleTabChange('recurring')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 Recurring
