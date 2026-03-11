@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
@@ -32,9 +33,12 @@ export async function POST(request: NextRequest) {
 
     const { token, newPassword } = parsed.data
 
+    // Hash the incoming token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
     // Find user with this reset token
     const user = await prisma.user.findUnique({
-      where: { passwordResetToken: token },
+      where: { passwordResetToken: hashedToken },
     })
 
     if (!user) {
