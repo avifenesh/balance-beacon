@@ -23,8 +23,9 @@ export function createTitleFromMessage(message: Message | undefined): string | n
 }
 
 export function createSession(title: string, isCustomTitle = false): ChatSession {
+  // Sentinel: Use crypto.getRandomValues instead of Math.random for secure fallback ID generation
   return {
-    id: crypto.randomUUID?.() ?? `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: crypto.randomUUID?.() ?? `session-${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36).padStart(7, '0')}`,
     title,
     messages: [],
     createdAt: new Date().toISOString(),
@@ -55,7 +56,8 @@ export function loadSessionsFromStorage(storageKey: string): ChatSession[] {
 }
 
 export function generateMessageId(): string {
-  return crypto.randomUUID?.() ?? `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  // Sentinel: Use crypto.getRandomValues instead of Math.random for secure fallback ID generation
+  return crypto.randomUUID?.() ?? `msg-${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36).padStart(7, '0')}`
 }
 
 export const quickPrompts = [
