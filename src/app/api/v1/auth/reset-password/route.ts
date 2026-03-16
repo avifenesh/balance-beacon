@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { createHash } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { validationError, successResponse, serverError, authError } from '@/lib/api-helpers'
@@ -32,9 +33,12 @@ export async function POST(request: NextRequest) {
 
     const { token, newPassword } = parsed.data
 
+    // Hash the incoming token to compare with the stored hash to prevent account takeover if the database is compromised
+    const hashedToken = createHash('sha256').update(token).digest('hex')
+
     // Find user with this reset token
     const user = await prisma.user.findUnique({
-      where: { passwordResetToken: token },
+      where: { passwordResetToken: hashedToken },
     })
 
     if (!user) {
