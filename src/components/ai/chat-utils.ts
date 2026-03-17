@@ -24,7 +24,11 @@ export function createTitleFromMessage(message: Message | undefined): string | n
 
 export function createSession(title: string, isCustomTitle = false): ChatSession {
   return {
-    id: crypto.randomUUID?.() ?? `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : typeof crypto !== 'undefined' && crypto.getRandomValues
+        ? `session-${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`
+        : `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     title,
     messages: [],
     createdAt: new Date().toISOString(),
@@ -55,7 +59,15 @@ export function loadSessionsFromStorage(storageKey: string): ChatSession[] {
 }
 
 export function generateMessageId(): string {
-  return crypto.randomUUID?.() ?? `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return `msg-${Date.now()}-${array[0].toString(36)}`;
+  }
+  return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 export const quickPrompts = [

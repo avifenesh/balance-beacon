@@ -69,5 +69,13 @@ export function useOptimisticList<T extends { id: string }>(serverItems: T[]): O
 }
 
 export function generateTempId(): string {
-  return `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return `temp-${Date.now()}-${array[0].toString(36)}`;
+  }
+  return `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }

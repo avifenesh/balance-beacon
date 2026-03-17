@@ -45,9 +45,20 @@ class ToastEventBus {
     }, this.DEDUPE_WINDOW_MS)
 
     // Generate unique ID and emit
+    let id: string;
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      id = crypto.randomUUID();
+    } else if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      id = `toast-${Date.now()}-${array[0].toString(36)}`;
+    } else {
+      id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
     const fullToast: ToastMessage = {
       ...toast,
-      id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      id,
     }
 
     this.subscribers.forEach((callback) => {
