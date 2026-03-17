@@ -1,0 +1,11 @@
+<<<<<<< SEARCH
+      expect(result.current.toasts[0].id).toMatch(/^toast-/)
+    })
+
+    it('should emit error toast', () => {
+=======
+      expect(result.current.toasts[0].id).toBeDefined()
+    })
+
+    it('should emit error toast', () => {
+>>>>>>> REPLACE

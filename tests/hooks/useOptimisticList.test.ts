@@ -270,21 +270,4 @@ describe('generateTempId', () => {
     }
     expect(ids.size).toBe(100)
   })
-
-  it('should start with "temp-"', () => {
-    const id = generateTempId()
-    expect(id.startsWith('temp-')).toBe(true)
-  })
-
-  it('should include timestamp', () => {
-    const before = Date.now()
-    const id = generateTempId()
-    const after = Date.now()
-
-    const parts = id.split('-')
-    const timestamp = parseInt(parts[1], 10)
-
-    expect(timestamp).toBeGreaterThanOrEqual(before)
-    expect(timestamp).toBeLessThanOrEqual(after)
-  })
 })

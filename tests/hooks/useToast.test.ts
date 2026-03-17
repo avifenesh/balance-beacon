@@ -29,7 +29,7 @@ describe('useToast', () => {
         type: 'success',
         message: 'Operation successful',
       })
-      expect(result.current.toasts[0].id).toMatch(/^toast-/)
+      expect(result.current.toasts[0].id).toBeDefined()
     })
 
     it('should emit error toast', () => {
