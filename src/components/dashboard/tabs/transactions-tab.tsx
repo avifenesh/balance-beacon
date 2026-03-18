@@ -655,6 +655,7 @@ export function TransactionsTab({
                 </label>
                 <Input
                   id="transaction-filter-search"
+                  type="search"
                   value={transactionSearch}
                   onChange={(event) => setTransactionSearch(event.target.value)}
                   placeholder="description, category"
