@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { serverLogger } from '@/lib/server-logger'
 import { checkCronRateLimit, cleanupExpiredRateLimits } from '@/lib/rate-limit'
@@ -32,7 +33,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const expectedHeader = `Bearer ${cronSecret}`
+  const providedBuffer = Buffer.from(authHeader || '')
+  const expectedBuffer = Buffer.from(expectedHeader)
+  const isValid =
+    providedBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(providedBuffer, expectedBuffer)
+
+  if (!isValid) {
     serverLogger.warn('Cron cleanup: unauthorized access attempt', {
       action: 'cron.cleanup',
       clientIp,
