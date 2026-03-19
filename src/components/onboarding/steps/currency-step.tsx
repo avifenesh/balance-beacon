@@ -26,7 +26,7 @@ export function CurrencyStep({ selectedCurrency, onSelect, onBack, isPending }: 
             type="button"
             onClick={() => onSelect(option.value)}
             disabled={isPending}
-            className={`flex items-center gap-4 rounded-xl border p-4 text-left transition ${
+            className={`flex items-center gap-4 rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
               selectedCurrency === option.value
                 ? 'border-emerald-400/60 bg-emerald-400/10'
                 : 'border-white/20 bg-white/5 hover:border-white/30 hover:bg-white/10'
