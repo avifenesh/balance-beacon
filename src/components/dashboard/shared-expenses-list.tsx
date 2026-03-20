@@ -93,7 +93,7 @@ export function SharedExpensesList({ sharedExpenses }: SharedExpensesListProps) 
             <div key={expense.id} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
               <button
                 type="button"
-                className="flex w-full items-center justify-between p-4 text-left hover:bg-white/5 transition"
+                className="flex w-full items-center justify-between p-4 text-left hover:bg-white/5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 rounded-xl"
                 onClick={() => setExpandedId(isExpanded ? null : expense.id)}
                 aria-expanded={isExpanded}
                 aria-controls={`details-${expense.id}`}

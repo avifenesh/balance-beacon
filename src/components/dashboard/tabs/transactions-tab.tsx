@@ -692,7 +692,7 @@ export function TransactionsTab({
                             .getElementById('transaction-form')
                             ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                         }
-                        className="text-sm text-sky-400 hover:text-sky-300 font-medium"
+                        className="text-sm text-sky-400 hover:text-sky-300 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 rounded-md px-2 py-1"
                       >
                         Add your first transaction →
                       </button>
@@ -757,7 +757,7 @@ export function TransactionsTab({
                           <button
                             type="button"
                             onClick={() => setSharingTransaction(transaction)}
-                            className="p-1.5 rounded-md bg-white/10 hover:bg-sky-500/20 text-slate-300 hover:text-sky-300 transition"
+                            className="p-1.5 rounded-md bg-white/10 hover:bg-sky-500/20 text-slate-300 hover:text-sky-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                             aria-label={
                               transaction.description ? `Share expense: ${transaction.description}` : 'Share expense'
                             }
@@ -768,7 +768,7 @@ export function TransactionsTab({
                         <button
                           type="button"
                           onClick={() => handleTransactionEdit(transaction)}
-                          className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition"
+                          className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                           title="Edit"
                           aria-label={`Edit ${transaction.description || 'transaction'}`}
                         >
@@ -777,7 +777,7 @@ export function TransactionsTab({
                         <button
                           type="button"
                           onClick={() => handleTransactionDelete(transaction.id)}
-                          className="p-1.5 rounded-md bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-400 transition"
+                          className="p-1.5 rounded-md bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                           title="Delete"
                           aria-label={`Delete ${transaction.description || 'transaction'}`}
                         >
