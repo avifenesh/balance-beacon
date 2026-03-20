@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { serverLogger } from '@/lib/server-logger'
 import { checkCronRateLimit, cleanupExpiredRateLimits } from '@/lib/rate-limit'
 import { env } from '@/lib/env-schema'
+import crypto from 'node:crypto'
 
 /**
  * Cron endpoint for database cleanup tasks.
@@ -32,7 +33,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const providedToken = Buffer.from(authHeader || '');
+  const expectedToken = Buffer.from(`Bearer ${cronSecret}`);
+
+  // Use timingSafeEqual to prevent timing attacks, ensuring constant time comparison
+  let isAuthorized = false;
+  if (providedToken.length === expectedToken.length) {
+    isAuthorized = crypto.timingSafeEqual(providedToken, expectedToken);
+  }
+
+  if (!isAuthorized) {
     serverLogger.warn('Cron cleanup: unauthorized access attempt', {
       action: 'cron.cleanup',
       clientIp,

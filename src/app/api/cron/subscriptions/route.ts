@@ -3,6 +3,7 @@ import { processExpiredSubscriptions } from '@/lib/subscription'
 import { serverLogger } from '@/lib/server-logger'
 import { checkCronRateLimit } from '@/lib/rate-limit'
 import { env } from '@/lib/env-schema'
+import crypto from 'node:crypto'
 
 /**
  * Cron endpoint to expire subscriptions.
@@ -29,7 +30,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const providedToken = Buffer.from(authHeader || '');
+  const expectedToken = Buffer.from(`Bearer ${cronSecret}`);
+
+  // Use timingSafeEqual to prevent timing attacks, ensuring constant time comparison
+  let isAuthorized = false;
+  if (providedToken.length === expectedToken.length) {
+    isAuthorized = crypto.timingSafeEqual(providedToken, expectedToken);
+  }
+
+  if (!isAuthorized) {
     serverLogger.warn('Cron subscription expiration: unauthorized access attempt', {
       action: 'cron.subscriptions',
       clientIp,
