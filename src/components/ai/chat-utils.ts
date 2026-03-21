@@ -23,8 +23,21 @@ export function createTitleFromMessage(message: Message | undefined): string | n
 }
 
 export function createSession(title: string, isCustomTitle = false): ChatSession {
+  let id: string
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    id = `session-${crypto.randomUUID()}`
+  } else {
+    const fallback =
+      typeof crypto !== 'undefined' && crypto.getRandomValues
+        ? Array.from(crypto.getRandomValues(new Uint8Array(4)))
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join('')
+        : Math.random().toString(36).slice(2, 10)
+    id = `session-${Date.now()}-${fallback}`
+  }
+
   return {
-    id: crypto.randomUUID?.() ?? `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id,
     title,
     messages: [],
     createdAt: new Date().toISOString(),
@@ -55,7 +68,16 @@ export function loadSessionsFromStorage(storageKey: string): ChatSession[] {
 }
 
 export function generateMessageId(): string {
-  return crypto.randomUUID?.() ?? `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `msg-${crypto.randomUUID()}`
+  }
+  const fallback =
+    typeof crypto !== 'undefined' && crypto.getRandomValues
+      ? Array.from(crypto.getRandomValues(new Uint8Array(4)))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('')
+      : Math.random().toString(36).slice(2, 10)
+  return `msg-${Date.now()}-${fallback}`
 }
 
 export const quickPrompts = [
