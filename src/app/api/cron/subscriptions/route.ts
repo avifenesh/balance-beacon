@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processExpiredSubscriptions } from '@/lib/subscription'
 import { serverLogger } from '@/lib/server-logger'
@@ -29,7 +30,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const expectedAuth = Buffer.from(`Bearer ${cronSecret}`)
+  const providedAuth = Buffer.from(authHeader || '')
+
+  if (expectedAuth.length !== providedAuth.length || !crypto.timingSafeEqual(expectedAuth, providedAuth)) {
     serverLogger.warn('Cron subscription expiration: unauthorized access attempt', {
       action: 'cron.subscriptions',
       clientIp,
