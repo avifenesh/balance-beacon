@@ -1,0 +1,3 @@
+## 2024-05-18 - Missing focus styles on interactive text buttons
+**Learning:** Found multiple instances where inline text buttons (e.g., "Add your first transaction →", "Delete") lack visible focus states. This means keyboard users cannot see when these elements are focused, breaking accessibility.
+**Action:** Always add explicit focus-visible styles to custom buttons. Use Tailwind classes like `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950` to match existing focus patterns in the app. Note: for inline text buttons, adding some padding and negative margin (e.g., `rounded-md px-2 py-1 -ml-2`) helps the focus ring not hug the text too tightly without disrupting layout.
