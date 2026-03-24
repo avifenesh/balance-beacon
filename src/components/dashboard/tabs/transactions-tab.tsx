@@ -692,7 +692,7 @@ export function TransactionsTab({
                             .getElementById('transaction-form')
                             ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                         }
-                        className="text-sm text-sky-400 hover:text-sky-300 font-medium rounded-md px-2 py-1 -ml-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                        className="text-sm text-sky-400 hover:text-sky-300 font-medium rounded-md px-2 py-1 -mx-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                       >
                         Add your first transaction →
                       </button>
@@ -759,6 +759,9 @@ export function TransactionsTab({
                             onClick={() => setSharingTransaction(transaction)}
                             className="p-1.5 rounded-md bg-white/10 hover:bg-sky-500/20 text-slate-300 hover:text-sky-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                             aria-label={
+                              transaction.description ? `Share expense: ${transaction.description}` : 'Share expense'
+                            }
+                            title={
                               transaction.description ? `Share expense: ${transaction.description}` : 'Share expense'
                             }
                           >
