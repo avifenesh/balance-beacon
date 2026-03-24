@@ -820,6 +820,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
             {/* Quick Actions */}
             <div className="flex gap-2 flex-wrap">
               <button
+                type="button"
                 onClick={() => handleTabChange('transactions')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
@@ -827,6 +828,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                 Add Transaction
               </button>
               <button
+                type="button"
                 onClick={() => handleTabChange('budgets')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
@@ -834,6 +836,7 @@ export function DashboardPage({ data, monthKey, accountId, subscription, userEma
                 Set Budget
               </button>
               <button
+                type="button"
                 onClick={() => handleTabChange('recurring')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15 text-sm text-slate-300 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
