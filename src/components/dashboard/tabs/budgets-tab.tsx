@@ -14,6 +14,7 @@ import { filterBudgets, getBudgetProgress, getBudgetTotals } from '@/lib/dashboa
 import { createAccountOptions } from '@/lib/select-options'
 import { formatCurrency } from '@/utils/format'
 import { cn } from '@/utils/cn'
+import { textButtonFocusClasses, focusRingClasses } from '@/utils/focus-styles'
 import { toast } from '@/hooks/useToast'
 import { useCsrfToken } from '@/hooks/useCsrfToken'
 import { useFormValidation, validators } from '@/hooks/useFormValidation'
@@ -312,7 +313,11 @@ export function BudgetsTab({
                       onClick={() =>
                         document.getElementById('budget-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                       }
-                      className="text-sm text-sky-400 hover:text-sky-300 font-medium rounded-md px-2 py-1 -ml-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                      className={cn(
+                        'text-sm text-sky-400 hover:text-sky-300 font-medium -ml-2',
+                        textButtonFocusClasses,
+                        focusRingClasses,
+                      )}
                     >
                       Add your first budget →
                     </button>

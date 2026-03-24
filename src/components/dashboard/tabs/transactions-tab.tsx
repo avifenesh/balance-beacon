@@ -17,6 +17,7 @@ import { createAccountOptions } from '@/lib/select-options'
 import { formatRelativeAmount } from '@/utils/format'
 import { normalizeDateInput } from '@/utils/date'
 import { cn } from '@/utils/cn'
+import { textButtonFocusClasses, focusRingClasses } from '@/utils/focus-styles'
 import { RequestList } from '@/components/dashboard/request-list'
 import { ShareExpenseForm } from '@/components/dashboard/share-expense-form'
 import { toast } from '@/hooks/useToast'
@@ -692,7 +693,11 @@ export function TransactionsTab({
                             .getElementById('transaction-form')
                             ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                         }
-                        className="text-sm text-sky-400 hover:text-sky-300 font-medium rounded-md px-2 py-1 -ml-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                        className={cn(
+                          'text-sm text-sky-400 hover:text-sky-300 font-medium -ml-2',
+                          textButtonFocusClasses,
+                          focusRingClasses,
+                        )}
                       >
                         Add your first transaction →
                       </button>

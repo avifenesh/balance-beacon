@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/utils/cn'
+import { textButtonFocusClasses, focusRingClasses } from '@/utils/focus-styles'
 import { formatCurrency } from '@/utils/format'
 import { useCsrfToken } from '@/hooks/useCsrfToken'
 
@@ -332,7 +333,11 @@ export default function HoldingsTab({
                     ?.closest('form')
                     ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                 }
-                className="text-sm text-sky-400 hover:text-sky-300 font-medium rounded-md px-2 py-1 -ml-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                className={cn(
+                  'text-sm text-sky-400 hover:text-sky-300 font-medium -ml-2',
+                  textButtonFocusClasses,
+                  focusRingClasses,
+                )}
               >
                 Add your first holding →
               </button>
@@ -369,7 +374,11 @@ export default function HoldingsTab({
                     onClick={() => handleDeleteRequest(holding.id, holding.symbol)}
                     disabled={isPendingAction || deletingId === holding.id}
                     className={cn(
-                      'text-xs text-rose-400 transition hover:text-rose-300 rounded-md px-2 py-1 -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950',
+                      cn(
+                        'text-xs text-rose-400 transition hover:text-rose-300 -mr-2',
+                        textButtonFocusClasses,
+                        focusRingClasses,
+                      ),
                       (isPendingAction || deletingId === holding.id) && 'opacity-50 cursor-not-allowed',
                     )}
                   >
