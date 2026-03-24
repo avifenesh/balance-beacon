@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { createHash } from 'crypto'
 import { resetAllRateLimits } from '@/lib/rate-limit'
+
+// Deterministic token for testing
+const MOCK_PLAINTEXT_TOKEN = 'a'.repeat(64) // 32 bytes as hex = 64 chars
+const MOCK_HASHED_TOKEN = createHash('sha256').update(MOCK_PLAINTEXT_TOKEN).digest('hex')
 
 vi.mock('@/lib/rate-limit', async () => {
   const actual = await vi.importActual('@/lib/rate-limit')
@@ -29,6 +34,17 @@ vi.mock('@/lib/server-logger', () => ({
     error: vi.fn(),
   },
 }))
+
+// Mock crypto.randomBytes to return deterministic values for request-reset route
+vi.mock('crypto', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('crypto')>()
+  return {
+    ...actual,
+    randomBytes: vi.fn().mockReturnValue({
+      toString: () => MOCK_PLAINTEXT_TOKEN,
+    }),
+  }
+})
 
 import { POST as requestResetPost } from '@/app/api/v1/auth/request-reset/route'
 import { POST as resetPasswordPost } from '@/app/api/v1/auth/reset-password/route'
@@ -99,6 +115,56 @@ describe('Password Reset Flow', () => {
         expect(data.success).toBe(true)
         expect(data.data.message).toContain('If an account exists')
         expect(prisma.user.update).toHaveBeenCalled()
+      })
+
+      it('stores SHA-256 hash of token (not plaintext)', async () => {
+        vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
+          id: 'user-id',
+          email: 'test@example.com',
+          displayName: 'Test User',
+          passwordHash: 'hashed',
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+          preferredCurrency: 'USD',
+          hasCompletedOnboarding: false,
+          activeAccountId: null,
+          deletedAt: null,
+          deletedBy: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        vi.mocked(prisma.user.update).mockResolvedValueOnce({
+          id: 'user-id',
+          email: 'test@example.com',
+          displayName: 'Test User',
+          passwordHash: 'hashed',
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+          passwordResetToken: MOCK_HASHED_TOKEN,
+          passwordResetExpires: new Date(),
+          preferredCurrency: 'USD',
+          hasCompletedOnboarding: false,
+          activeAccountId: null,
+          deletedAt: null,
+          deletedBy: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+
+        await requestResetPost(buildRequest({ email: 'test@example.com' }))
+
+        // Verify prisma.user.update was called with the SHA-256 hash of the token
+        expect(prisma.user.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              passwordResetToken: MOCK_HASHED_TOKEN,
+            }),
+          }),
+        )
       })
 
       it('returns same success message for non-existent email (email enumeration protection)', async () => {
@@ -222,7 +288,7 @@ describe('Password Reset Flow', () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationExpires: null,
-          passwordResetToken: 'valid-token',
+          passwordResetToken: MOCK_HASHED_TOKEN,
           passwordResetExpires: futureDate,
           preferredCurrency: 'USD',
           hasCompletedOnboarding: false,
@@ -254,7 +320,7 @@ describe('Password Reset Flow', () => {
 
         const response = await resetPasswordPost(
           buildRequest({
-            token: 'valid-token',
+            token: MOCK_PLAINTEXT_TOKEN,
             newPassword: 'NewPassword123',
           }),
         )
@@ -267,6 +333,155 @@ describe('Password Reset Flow', () => {
         expect(prisma.refreshToken.deleteMany).toHaveBeenCalledWith({
           where: { userId: 'user-id' },
         })
+      })
+
+      it('looks up user by SHA-256 hash of token (not plaintext)', async () => {
+        const futureDate = new Date(Date.now() + 60 * 60 * 1000)
+        vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
+          id: 'user-id',
+          email: 'test@example.com',
+          displayName: 'Test User',
+          passwordHash: 'old-hash',
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+          passwordResetToken: MOCK_HASHED_TOKEN,
+          passwordResetExpires: futureDate,
+          preferredCurrency: 'USD',
+          hasCompletedOnboarding: false,
+          activeAccountId: null,
+          deletedAt: null,
+          deletedBy: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        vi.mocked(prisma.user.update).mockResolvedValueOnce({
+          id: 'user-id',
+          email: 'test@example.com',
+          displayName: 'Test User',
+          passwordHash: 'new-hash',
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+          preferredCurrency: 'USD',
+          hasCompletedOnboarding: false,
+          activeAccountId: null,
+          deletedAt: null,
+          deletedBy: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        vi.mocked(prisma.refreshToken.deleteMany).mockResolvedValueOnce({ count: 1 })
+
+        await resetPasswordPost(
+          buildRequest({
+            token: MOCK_PLAINTEXT_TOKEN,
+            newPassword: 'NewPassword123',
+          }),
+        )
+
+        // Verify prisma.user.findUnique was called with the SHA-256 hash of the token
+        expect(prisma.user.findUnique).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { passwordResetToken: MOCK_HASHED_TOKEN },
+          }),
+        )
+      })
+
+      it('migrates plaintext tokens to hashed storage', async () => {
+        const futureDate = new Date(Date.now() + 60 * 60 * 1000)
+        // First call (hashed lookup) returns null
+        vi.mocked(prisma.user.findUnique)
+          .mockResolvedValueOnce(null)
+          // Second call (plaintext lookup) returns user (simulating in-flight token)
+          .mockResolvedValueOnce({
+            id: 'user-id',
+            email: 'test@example.com',
+            displayName: 'Test User',
+            passwordHash: 'old-hash',
+            emailVerified: true,
+            emailVerificationToken: null,
+            emailVerificationExpires: null,
+            passwordResetToken: MOCK_PLAINTEXT_TOKEN, // Stored as plaintext
+            passwordResetExpires: futureDate,
+            preferredCurrency: 'USD',
+            hasCompletedOnboarding: false,
+            activeAccountId: null,
+            deletedAt: null,
+            deletedBy: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        vi.mocked(prisma.user.update)
+          // Migration update (upgrade to hashed)
+          .mockResolvedValueOnce({
+            id: 'user-id',
+            email: 'test@example.com',
+            displayName: 'Test User',
+            passwordHash: 'old-hash',
+            emailVerified: true,
+            emailVerificationToken: null,
+            emailVerificationExpires: null,
+            passwordResetToken: MOCK_HASHED_TOKEN,
+            passwordResetExpires: futureDate,
+            preferredCurrency: 'USD',
+            hasCompletedOnboarding: false,
+            activeAccountId: null,
+            deletedAt: null,
+            deletedBy: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          // Password update
+          .mockResolvedValueOnce({
+            id: 'user-id',
+            email: 'test@example.com',
+            displayName: 'Test User',
+            passwordHash: 'new-hash',
+            emailVerified: true,
+            emailVerificationToken: null,
+            emailVerificationExpires: null,
+            passwordResetToken: null,
+            passwordResetExpires: null,
+            preferredCurrency: 'USD',
+            hasCompletedOnboarding: false,
+            activeAccountId: null,
+            deletedAt: null,
+            deletedBy: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        vi.mocked(prisma.refreshToken.deleteMany).mockResolvedValueOnce({ count: 1 })
+
+        const response = await resetPasswordPost(
+          buildRequest({
+            token: MOCK_PLAINTEXT_TOKEN,
+            newPassword: 'NewPassword123',
+          }),
+        )
+
+        const data = await response.json()
+        expect(response.status).toBe(200)
+        expect(data.success).toBe(true)
+
+        // Verify lookup sequence: first hashed, then plaintext fallback
+        expect(prisma.user.findUnique).toHaveBeenCalledTimes(2)
+        expect(prisma.user.findUnique).toHaveBeenNthCalledWith(1, {
+          where: { passwordResetToken: MOCK_HASHED_TOKEN },
+        })
+        expect(prisma.user.findUnique).toHaveBeenNthCalledWith(2, {
+          where: { passwordResetToken: MOCK_PLAINTEXT_TOKEN },
+        })
+
+        // Verify migration: first update upgrades to hashed token
+        expect(prisma.user.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: 'user-id' },
+            data: { passwordResetToken: MOCK_HASHED_TOKEN },
+          }),
+        )
       })
     })
 
@@ -296,7 +511,7 @@ describe('Password Reset Flow', () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationExpires: null,
-          passwordResetToken: 'expired-token',
+          passwordResetToken: MOCK_HASHED_TOKEN,
           passwordResetExpires: pastDate,
           preferredCurrency: 'USD',
           hasCompletedOnboarding: false,
@@ -309,14 +524,46 @@ describe('Password Reset Flow', () => {
 
         const response = await resetPasswordPost(
           buildRequest({
-            token: 'expired-token',
+            token: MOCK_PLAINTEXT_TOKEN,
             newPassword: 'NewPassword123',
           }),
         )
 
         expect(response.status).toBe(401)
         const data = await response.json()
-        expect(data.error).toContain('expired')
+        expect(data.error).toContain('Invalid or expired')
+      })
+
+      it('returns 401 for token with null expiry', async () => {
+        vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
+          id: 'user-id',
+          email: 'test@example.com',
+          displayName: 'Test User',
+          passwordHash: 'hashed',
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpires: null,
+          passwordResetToken: MOCK_HASHED_TOKEN,
+          passwordResetExpires: null, // null expiry
+          preferredCurrency: 'USD',
+          hasCompletedOnboarding: false,
+          activeAccountId: null,
+          deletedAt: null,
+          deletedBy: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+
+        const response = await resetPasswordPost(
+          buildRequest({
+            token: MOCK_PLAINTEXT_TOKEN,
+            newPassword: 'NewPassword123',
+          }),
+        )
+
+        expect(response.status).toBe(401)
+        const data = await response.json()
+        expect(data.error).toContain('Invalid or expired')
       })
     })
 

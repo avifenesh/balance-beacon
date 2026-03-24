@@ -36,18 +36,29 @@ export async function POST(request: NextRequest) {
     // Security: Hash the incoming token to match the stored hash
     const hashedToken = createHash('sha256').update(token).digest('hex')
 
-    // Find user with this reset token
-    const user = await prisma.user.findUnique({
+    // Find user with this reset token (try hashed lookup first)
+    let user = await prisma.user.findUnique({
       where: { passwordResetToken: hashedToken },
     })
 
+    // Migration: Fallback to plaintext for in-flight tokens
+    // This allows tokens created before the hashing change to still work
     if (!user) {
-      return authError('Invalid or expired reset token')
+      user = await prisma.user.findUnique({
+        where: { passwordResetToken: token },
+      })
+      // If found via plaintext, upgrade to hashed storage immediately
+      if (user) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { passwordResetToken: hashedToken },
+        })
+      }
     }
 
-    // Check if token has expired
-    if (user.passwordResetExpires && user.passwordResetExpires < new Date()) {
-      return authError('Reset token has expired. Please request a new one.')
+    // Check if token is valid (must have expiry that is not null and not expired)
+    if (!user || !user.passwordResetExpires || user.passwordResetExpires < new Date()) {
+      return authError('Invalid or expired reset token')
     }
 
     // Hash new password with bcrypt (cost factor 12)
