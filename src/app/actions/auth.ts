@@ -264,10 +264,25 @@ export async function verifyEmailAction(input: z.infer<typeof verifyEmailSchema>
   const { token } = parsed.data
   const hashedToken = hashToken(token)
 
-  // Find user by unique token
-  const user = await prisma.user.findUnique({
+  // Try hashed lookup first (new behavior), fall back to plaintext (existing tokens from before migration)
+  let user = await prisma.user.findUnique({
     where: { emailVerificationToken: hashedToken },
   })
+
+  if (!user) {
+    // Transition fallback: try plaintext lookup for tokens issued before this change
+    // TODO: Remove after a full token expiry cycle (24h after deploy)
+    user = await prisma.user.findUnique({
+      where: { emailVerificationToken: token },
+    })
+    if (user) {
+      // Silently re-hash the plaintext token for future lookups
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerificationToken: hashedToken },
+      })
+    }
+  }
 
   if (!user || !user.emailVerificationExpires || user.emailVerificationExpires < new Date()) {
     return failure({ token: ['Invalid or expired verification token'] })
