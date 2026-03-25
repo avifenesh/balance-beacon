@@ -200,6 +200,7 @@ export function CategoriesTab({ categories }: CategoriesTabProps) {
                 </label>
                 <Input
                   id="category-filter-search"
+                  type="search"
                   value={categorySearch}
                   onChange={(event) => {
                     setCategorySearch(event.target.value)
