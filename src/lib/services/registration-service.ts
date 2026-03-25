@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs'
 import { Prisma } from '@prisma/client'
-import { randomBytes, createHash } from 'crypto'
+import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { hashToken } from '@/lib/crypto'
 import { createTrialSubscription } from '@/lib/subscription'
 import { serverLogger } from '@/lib/server-logger'
 
@@ -44,7 +45,7 @@ export async function registerUser({
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
   const shouldAutoVerify = Boolean(autoVerify)
   const verificationToken = shouldAutoVerify ? null : randomBytes(32).toString('hex')
-  const hashedToken = verificationToken ? createHash('sha256').update(verificationToken).digest('hex') : null
+  const hashedToken = verificationToken ? hashToken(verificationToken) : null
   const verificationExpires = shouldAutoVerify
     ? null
     : new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)

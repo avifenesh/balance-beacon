@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
-import { createHash } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { validationError, successResponse, serverError, authError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
+import { hashToken } from '@/lib/crypto'
 
 const verifyEmailSchema = z.object({
   token: z.string().min(1, 'Token is required').max(128, 'Invalid token'),
@@ -24,11 +24,27 @@ export async function POST(request: NextRequest) {
     }
 
     const { token } = parsed.data
-    const hashedToken = createHash('sha256').update(token).digest('hex')
+    const hashedToken = hashToken(token)
 
-    const user = await prisma.user.findUnique({
+    // Try hashed lookup first (new behavior), fall back to plaintext (existing tokens from before migration)
+    let user = await prisma.user.findUnique({
       where: { emailVerificationToken: hashedToken },
     })
+
+    if (!user) {
+      // Transition fallback: try plaintext lookup for tokens issued before this change
+      // TODO: Remove after a full token expiry cycle (24h after deploy)
+      user = await prisma.user.findUnique({
+        where: { emailVerificationToken: token },
+      })
+      if (user) {
+        // Silently re-hash the plaintext token for future lookups
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { emailVerificationToken: hashedToken },
+        })
+      }
+    }
 
     if (!user) {
       return authError('Invalid or expired verification token')

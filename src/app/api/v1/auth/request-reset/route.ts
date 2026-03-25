@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { consumeRateLimit } from '@/lib/rate-limit'
 import { rateLimitError, validationError, successResponse, serverError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
+import { hashToken } from '@/lib/crypto'
 
 const requestResetSchema = z.object({
   email: z.string().email('Invalid email address').max(255),
@@ -48,11 +49,11 @@ export async function POST(request: NextRequest) {
     const resetToken = randomBytes(32).toString('hex')
     const resetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
-    // Update user with reset token
+    // Update user with hashed reset token
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        passwordResetToken: resetToken,
+        passwordResetToken: hashToken(resetToken),
         passwordResetExpires: resetExpires,
       },
     })

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { validationError, successResponse, serverError, authError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
+import { hashToken } from '@/lib/crypto'
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token is required').max(128, 'Invalid token'),
@@ -31,11 +32,27 @@ export async function POST(request: NextRequest) {
     }
 
     const { token, newPassword } = parsed.data
+    const hashedToken = hashToken(token)
 
-    // Find user with this reset token
-    const user = await prisma.user.findUnique({
-      where: { passwordResetToken: token },
+    // Try hashed lookup first (new behavior), fall back to plaintext (existing tokens from before migration)
+    let user = await prisma.user.findUnique({
+      where: { passwordResetToken: hashedToken },
     })
+
+    if (!user) {
+      // Transition fallback: try plaintext lookup for tokens issued before this change
+      // TODO: Remove after a full token expiry cycle (1h after deploy)
+      user = await prisma.user.findUnique({
+        where: { passwordResetToken: token },
+      })
+      if (user) {
+        // Silently re-hash the plaintext token for future lookups
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { passwordResetToken: hashedToken },
+        })
+      }
+    }
 
     if (!user) {
       return authError('Invalid or expired reset token')

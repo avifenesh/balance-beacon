@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server'
-import { randomBytes, createHash } from 'crypto'
+import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { consumeRateLimit } from '@/lib/rate-limit'
 import { rateLimitError, validationError, successResponse, serverError } from '@/lib/api-helpers'
 import { serverLogger } from '@/lib/server-logger'
 import { sendVerificationEmail } from '@/lib/email'
+import { hashToken } from '@/lib/crypto'
 
 const resendVerificationSchema = z.object({
   email: z.string().email('Invalid email address').max(255),
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Generate new verification token
     const verificationToken = randomBytes(32).toString('hex')
-    const hashedToken = createHash('sha256').update(verificationToken).digest('hex')
+    const hashedToken = hashToken(verificationToken)
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Update user with new token

@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { createHash } from 'crypto'
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -41,7 +46,7 @@ describe('POST /api/v1/auth/verify-email', () => {
         displayName: 'Test User',
         passwordHash: 'hashed',
         emailVerified: false,
-        emailVerificationToken: 'valid-token',
+        emailVerificationToken: hashToken('valid-token'),
         emailVerificationExpires: futureDate,
         passwordResetToken: null,
         passwordResetExpires: null,
@@ -96,7 +101,7 @@ describe('POST /api/v1/auth/verify-email', () => {
         displayName: 'Test User',
         passwordHash: 'hashed',
         emailVerified: true, // Already verified
-        emailVerificationToken: 'token',
+        emailVerificationToken: hashToken('token'),
         emailVerificationExpires: futureDate,
         passwordResetToken: null,
         passwordResetExpires: null,
@@ -122,6 +127,8 @@ describe('POST /api/v1/auth/verify-email', () => {
   describe('error cases', () => {
     it('returns 401 for invalid token', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
+      // Second call (plaintext fallback) also returns null
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
 
       const response = await verifyEmailPost(buildRequest({ token: 'invalid-token' }))
 
@@ -138,7 +145,7 @@ describe('POST /api/v1/auth/verify-email', () => {
         displayName: 'Test User',
         passwordHash: 'hashed',
         emailVerified: false,
-        emailVerificationToken: 'expired-token',
+        emailVerificationToken: hashToken('expired-token'),
         emailVerificationExpires: pastDate,
         passwordResetToken: null,
         passwordResetExpires: null,

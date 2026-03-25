@@ -18,6 +18,7 @@ import {
 } from '@/schemas'
 import { sendVerificationEmail, sendPasswordResetEmail, sendPasswordChangedEmail } from '@/lib/email'
 import { serverLogger } from '@/lib/server-logger'
+import { hashToken } from '@/lib/crypto'
 import { consumeRateLimit } from '@/lib/rate-limit'
 import { registerUser } from '@/lib/services/registration-service'
 
@@ -100,7 +101,7 @@ export async function requestPasswordResetAction(input: z.infer<typeof recoveryS
     // Generate secure token
     const token = crypto.randomBytes(32).toString('hex')
     // Hash token before storing (security best practice - prevents token theft if DB is compromised)
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+    const hashedToken = hashToken(token)
     const expires = new Date(Date.now() + PASSWORD_RESET_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
 
     try {
@@ -152,7 +153,7 @@ export async function resetPasswordAction(input: z.infer<typeof resetPasswordSch
 
   const { token, newPassword } = parsed.data
   // Hash the incoming token to compare with stored hash
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+  const hashedToken = hashToken(token)
 
   // Find user by hashed token
   const user = await prisma.user.findUnique({
@@ -261,7 +262,7 @@ export async function verifyEmailAction(input: z.infer<typeof verifyEmailSchema>
   if ('error' in csrfCheck) return csrfCheck
 
   const { token } = parsed.data
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+  const hashedToken = hashToken(token)
 
   // Find user by unique token
   const user = await prisma.user.findUnique({
@@ -329,7 +330,7 @@ export async function resendVerificationEmailAction(input: z.infer<typeof resend
 
   // Generate new token
   const verificationToken = crypto.randomBytes(32).toString('hex')
-  const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex')
+  const hashedToken = hashToken(verificationToken)
   const verificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
 
   try {

@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { createHash } from 'crypto'
 import { resetAllRateLimits } from '@/lib/rate-limit'
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
 
 vi.mock('@/lib/rate-limit', async () => {
   const actual = await vi.importActual('@/lib/rate-limit')
@@ -222,7 +227,7 @@ describe('Password Reset Flow', () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationExpires: null,
-          passwordResetToken: 'valid-token',
+          passwordResetToken: hashToken('valid-token'),
           passwordResetExpires: futureDate,
           preferredCurrency: 'USD',
           hasCompletedOnboarding: false,
@@ -273,6 +278,8 @@ describe('Password Reset Flow', () => {
     describe('error cases', () => {
       it('returns 401 for invalid token', async () => {
         vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
+        // Second call (plaintext fallback) also returns null
+        vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
 
         const response = await resetPasswordPost(
           buildRequest({
@@ -296,7 +303,7 @@ describe('Password Reset Flow', () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationExpires: null,
-          passwordResetToken: 'expired-token',
+          passwordResetToken: hashToken('expired-token'),
           passwordResetExpires: pastDate,
           preferredCurrency: 'USD',
           hasCompletedOnboarding: false,
